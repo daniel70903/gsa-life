@@ -1,296 +1,149 @@
 'use strict';
 const assert = require('node:assert/strict');
 const E = require('../dist/engine.js');
-const fixtures = require('./v1-save-fixtures.json');
-const copy = value => JSON.parse(JSON.stringify(value));
-const counters = { fullRuns: 0, checks: 0 };
-function check(condition, message) { counters.checks++; assert.ok(condition, message); }
-function enrolled(seed = 1, activity = 'none') {
-  const s = E.create('테스트 학생', seed);
-  E.setClubs(s, 'physics', activity);
-  return s;
+const old1 = require('./v1-save-fixtures.json');
+const old2 = require('./v2-save-fixtures.json');
+const copy = x => JSON.parse(JSON.stringify(x));
+const counters = {fullRuns:0, checks:0, events:0,dailyEvents:0};
+function check(v,m){counters.checks++;assert.ok(v,m);}
+function fresh(seed=1){const s=E.create('시뮬레이션 검증',seed);E.setClubs(s,'physics','none');return s;}
+function visibleText(value){
+ const fields=new Set(['title','description','label','message','reason','effectsText']);
+ const out=[];function walk(v){if(Array.isArray(v))return v.forEach(walk);if(v&&typeof v==='object')for(const [k,x]of Object.entries(v)){if(fields.has(k)&&typeof x==='string')out.push(x);else if(typeof x==='object')walk(x);}}walk(value);return out.join('\n');
 }
-function resolve(s, chooser = () => 0) {
-  let safety = 0;
-  while (s.pendingEvent) {
-    assert.ok(++safety < 12, 'An event chain must terminate');
-    const choice = chooser(s.pendingEvent, s);
-    E.chooseEvent(s, choice);
-  }
-}
-function beforeAdvance(s, chooser) {
-  resolve(s, chooser);
-  if (E.getPhase(s).needsElectives) E.chooseElectives(s, ['advanced_physics', 'advanced_math']);
-}
-function toTurn(s, turn, strategy = () => ['rest', 'study', 'research', 'academic'][s.turn % 4]) {
-  while (s.turn < turn) { beforeAdvance(s); E.advance(s, strategy(s), 'normal'); }
-  return s;
-}
-function normalStats(s) {
-  for (const [key, value] of Object.entries(s.stats)) {
-    check(Number.isFinite(value) && value >= 0 && value <= 100, `Bounded finite stat ${key}`);
-  }
-  assert.ok(Math.abs(s.stats.health + s.stats.fatigue - 100) < .11, 'Legacy health and fatigue remain complementary');
+function noLeak(s){const text=visibleText([s.pendingEvent,s.eventQueue,s.log,s.admissions]);check(!/(가산점|보너스|%p|운동부.{0,20}확률.{0,8}(상승|높|증가)|메달.{0,20}(합격 확률|선발 확률))/.test(text),'Hidden sports/medal modifiers must not appear in player-facing prose');}
+function resolve(s,chooser=()=>0){let n=0;while(s.pendingEvent&&s.alive){check(++n<60,'Finite event queue');noLeak(s);if(s.pendingEvent.id.startsWith('daily_')){counters.dailyEvents++;if(s.pendingEvent.context==='sports')assert.ok(s.sportsClubs.length,'Team event requires membership');if(s.pendingEvent.context==='research')assert.ok(s.turn>=8,'Research events follow the first semester');}const index=chooser(s.pendingEvent,s);const restored=copy(s);E.chooseEvent(s,index);E.chooseEvent(restored,index);assert.deepEqual(restored,s,'JSON save preserves pending event resolution');counters.events++;}return s;}
+function ready(s){resolve(s);if(!s.alive)return;if(E.getPhase(s).needsElectives)E.chooseElectives(s,['advanced_physics','advanced_math']);if(E.getPhase(s).needsApplications)E.applyUniversities(s,['kaist','gist','dgist']);resolve(s);}
+function safeAction(s){if(s.stats.fatigue>43||s.stats.stress>50||s.illnessWeeks)return 'rest';if(s.turn>=16&&s.toeic.best<730)return s.turn%2?'toeic':'english';return ['study','research','friends','academic'][s.turn%4];}
+function toTurn(s,target){let guard=0;while(s.turn<target&&s.alive){check(++guard<65,'Progress makes turns');ready(s);if(!s.alive)break;E.advance(s,safeAction(s),'normal');}assert.equal(s.turn,target,'Safe strategy reaches requested turn');return s;}
+function seek(s,id){let n=0;while(s.pendingEvent&&s.pendingEvent.id!==id&&s.alive){assert.ok(++n<40,'Scheduled event remains reachable');E.chooseEvent(s,0);}assert.equal(s.pendingEvent?.id,id);return s.pendingEvent;}
+function bounds(s){for(const [k,v]of Object.entries(s.stats)){check(Number.isFinite(v)&&v>=0&&v<=(['fatigue','stress'].includes(k)?120:100),`Valid ${k}`);}assert.ok(s.sportsClubs.length<=2);assert.equal(new Set(s.sportsClubs).size,s.sportsClubs.length);}
+
+// Versioning, eight character traits and seeded starts remain intact.
+assert.equal(E.archetypes.length,6);
+const seen=new Set();for(let seed=0;seed<180;seed++){const s=E.create('학생',seed);assert.equal(s.version,3);seen.add(s.archetype);assert.deepEqual(E.create('학생',seed),s);for(const k of ['intelligence','social','athletics','discipline','luck','creativity','resilience','leadership'])check(Number.isFinite(s.stats[k]),k);bounds(s);}assert.equal(seen.size,6);
+const start=fresh(41);assert.equal(start.pendingEvent.id,'sports_tryout');assert.equal(start.sportsClubs.length,0);assert.throws(()=>E.advance(start,'study'));
+const athletic=copy(start), weak=copy(start);athletic.stats.athletics=90;weak.stats.athletics=10;check(E.getSportsChance(athletic,'basketball')>E.getSportsChance(weak,'basketball'),'Athletics affect tryouts');
+resolve(start);noLeak(start);
+
+// Each exam has two weeks of night study and one week of early-morning study.
+const calendar=fresh(21);resolve(calendar);for(let week=1;week<=8;week++){const s=copy(calendar);s.turn=week-1;const p=E.getPhase(s);assert.equal(p.nightAvailable,[2,3,4,6,7,8].includes(week));assert.equal(p.dawnAvailable,[3,4,7,8].includes(week));if(!p.nightAvailable)assert.throws(()=>E.advance(s,'rest','night'));if(!p.dawnAvailable)assert.throws(()=>E.advance(s,'rest','dawn'));}
+
+// First-year end now holds the captain choice before the second team opportunity.
+const captain=fresh(3);captain.stats.athletics=95;captain.stats.luck=95;E.chooseEvent(captain,0);toTurn(captain,16);
+seek(captain,'club_captain');const teamBefore=copy(captain.sportsClubs);check(captain.pendingEvent.choices.some(c=>c.label.includes('물리')),'Actual academic club can be captained');noLeak(captain);E.chooseEvent(captain,0);seek(captain,'sports_tryout');for(const id of teamBefore)check(!captain.pendingEvent.choices.some(c=>c.sportsId===id),'No duplicate team option');resolve(captain);assert.equal(captain.sportsTryouts.length,2);assert.ok(captain.sportsClubs.length<=2);
+const at29=toTurn(fresh(12),29);check(at29.pendingEvent?.id!=='club_captain'&&!at29.eventQueue?.some(e=>e.id==='club_captain'),'Old second-year captain timing is removed');
+
+// President/vice-president take questions from students; department officers still interview.
+const names=['문예부','체육부','통계부','환경부','홍보부','총무부','정책부','생체부','정보부'];assert.deepEqual(E.departments.map(d=>d.name).sort(),names.sort());
+for(const [turn,executive,department]of [[8,'부회장','차장'],[24,'회장','부장']]){
+ const base=toTurn(fresh(100+turn),turn);seek(base,'council_apply');const offered=visibleText(base.pendingEvent);check(offered.includes(executive)&&offered.includes('체육부 '+department),'Year-specific eligible positions');
+ const leader=copy(base);E.chooseEvent(leader,0);check(!leader.pendingEvent.title.includes('면접'),'Executive round is not an interview');check(/학생|질문|공개|질의/.test(visibleText(leader.pendingEvent)),'Students publicly question executive candidates');
+ const resumed=copy(leader);E.chooseEvent(leader,0);E.chooseEvent(resumed,0);assert.deepEqual(leader,resumed,'Public Q&A stage is saveable');E.chooseEvent(leader,0);check(leader.councilHistory.length>base.councilHistory.length,'Q&A produces election outcome');
+ const officer=copy(base);const i=officer.pendingEvent.choices.findIndex(c=>c.label.includes('체육부'));assert.ok(i>=0);E.chooseEvent(officer,i);check(officer.pendingEvent.title.includes('면접'),'Department applicants interview');E.chooseEvent(officer,0);E.chooseEvent(officer,0);check(officer.councilHistory.length>base.councilHistory.length,'Department interview completes');noLeak(leader);noLeak(officer);
 }
 
-// Random archetypes produce distinct starting distributions, with all new traits visible in state.
-assert.equal(E.archetypes.length, 6);
-const counts = new Map();
-for (let seed = 0; seed < 500; seed++) {
-  const s = E.create('성향 테스트', seed);
-  const type = typeof s.archetype === 'string' ? s.archetype : s.archetype?.id;
-  check(E.archetypes.some(t => t.id === type), 'A declared archetype is selected');
-  counts.set(type, (counts.get(type) || 0) + 1);
-  for (const stat of ['intelligence', 'social', 'athletics', 'discipline', 'luck', 'creativity', 'resilience', 'leadership']) {
-    check(Number.isFinite(s.stats[stat]), `Initial ${stat} exists`);
-  }
-  normalStats(s);
-  assert.deepEqual(E.create('성향 테스트', seed), s, 'Initial random type and stats are seeded');
+// Membership and medals still affect selection internally, but no UI-facing formulas leak.
+const base=copy(start);base.turn=8;base.pendingEvent=null;base.eventQueue=[];base.sportsClubs=[];base.awards=[];for(const k of ['social','leadership','discipline','luck'])base.stats[k]=25;
+const member=copy(base);member.sportsClubs=['basketball'];check(E.getCaptainChance(member)>E.getCaptainChance(base),'Sports still influence captain outcome');check(E.getCouncilChance(member,'vicePresident',0)>E.getCouncilChance(base,'vicePresident',0),'Sports still influence election outcome');
+const medal=copy(base);medal.awards=[{kind:'sports',name:'교육감배 동메달',year:1,turn:8}];check(E.getCouncilChance(medal,'vicePresident',0)>E.getCouncilChance(base,'vicePresident',0),'Medal influences school selection');check(E.getCaptainChance(medal)>E.getCaptainChance(base),'Medal influences captain selection');
+
+// School representation requires membership, training participation and athletic skill.
+const tournament = fresh(77);
+tournament.stats.athletics = 95; tournament.stats.luck = 95;
+resolve(tournament);
+assert.ok(tournament.sportsClubs.length, 'A successful tryout opens the team route');
+E.advance(tournament, 'sports'); resolve(tournament);
+E.advance(tournament, 'sports'); resolve(tournament);
+toTurn(tournament, 8); seek(tournament, 'sports_tournament');
+check(tournament.pendingEvent.choices.some(c => c.participateTournament), 'Trained athletes may represent the school after the first semester');
+for (const change of [{sportsClubs:[]}, {sportsWeeks:0}, {stats:{...tournament.stats, athletics:20}}]) {
+ const ineligible = Object.assign(copy(tournament), change);
+ check(!E.getTournamentEligibility(ineligible), 'Membership, participation and skill each matter');
 }
-assert.equal(counts.size, 6, 'All six types can be rolled');
-
-// First-week team admission is a trial, not an automatic club assignment.
-const first = enrolled(10);
-assert.equal(first.turn, 0);
-assert.equal(first.pendingEvent.id, 'sports_tryout');
-assert.equal(first.sportsClubs.length, 0);
-assert.equal(first.pendingEvent.choices.length, 2);
-check(first.pendingEvent.choices.some(c => c.label.includes('농구')), 'Basketball trial offered');
-check(first.pendingEvent.choices.some(c => c.label.includes('축구')), 'Soccer trial offered');
-assert.throws(() => E.advance(first, 'study'), 'Cannot skip trial decision');
-assert.throws(() => E.setClubs(first, 'physics', 'basketball'), 'Sports cannot be joined via setup menu');
-const low = copy(first), high = copy(first);
-low.stats.athletics = 20; high.stats.athletics = 90;
-for (const team of ['basketball', 'soccer']) {
-  check(E.getSportsChance(high, team) > E.getSportsChance(low, team), 'Athletic skill improves trials');
-  const luckLow = copy(first), luckHigh = copy(first);
-  luckLow.stats.luck = 10; luckHigh.stats.luck = 90;
-  check(E.getSportsChance(luckHigh, team) > E.getSportsChance(luckLow, team), 'Luck affects trials');
+let medals = 0;
+for (let seed = 0; seed < 1000; seed++) {
+ const s = copy(tournament); s.rng = seed;
+ E.chooseEvent(s, 0);
+ const record = s.tournamentHistory.at(-1);
+ assert.equal(record.year, 1); assert.equal(record.participated, true);
+ if (record.medal) {
+  medals++;
+  assert.ok(s.awards.some(a => a.kind === 'sports'), 'Medal is recorded as a sports achievement');
+  noLeak(s);
+ }
 }
-E.chooseEvent(first, 0);
-assert.equal(first.sportsTryouts.length, 1);
-assert.ok(first.sportsClubs.length <= 1);
-assert.equal(first.pendingEvent, null);
-assert.throws(() => E.chooseEvent(first, 1), 'A completed trial cannot be retried');
+check(medals >= 70 && medals <= 130, `Medal chance stays around 10%: ${medals}/1000`);
+counters.medalSamples = 1000; counters.medals = medals;
 
-// Exactly one additional team opportunity opens after a full year.
-let dual;
-for (let seed = 0; seed < 100; seed++) {
-  const s = enrolled(seed);
-  s.stats.athletics = 100; s.stats.luck = 100;
-  E.chooseEvent(s, 0);
-  if (!s.sportsClubs.includes('basketball')) continue;
-  toTurn(s, 16);
-  assert.equal(E.getPhase(s).year, 2);
-  assert.equal(E.getPhase(s).semester, 1);
-  assert.equal(s.pendingEvent.id, 'sports_tryout');
-  check(!s.pendingEvent.choices.some(c => c.label.includes('농구')), 'Already joined team excluded');
-  const soccer = s.pendingEvent.choices.findIndex(c => c.label.includes('축구'));
-  assert.ok(soccer >= 0);
-  E.chooseEvent(s, soccer);
-  if (s.sportsClubs.length === 2) { dual = s; break; }
+// Emergency thresholds are evaluated before academic-break recovery can hide the crossing.
+const emergencyBase=toTurn(fresh(101),7);ready(emergencyBase);emergencyBase.stats.fatigue=99;emergencyBase.stats.health=1;emergencyBase.stats.stress=20;E.advance(emergencyBase,'study');check(emergencyBase.pendingEvent&&/응급|병원/.test(visibleText(emergencyBase.pendingEvent)),'Fatigue overflow triggers immediate emergency');check(emergencyBase.emergency.fatigue>100,'Emergency history records the threshold crossing before vacation recovery');const overflow=fresh(102);resolve(overflow);overflow.stats.fatigue=99;overflow.stats.stress=10;E.advance(overflow,'study');check(overflow.stats.fatigue>100,'Fatigue can cross previous 100-point clamp');
+const luckLow=copy(emergencyBase),luckHigh=copy(emergencyBase);luckLow.stats.luck=0;luckHigh.stats.luck=100;check(E.getEmergencySurvivalChance(luckHigh)>E.getEmergencySurvivalChance(luckLow),'Luck improves survival');
+let dead,survived;for(let seed=1;seed<300&&(!dead||!survived);seed++){const s=copy(emergencyBase);s.rng=seed;E.chooseEvent(s,0);if(s.alive)survived=s;else dead=s;}
+assert.ok(dead&&survived,'Both survival and non-graphic death endings are possible');assert.equal(dead.ending,'death');assert.equal(dead.pendingEvent,null);assert.equal(dead.eventQueue.length,0);assert.throws(()=>E.advance(dead,'rest'));assert.throws(()=>E.applyUniversities(dead,['gist']));assert.throws(()=>E.takeToeic(dead));check(survived.stats.fatigue<60&&survived.stats.stress<60,'Survivor is stabilized');check(survived.hospitalizations.length>=1,'Hospital experience is recorded');
+for(const [f,t]of [[10,99],[90,90]]){const s=fresh(52);resolve(s);s.stats.fatigue=f;s.stats.stress=t;s.stats.health=Math.max(0,100-f);E.advance(s,'study');check(/응급|병원/.test(visibleText(s.pendingEvent)),'Stress overflow and combined fatigue/stress can trigger emergency');}
+
+// Difficult dorm relationships reduce real study efficiency and can be repaired.
+const dorm=fresh(30);resolve(dorm);const isolated=copy(dorm),connected=copy(dorm);isolated.stats.social=5;isolated.dormHarmony=10;connected.stats.social=90;connected.dormHarmony=90;
+check(E.getDormStatus(isolated).efficiency<E.getDormStatus(connected).efficiency,'Low harmony reduces dorm efficiency');const a=copy(isolated),b=copy(connected);E.advance(a,'study');E.advance(b,'study');check(a.semesterLearning.math<b.semesterLearning.math,'Dorm conflict reduces actual learning');const friend=copy(isolated);E.advance(friend,'friends');check(friend.dormHarmony>isolated.dormHarmony,'Friend time improves dorm relationships');
+
+// Science olympiad eligibility/reward grows with intelligence; awards strongly aid IST in this fictional model.
+const genius=copy(base),novice=copy(base);genius.stats.intelligence=95;novice.stats.intelligence=20;check(E.getOlympiadChance(genius)>E.getOlympiadChance(novice),'Intelligence affects olympiad success');
+assert.ok(E.universities.some(u=>u.id==='dgist'),'DGIST belongs to the IST options');
+const applicant=toTurn(fresh(44),32);ready(applicant);const ordinary=copy(applicant),winner=copy(applicant);ordinary.awards=[];winner.awards=[{kind:'olympiad',name:'물리 올림피아드 금상',year:2,turn:28}];
+for(const id of ['kaist','gist','unist','dgist']){const low=E.getAdmissionChance(ordinary,id,0),high=E.getAdmissionChance(winner,id,0);check(high>=0.9&&high<1,'Olympiad award makes IST likely but not guaranteed');check(high>low,'IST award materially improves admission chance');}
+
+// Olympiad awards arise from the actual choice, and low-intelligence pupils can prepare first.
+const olympiad = toTurn(fresh(401), 11); ready(olympiad);
+const learner = copy(olympiad); learner.stats.intelligence = 20;
+E.advance(learner, 'rest'); seek(learner, 'olympiad');
+check(!learner.pendingEvent.choices.some(c => c.participateOlympiad), 'Beginner receives preparation choices');
+olympiad.stats.intelligence = 95; E.advance(olympiad, 'rest'); seek(olympiad, 'olympiad');
+check(olympiad.pendingEvent.choices.some(c => c.participateOlympiad), 'Intelligent student can enter the Olympiad');
+let actualWinner;
+for (let seed = 0; seed < 30 && !actualWinner; seed++) {
+ const s = copy(olympiad); s.rng = seed; E.chooseEvent(s, 0);
+ if (s.awards.some(a => a.kind === 'olympiad')) actualWinner = s;
 }
-assert.ok(dual, 'Both sports can be joined after the second trial');
-assert.equal(new Set(dual.sportsClubs).size, 2);
-assert.equal(dual.sportsTryouts.length, 2);
-const skip = enrolled(5); E.chooseEvent(skip, 0); toTurn(skip, 16);
-const membership = copy(skip.sportsClubs);
-E.chooseEvent(skip, skip.pendingEvent.choices.length - 1);
-assert.deepEqual(skip.sportsClubs, membership, 'Skipping additional trial preserves teams');
+assert.ok(actualWinner, 'Olympiad entry can produce a persistent award');
+assert.ok(actualWinner.olympiadHistory.at(-1).won);
 
-// Athletic clubs increase both student-council and club-captain chances.
-const ordinary = copy(first); ordinary.sportsClubs = [];
-const athlete = copy(ordinary); athlete.sportsClubs = ['basketball'];
-const doubleAthlete = copy(ordinary); doubleAthlete.sportsClubs = ['basketball', 'soccer'];
-check(E.getLeadershipBonus(athlete) > E.getLeadershipBonus(ordinary), 'One sports club improves leadership selection');
-check(E.getLeadershipBonus(doubleAthlete) >= E.getLeadershipBonus(athlete), 'Second team does not remove benefit');
-check(E.getCaptainChance(athlete) > E.getCaptainChance(ordinary), 'Sports member has a captain bonus');
+// TOEIC attempts are real graduation gates, have valid scores, and can be retried after a delay.
+const exam=toTurn(fresh(14),18);ready(exam);const smart=copy(exam),unprepared=copy(exam);smart.stats.intelligence=95;smart.stats.luck=95;unprepared.stats.intelligence=5;unprepared.stats.luck=5;E.advance(smart,'toeic');E.advance(unprepared,'toeic');check(smart.toeic.attempts.at(-1).score>unprepared.toeic.attempts.at(-1).score,'Intelligence and luck improve TOEIC score under same random draw');
+for(const s of [smart,unprepared]){const score=s.toeic.attempts.at(-1).score;check(score>=10&&score<=990&&score%5===0,'TOEIC score range and increments');}
 
-// Department options and eligible titles match the school-year rules, before two interview questions.
-const departmentNames = ['문예부', '체육부', '통계부', '환경부', '홍보부', '총무부', '정책부', '생체부', '정보부'];
-assert.deepEqual(E.departments.map(d => typeof d === 'string' ? d : d.name).sort(), [...departmentNames].sort());
-for (const [turn,year,head,deptTitle] of [[8,1,'부회장','차장'], [24,2,'회장','부장']]) {
-  const s = enrolled(81 + year); toTurn(s, turn);
-  assert.equal(E.getPhase(s).semester, 2);
-  assert.equal(s.pendingEvent.id, 'council_apply');
-  assert.equal(s.pendingEvent.choices.length, 11, 'One executive role, nine departments, skip');
-  check(s.pendingEvent.choices.some(c => c.label.includes(head)), `${year}학년 executive role`);
-  for (const dept of departmentNames) check(s.pendingEvent.choices.some(c => c.label.includes(dept) && c.label.includes(deptTitle)), `${dept} ${deptTitle} offered`);
-  if (year === 1) check(s.pendingEvent.choices.every(c => !/(^|\s)회장/.test(c.label) && !c.label.includes('부장')), 'First years cannot apply for president/head');
-  else check(s.pendingEvent.choices.every(c => !c.label.includes('부회장') && !c.label.includes('차장')), 'Second years receive senior titles');
-  const prior = s.councilHistory.length;
-  E.chooseEvent(s, 0);
-  assert.equal(s.pendingEvent.id, 'council_interview');
-  assert.equal(s.councilHistory.length, prior, 'Application alone does not select officer');
-  const snapshot = copy(s);
-  E.chooseEvent(s, 0); E.chooseEvent(snapshot, 0);
-  assert.equal(s.pendingEvent.id, 'council_interview');
-  assert.equal(s.councilHistory.length, prior, 'First interview answer is not full interview');
-  E.chooseEvent(s, 0); E.chooseEvent(snapshot, 0);
-  assert.equal(s.pendingEvent, null);
-  assert.equal(s.councilHistory.length, prior + 1);
-  assert.deepEqual(s, snapshot, 'Saving during an interview cannot change its outcome');
-  const outcome = s.councilHistory.at(-1);
-  assert.equal(outcome.year, year);
-  assert.equal(outcome.answers.length, 2);
-  assert.ok(outcome.chance >= 0 && outcome.chance <= 1);
+// 3rd-year first semester applications, interviews and results precede graduation.
+const admissions=toTurn(fresh(6),32);resolve(admissions);assert.ok(E.getPhase(admissions).needsApplications);assert.throws(()=>E.advance(admissions,'study'),'Cannot silently skip applications window');assert.throws(()=>E.applyUniversities(admissions,['gist','gist']));E.applyUniversities(admissions,['kaist','gist','dgist']);assert.deepEqual(admissions.applications,['kaist','gist','dgist']);assert.equal(admissions.admissionStage,'applied');const recorded=copy(admissions.applications);try{E.applyUniversities(admissions,['seoul']);}catch(e){}assert.deepEqual(admissions.applications,recorded,'No application reroll');
+toTurn(admissions,36);resolve(admissions);assert.equal(admissions.universityInterviews.length,3,'Each selected university receives an interview');check(admissions.universityInterviews.every(i=>i.answers.length===3),'Research/reasoning/personal interview sequence');toTurn(admissions,39);resolve(admissions);assert.equal(admissions.admissionStage,'results');assert.equal(admissions.admissions.length,3);check(!admissions.admissions.some(r=>r.id==='new_path'),'No invented guaranteed university offer');
+const delayed=copy(admissions);toTurn(delayed,47);ready(delayed);delayed.toeic.best=725;E.advance(delayed,'rest');resolve(delayed);assert.equal(delayed.ending,'deferred','TOEIC below 730 blocks graduation');const bestBefore=delayed.toeic.best;let attempts=0;while(delayed.ending==='deferred'&&delayed.alive&&attempts++<30){if(delayed.pendingEvent){resolve(delayed);continue;}E.prepareToeic(delayed);E.takeToeic(delayed);resolve(delayed);}assert.ok(delayed.alive,'Safe postgraduate preparation does not force death');assert.equal(delayed.ending,'graduated');check(delayed.toeic.best>=730,'Retake can satisfy graduation condition');check(delayed.extraWeeks>0,'Deferred graduation records extra time');check(delayed.toeic.best>=bestBefore,'Best TOEIC score is retained');
+const boundary=copy(admissions);toTurn(boundary,47);ready(boundary);boundary.toeic.best=730;E.advance(boundary,'rest');resolve(boundary);assert.equal(boundary.ending,'graduated','Exactly 730 is sufficient');
+
+// Graduation remains reachable through preparation even for very weak starting ability.
+const struggling = copy(delayed); struggling.ending = 'deferred';
+struggling.toeic = {best:0, attempts:[], practice:0};
+for (const key of Object.keys(struggling.stats)) struggling.stats[key] = 0;
+const transcriptBeforeRetakes = copy(struggling.grades);
+for (let attempt = 0; attempt < 40 && struggling.ending === 'deferred'; attempt++) {
+ E.prepareToeic(struggling); E.takeToeic(struggling); resolve(struggling);
+}
+assert.equal(struggling.ending, 'graduated', 'Persistent preparation can overcome low intelligence and luck');
+assert.deepEqual(struggling.grades, transcriptBeforeRetakes, 'Retakes never repeat school semesters');
+
+// Legacy states retain progress and records while upgrading visible event/log descriptions.
+const fixtures=[...Object.entries(old1).map(([label,state])=>({label:'v1-'+label,state})),...old2];
+for(const fixture of fixtures){const before=copy(fixture.state),after=E.migrate(copy(before));assert.equal(after.version,3);assert.equal(after.turn,before.turn);assert.deepEqual(after.grades,before.grades,'Migration preserves transcript');if(before.admissions)assert.deepEqual(after.admissions.map(a=>[a.id,a.accepted]),before.admissions.filter(a=>a.id!=='new_path').map(a=>[a.id,a.accepted]),'Migration preserves actual university offers');assert.ok(Array.isArray(after.eventQueue));assert.ok(after.toeic&&Array.isArray(after.toeic.attempts));assert.ok(Number.isFinite(after.dormHarmony));noLeak(after);const twice=E.migrate(copy(after));assert.deepEqual(twice,after,'Migration is idempotent');}
+
+// Actual old saves can continue through new application, interview and graduation gates.
+for (const fixture of fixtures) {
+ const s = E.migrate(copy(fixture.state));
+ toTurn(s, 48); ready(s);
+ assert.ok(s.alive, `Legacy save ${fixture.label} can continue with a safe strategy`);
+ assert.equal(s.grades.length, 6, `Legacy save ${fixture.label} keeps exactly six terms`);
+ assert.equal(s.admissionStage, 'results');
+ assert.ok(['graduated', 'deferred'].includes(s.ending));
 }
 
-// Interview answers, department fit, and actual sports membership affect the selection formula.
-const interviewBase = enrolled(222); toTurn(interviewBase, 8);
-const nonMember = copy(interviewBase); nonMember.sportsClubs = [];
-const member = copy(nonMember); member.sportsClubs = ['basketball'];
-check(E.getCouncilChance(member, 'vicePresident', 8) > E.getCouncilChance(nonMember, 'vicePresident', 8), 'Sports bonus affects actual council formula');
-check(E.getCouncilChance(nonMember, 'vicePresident', 16) > E.getCouncilChance(nonMember, 'vicePresident', -4), 'Interview answer quality changes probability');
-const logical = copy(nonMember), artistic = copy(nonMember);
-logical.stats.intelligence = 90; logical.stats.creativity = 10;
-artistic.stats.intelligence = 10; artistic.stats.creativity = 90;
-check(E.getCouncilChance(logical, 'statistics') > E.getCouncilChance(artistic, 'statistics'), 'Statistics department evaluates intelligence');
-check(E.getCouncilChance(artistic, 'culture') > E.getCouncilChance(logical, 'culture'), 'Culture department evaluates creativity');
-for (let position = 1; position <= 9; position++) {
-  const s = copy(interviewBase); E.chooseEvent(s, position);
-  assert.equal(s.pendingEvent.id, 'council_interview');
-  const firstQuestion = s.pendingEvent.description;
-  assert.ok(firstQuestion.length > 20, 'Each department has a substantive interview case');
-  E.chooseEvent(s, 0); E.chooseEvent(s, 0);
-  assert.ok(s.councilHistory.at(-1).role.includes('차장'));
-}
-const goodAnswer = copy(interviewBase), poorAnswer = copy(interviewBase);
-E.chooseEvent(goodAnswer, 0); E.chooseEvent(poorAnswer, 0);
-E.chooseEvent(goodAnswer, 0); E.chooseEvent(poorAnswer, 2);
-E.chooseEvent(goodAnswer, 0); E.chooseEvent(poorAnswer, 2);
-check(goodAnswer.councilHistory.at(-1).chance > poorAnswer.councilHistory.at(-1).chance, 'Actual interview chain scores selected answers');
-
-// Preparation windows are relative to each exam, including their exam week.
-for (let turn = 0; turn < 48; turn++) {
-  const s = E.create('일정', 1); s.turn = turn;
-  const p = E.getPhase(s), week = turn % 8 + 1;
-  const night = [2,3,4,6,7,8].includes(week), dawn = [3,4,7,8].includes(week);
-  assert.equal(p.nightAvailable, night, `Night study at week ${week}`);
-  assert.equal(p.dawnAvailable, dawn, `Dawn study at week ${week}`);
-  assert.equal(p.availableStudyModes.includes('night'), night);
-  assert.equal(p.availableStudyModes.includes('dawn'), dawn);
-  assert.equal(p.availableStudyModes.includes('both'), dawn && night);
-}
-const earlyMode = enrolled(91); resolve(earlyMode);
-assert.throws(() => E.advance(earlyMode, 'study', 'night'));
-assert.equal(earlyMode.turn, 0, 'Invalid study mode cannot consume a turn');
-E.advance(earlyMode, 'study', 'normal');
-assert.throws(() => E.advance(earlyMode, 'study', 'dawn'));
-const basic = copy(earlyMode), extended = copy(earlyMode);
-E.advance(basic, 'study', 'normal'); E.advance(extended, 'study', 'night');
-check(extended.stats.fatigue > basic.stats.fatigue, 'Night preparation adds fatigue');
-check(Object.values(extended.semesterLearning).reduce((a,b)=>a+b,0) > Object.values(basic.semesterLearning).reduce((a,b)=>a+b,0), 'Preparation before exam actually increases learning');
-
-// Fatigue increases sickness risk, and resting treats accumulated fatigue.
-const well = copy(first), tired = copy(first);
-well.stats.fatigue = 10; well.stats.health = 90;
-tired.stats.fatigue = 95; tired.stats.health = 5;
-check(E.getIllnessRisk(tired) > E.getIllnessRisk(well), 'Fatigue increases illness risk');
-let previous = -1;
-for(let fatigue = 0; fatigue <= 100; fatigue += 5) {
-  const s = copy(first); s.stats.fatigue = fatigue; s.stats.health = 100-fatigue;
-  const risk = E.getIllnessRisk(s);
-  check(risk >= previous && risk >= 0 && risk <= 1, 'Risk is monotonic and bounded'); previous = risk;
-}
-const recovery = copy(tired); recovery.illnessWeeks = 2;
-E.advance(recovery, 'rest', 'normal');
-check(recovery.stats.fatigue < tired.stats.fatigue, 'Rest lowers fatigue');
-check(recovery.illnessWeeks < 2, 'Rest advances recovery');
-let gotSick = false;
-for(let seed=0; seed<100 && !gotSick; seed++) {
-  const s = enrolled(seed); resolve(s); s.stats.fatigue = 98; s.stats.health = 2;
-  E.advance(s, 'study');
-  gotSick = s.illnessWeeks > 0 || s.log.some(l => /몸살|아프|발병|건강|회복|아팠/.test(l.message));
-}
-check(gotSick, 'High fatigue can produce an actual illness event');
-
-// New traits change activities, and illness has an observable cost during play.
-const healthyStudy = copy(first), sickStudy = copy(first);
-healthyStudy.illnessWeeks = 0; sickStudy.illnessWeeks = 1;
-E.advance(healthyStudy, 'study'); E.advance(sickStudy, 'study');
-check(sickStudy.semesterLearning.math < healthyStudy.semesterLearning.math, 'Sickness reduces actual learning gain');
-const creative = copy(first), literal = copy(first);
-creative.stats.creativity = 95; literal.stats.creativity = 5;
-E.advance(creative, 'research'); E.advance(literal, 'research');
-check(creative.stats.research > literal.stats.research, 'Creativity affects research improvement');
-const resilient = copy(tired), fragile = copy(tired);
-resilient.stats.resilience = 95; fragile.stats.resilience = 5;
-check(E.getIllnessRisk(resilient) < E.getIllnessRisk(fragile), 'Resilience reduces illness risk');
-E.advance(resilient, 'rest'); E.advance(fragile, 'rest');
-check(resilient.stats.fatigue < fragile.stats.fatigue, 'Resilience affects rest recovery');
-const unjoined = copy(first); unjoined.sportsClubs = [];
-assert.throws(() => E.advance(unjoined, 'sports'), 'Team training is unavailable before admission');
-
-// Existing saves retain identity, progress, grades, RNG, and previously joined sports.
-for (const [label, original] of Object.entries(fixtures)) {
-  const old = copy(original), migrated = E.migrate(old);
-  assert.equal(migrated.version, 2, `Migrated ${label}`);
-  assert.equal(migrated.name, original.name);
-  assert.equal(migrated.turn, original.turn);
-  assert.equal(migrated.rng, original.rng, 'Migration cannot reroll randomness');
-  assert.deepEqual(migrated.grades, original.grades, 'Old transcript stays intact');
-  assert.deepEqual(migrated.electives, original.electives);
-  check(migrated.sportsClubs.includes('basketball'), 'Previously joined basketball remains');
-  normalStats(migrated);
-  assert.deepEqual(E.migrate(copy(migrated)), migrated, 'Migration is idempotent');
-  if (migrated.turn < 48) { beforeAdvance(migrated); E.advance(migrated, 'rest'); assert.equal(migrated.turn, original.turn + 1); }
-  else assert.ok(E.applyUniversities(migrated, ['gist']).length > 0);
-}
-
-// Annual second-semester renewals end earlier terms without erasing experience.
-const termChange = enrolled(313); toTurn(termChange, 23); beforeAdvance(termChange);
-termChange.councilRole = '체육부 차장';
-termChange.councilHistory = [{year:1, role:'체육부 차장', department:'sports', passed:true, chance:.7, answers:['응답1','응답2']}];
-E.advance(termChange, 'rest');
-assert.equal(termChange.turn, 24);
-assert.equal(termChange.councilRole, '일반 학생', 'First-year officer term ends when second-year recruitment begins');
-assert.ok(termChange.councilHistory.some(h=>h.passed && h.role==='체육부 차장'));
-E.chooseEvent(termChange, termChange.pendingEvent.choices.length-1);
-assert.equal(termChange.councilRole, '일반 학생', 'Skipping a new election does not retain old rank');
-toTurn(termChange, 39); beforeAdvance(termChange);
-termChange.councilRole = '학생회 회장';
-termChange.councilHistory.push({year:2,role:'학생회 회장',department:null,passed:true,chance:.7,answers:['응답1','응답2']});
-E.advance(termChange,'rest');
-assert.equal(termChange.turn,40);
-assert.equal(termChange.councilRole,'일반 학생','Second-year officer term ends at third-year second semester');
-assert.equal(termChange.pendingEvent,null,'Third-year students are not offered ineligible council positions');
-toTurn(termChange,48);
-const formerOfficer = copy(termChange), neverOfficer = copy(termChange);
-neverOfficer.councilHistory = [];
-const formerResults = E.applyUniversities(formerOfficer,['gist']), neverResults = E.applyUniversities(neverOfficer,['gist']);
-check(formerResults[0].score > neverResults[0].score, 'Historical officer service retains the admission bonus after term expiry');
-const legacyOfficer = copy(fixtures.graduate); legacyOfficer.councilRole = '학생회 임원';
-const migratedOfficer = E.migrate(legacyOfficer);
-assert.equal(migratedOfficer.councilRole,'일반 학생');
-check(migratedOfficer.councilHistory.some(h=>h.passed&&h.role==='학생회 임원'), 'Graduated v1 officer experience is archived');
-
-// Complete games exercise all event chains and remain reproducible after JSON saves.
-function fullRun(seed) {
-  const s = enrolled(seed, ['none','music','media'][seed % 3]);
-  while(s.turn < 48) {
-    beforeAdvance(s);
-    const p = E.getPhase(s);
-    const action = s.stats.fatigue > 55 || s.illnessWeeks ? 'rest' : E.actions[(seed+s.turn)%E.actions.length].id;
-    const permittedAction = action === 'sports' && !s.sportsClubs.length ? 'train' : action;
-    const mode = s.stats.fatigue < 35 && p.nightAvailable ? (p.dawnAvailable && seed%2 ? 'both' : 'night') : 'normal';
-    const saved = copy(s);
-    E.advance(s, permittedAction, mode); E.advance(saved, permittedAction, mode);
-    assert.deepEqual(s, saved, 'JSON restore preserves subsequent progression');
-    normalStats(s);
-    assert.ok(s.sportsClubs.length <= 2);
-    assert.equal(new Set(s.sportsClubs).size, s.sportsClubs.length);
-  }
-  assert.equal(s.grades.length, 6);
-  assert.equal(E.getProfile(s).attemptedCredits, 120);
-  for(const g of s.grades) check(g.gpa >= 0 && g.gpa <= 4.3, 'Valid semester GPA');
-  assert.equal(s.councilHistory.length, 2, 'Two annual second-semester interviews');
-  const admissions = E.applyUniversities(s, ['seoul','kaist','gist']);
-  assert.ok(admissions.some(a => a.id === 'new_path' && a.accepted));
-  assert.deepEqual(E.applyUniversities(s, ['chonnam']), admissions, 'Applications cannot reroll');
-  assert.throws(() => E.advance(s, 'study'));
-  counters.fullRuns++;
-  return s;
-}
-for(let seed=0;seed<60;seed++) assert.deepEqual(fullRun(seed), fullRun(seed), 'Whole life is deterministic');
-console.log(JSON.stringify({result:'pass', ...counters, archetypeCounts:Object.fromEntries(counts), coverage:['types','sports','council interviews','captain bonus','study windows','illness','v1 migration','deterministic saves','graduation']}));
+// Repeated complete lives exercise frequent events, deterministic saves and all semester transitions.
+function fullRun(seed){const s=fresh(seed),dailyBefore=counters.dailyEvents;let count=0;while(s.turn<48&&s.alive){const oldEvents=counters.events;ready(s);count+=counters.events-oldEvents;if(!s.alive)break;const action=safeAction(s),saved=copy(s);E.advance(s,action,'normal');E.advance(saved,action,'normal');assert.deepEqual(s,saved,'JSON save preserves following week');bounds(s);noLeak(s);}resolve(s);if(s.alive){assert.equal(s.grades.length,6);assert.equal(E.getProfile(s).attemptedCredits,120);assert.equal(s.councilHistory.length,2);assert.ok(['graduated','deferred'].includes(s.ending));if(s.ending==='graduated')assert.ok(s.toeic.best>=730);assert.equal(s.admissionStage,'results');assert.equal(s.universityInterviews.length,3);check(count>=20,'Many more weekly events than the old milestone-only game');check(counters.dailyEvents-dailyBefore>=15,'Ordinary daily choices recur throughout the three years');}else assert.equal(s.ending,'death');counters.fullRuns++;return s;}
+for(let seed=0;seed<40;seed++)assert.deepEqual(fullRun(seed),fullRun(seed),'Same life seed stays reproducible');
+console.log(JSON.stringify({result:'pass',...counters,coverage:['migration','hidden modifiers','emergency/death','tournament medals','captain timing','public Q&A','weekly events','dorm efficiency','olympiad/IST','TOEIC graduation','early university interviews']}));
