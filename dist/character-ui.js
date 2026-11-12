@@ -12,10 +12,10 @@
   function avatar(index, options = {}) {
     const checked = Number.isInteger(Number(index)) && Number(index) >= 0 && Number(index) < 8 ? Number(index) : 6;
     const size = ['tiny', 'small', 'normal'].includes(options.size) ? options.size : 'normal';
-    const mood = ['idle', 'study', 'sports'].includes(options.mood) ? options.mood : 'idle';
+    const mood = ['idle', 'study', 'sports', 'celebrate'].includes(options.mood) ? options.mood : 'idle';
     const label = options.label || '학생 캐릭터';
     const col = checked % 4, row = Math.floor(checked / 4);
-    return `<span class="gsa-person gsa-person--${size} gsa-person--${mood}" data-person-motion="off" role="img" aria-label="${escape(label)}"><span class="gsa-person-sprite" style="--person-x:${col / 3 * 100}%;--person-y:${row * 100}%" aria-hidden="true"></span></span>`;
+    return `<span class="gsa-person gsa-person--${size} gsa-person--${mood}" data-person-motion="off" data-person-index="${checked}" role="img" aria-label="${escape(label)}"><span class="gsa-person-sprite" style="--person-x:${col / 3 * 100}%;--person-y:${row * 100}%;--person-delay:${-(checked * 0.43 + 0.15).toFixed(2)}s" aria-hidden="true"></span></span>`;
   }
   function player(state, options = {}) {
     const mood = options.mood || (state?.focus === 'athletics' ? 'sports' : ['intelligence', 'discipline', 'research', 'english'].includes(state?.focus) ? 'study' : 'idle');
