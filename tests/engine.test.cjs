@@ -4,6 +4,7 @@ const E = require('../dist/engine.js');
 const old1 = require('./v1-save-fixtures.json');
 const old2 = require('./v2-save-fixtures.json');
 const old3 = require('./v3-save-fixtures.json');
+const old4 = require('./v4-save-fixtures.json');
 const copy = x => JSON.parse(JSON.stringify(x));
 const counters = {fullRuns:0, checks:0, events:0,dailyEvents:0};
 function check(v,m){counters.checks++;assert.ok(v,m);}
@@ -22,7 +23,7 @@ function bounds(s){for(const [k,v]of Object.entries(s.stats)){check(Number.isFin
 
 // Versioning, eight character traits and seeded starts remain intact.
 assert.equal(E.archetypes.length,6);
-const seen=new Set();for(let seed=0;seed<180;seed++){const s=E.create('학생',seed);assert.equal(s.version,4);seen.add(s.archetype);assert.deepEqual(E.create('학생',seed),s);for(const k of ['intelligence','social','athletics','discipline','luck','creativity','resilience','leadership'])check(Number.isFinite(s.stats[k]),k);bounds(s);}assert.equal(seen.size,6);
+const seen=new Set();for(let seed=0;seed<180;seed++){const s=E.create('학생',seed);assert.equal(s.version,5);seen.add(s.archetype);assert.deepEqual(E.create('학생',seed),s);for(const k of ['intelligence','social','athletics','discipline','luck','creativity','resilience','leadership'])check(Number.isFinite(s.stats[k]),k);bounds(s);}assert.equal(seen.size,6);
 const start=fresh(41);assert.equal(start.pendingEvent.id,'sports_tryout');assert.equal(start.sportsClubs.length,0);assert.throws(()=>E.advance(start,'study'));
 const athletic=copy(start), weak=copy(start);athletic.stats.athletics=90;weak.stats.athletics=10;check(E.getSportsChance(athletic,'basketball')>E.getSportsChance(weak,'basketball'),'Athletics affect tryouts');
 resolve(start);noLeak(start);
@@ -57,14 +58,33 @@ assert.ok(tournament.sportsClubs.length, 'A successful tryout opens the team rou
 E.advance(tournament, 'sports'); resolve(tournament);
 E.advance(tournament, 'sports'); resolve(tournament);
 toTurn(tournament, 8); seek(tournament, 'sports_tournament');
-check(tournament.pendingEvent.choices.some(c => c.participateTournament), 'Trained athletes may represent the school after the first semester');
-for (const change of [{sportsClubs:[]}, {sportsWeeks:0}, {stats:{...tournament.stats, athletics:20}}]) {
+check(tournament.pendingEvent.choices.some(c => c.tournamentClub), 'Trained athletes may represent the school after the first semester');
+for (const change of [{sportsClubs:[]}, {sportsWeeks:0,clubWeeks:0}, {stats:{...tournament.stats, athletics:20}}]) {
  const ineligible = Object.assign(copy(tournament), change);
  check(!E.getTournamentEligibility(ineligible), 'Membership, participation and skill each matter');
 }
+const newerAthlete=copy(tournament);newerAthlete.stats.athletics=45;newerAthlete.sportsWeeks=1;newerAthlete.clubWeeks=0;check(E.getTournamentEligibility(newerAthlete),'Moderate skill and one team practice can unlock the tournament');
+// School representative selection precedes the four-stage tournament story.
+let selectedTournament, failedSelection;
+for (let seed=0; seed<80 && (!selectedTournament || !failedSelection); seed++) {
+ const attempt=copy(tournament); attempt.rng=seed; E.chooseEvent(attempt,0);
+ if(attempt.pendingEvent?.tournamentStep===0) selectedTournament=attempt;
+ else if(attempt.tournamentHistory.length) failedSelection=attempt;
+}
+assert.ok(selectedTournament && failedSelection,'School representative selection is fallible');
+assert.ok(!selectedTournament.tournamentHistory.some(h=>h.year===1),'Participation is not recorded before the tournament finishes');
+assert.ok(!selectedTournament.awards.some(a=>a.kind==='sports'),'Entering the story does not award a medal');
+for(let step=0;step<3;step++) {
+ assert.equal(selectedTournament.pendingEvent.tournamentStep,step);
+ const saved=E.migrate(copy(selectedTournament));
+ E.chooseEvent(selectedTournament,0); E.chooseEvent(saved,0);
+ assert.deepEqual(saved,selectedTournament,'Intermediate tournament stages survive reload');
+ assert.ok(!selectedTournament.awards.some(a=>a.kind==='sports'),'Medals wait until the final stage');
+}
+assert.equal(selectedTournament.pendingEvent.tournamentStep,3);
 let medals = 0;
 for (let seed = 0; seed < 1000; seed++) {
- const s = copy(tournament); s.rng = seed;
+ const s = copy(selectedTournament); s.rng = seed;
  E.chooseEvent(s, 0);
  const record = s.tournamentHistory.at(-1);
  assert.equal(record.year, 1); assert.equal(record.participated, true);
@@ -131,8 +151,8 @@ assert.equal(struggling.ending, 'graduated', 'Persistent preparation can overcom
 assert.deepEqual(struggling.grades, transcriptBeforeRetakes, 'Retakes never repeat school semesters');
 
 // Legacy states retain progress and records while upgrading visible event/log descriptions.
-const fixtures=[...Object.entries(old1).map(([label,state])=>({label:'v1-'+label,state})),...old2,...old3];
-for(const fixture of fixtures){const before=copy(fixture.state),after=E.migrate(copy(before));assert.equal(after.version,4);assert.equal(after.turn,before.turn);assert.deepEqual(after.grades,before.grades,'Migration preserves transcript');if(before.admissions)assert.deepEqual(after.admissions.map(a=>[a.id,a.accepted]),before.admissions.filter(a=>a.id!=='new_path').map(a=>[a.id,a.accepted]),'Migration preserves actual university offers');assert.ok(Array.isArray(after.eventQueue));assert.ok(after.toeic&&Array.isArray(after.toeic.attempts));assert.ok(Number.isFinite(after.dormHarmony));noLeak(after);const twice=E.migrate(copy(after));assert.deepEqual(twice,after,'Migration is idempotent');}
+const fixtures=[...Object.entries(old1).map(([label,state])=>({label:'v1-'+label,state})),...old2,...old3,...old4];
+for(const fixture of fixtures){const before=copy(fixture.state),after=E.migrate(copy(before));assert.equal(after.version,5);assert.equal(after.turn,before.turn);assert.deepEqual(after.grades,before.grades,'Migration preserves transcript');if(before.admissions)assert.deepEqual(after.admissions.map(a=>[a.id,a.accepted]),before.admissions.filter(a=>a.id!=='new_path').map(a=>[a.id,a.accepted]),'Migration preserves actual university offers');assert.ok(Array.isArray(after.eventQueue));assert.ok(after.toeic&&Array.isArray(after.toeic.attempts));assert.ok(Number.isFinite(after.dormHarmony));noLeak(after);const twice=E.migrate(copy(after));assert.deepEqual(twice,after,'Migration is idempotent');}
 
 // Actual old saves can continue through new application, interview and graduation gates.
 for (const fixture of fixtures) {
@@ -145,7 +165,8 @@ for (const fixture of fixtures) {
 }
 
 // Repeated complete lives exercise frequent events, deterministic saves and all semester transitions.
-function fullRun(seed){const s=fresh(seed),dailyBefore=counters.dailyEvents;let count=0;while(s.turn<48&&s.alive){const oldEvents=counters.events;ready(s);count+=counters.events-oldEvents;if(!s.alive)break;const action=safeAction(s),saved=copy(s);E.advance(s,action,'normal');E.advance(saved,action,'normal');assert.deepEqual(s,saved,'JSON save preserves following week');bounds(s);noLeak(s);}resolve(s);if(s.alive){assert.equal(s.grades.length,6);assert.equal(E.getProfile(s).attemptedCredits,120);assert.equal(s.councilHistory.length,2);assert.ok(['graduated','deferred'].includes(s.ending));if(s.ending==='graduated'){assert.ok(s.toeic.best>=730);assert.ok(E.getFieldStatus(s).total>=6);}assert.equal(s.admissionStage,'results');assert.equal(s.universityInterviews.length,3);check(count>=20,'Many more weekly events than the old milestone-only game');check(counters.dailyEvents-dailyBefore>=15,'Ordinary daily choices recur throughout the three years');}else assert.equal(s.ending,'death');counters.fullRuns++;return s;}
+function fullRun(seed){const s=fresh(seed),dailyBefore=counters.dailyEvents;let count=0;while(s.turn<48&&s.alive){const oldEvents=counters.events;ready(s);count+=counters.events-oldEvents;if(!s.alive)break;const focus=s.stats.fatigue>55||s.stats.stress>65||s.illnessWeeks?'recovery':s.turn>=8&&s.toeic.best<730?'english':['balanced','intelligence','social','athletics','discipline','research','leadership'][s.turn%7];const commitment=s.turn>=32&&E.getFieldStatus(s).canIndependent?'fieldresearch':s.turn>=8&&s.toeic.best<730&&s.toeic.practice>=5?'toeic':null;const saved=copy(s);E.simulateWeek(s,focus,'normal',commitment);E.simulateWeek(saved,focus,'normal',commitment);assert.deepEqual(s,saved,'JSON save preserves following week');bounds(s);noLeak(s);}resolve(s);if(s.alive){assert.equal(s.grades.length,6);assert.equal(E.getProfile(s).attemptedCredits,120);assert.equal(s.councilHistory.length,2);assert.ok(['graduated','deferred'].includes(s.ending));if(s.ending==='graduated'){assert.ok(s.toeic.best>=730);assert.ok(E.getFieldStatus(s).total>=6);}assert.equal(s.admissionStage,'results');assert.equal(s.universityInterviews.length,3);check(count>=20,'Many more weekly events than the old milestone-only game');check(counters.dailyEvents-dailyBefore>=15,'Ordinary daily choices recur throughout the three years');}else assert.equal(s.ending,'death');counters.fullRuns++;return s;}
 for(let seed=0;seed<30;seed++)assert.deepEqual(fullRun(seed),fullRun(seed),'Same life seed stays reproducible');
 require('./v4-features.cjs')({E,copy,check,fresh,resolve,ready,toTurn,seek,noLeak,counters,fixtures,dead});
+require('./v5-features.cjs')({E,copy,check,fresh,resolve,ready,toTurn,seek,noLeak,counters,fixtures,dead});
 console.log(JSON.stringify({result:'pass',...counters,coverage:['migration','hidden modifiers','emergency/death','tournament medals','captain timing','public Q&A','weekly events','dorm efficiency','olympiad/IST','TOEIC graduation','early university interviews','money/shop/rebound','hidden romance','dorm expulsion','field-credit graduation','cohort award quotas','national-team selection']}));

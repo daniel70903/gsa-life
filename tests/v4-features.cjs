@@ -42,11 +42,13 @@ module.exports = function verifyV4(ctx) {
   unchangedOnFailure(poor, () => E.advance(poor, 'delivery'), 'Cannot order delivery with insufficient funds');
   unchangedOnFailure(shopper, () => E.buyItem(shopper, 'not-an-item'), 'Unknown shop item');
   const initialBalance = shopper.money.balance;
-  E.buyItem(shopper, 'energy'); E.buyItem(shopper, 'energy');
-  assert.equal(shopper.money.balance, initialBalance - 2*energy.price);
+  E.buyItem(shopper, 'energy');
+  assert.equal(shopper.money.balance, initialBalance - energy.price);
+  unchangedOnFailure(shopper, () => E.buyItem(shopper, 'energy'), 'One of each item per week');
+  E.buyItem(shopper, 'snack'); E.buyItem(shopper, 'meal'); E.buyItem(shopper, 'milk');
   assert.ok(shopper.stats.fatigue < 60, 'Energy drink offers immediate fatigue relief');
   assert.ok(shopper.money.pendingRebound > 0, 'Temporary relief has a later fatigue cost');
-  unchangedOnFailure(shopper, () => E.buyItem(shopper, 'snack'), 'Two purchases per week');
+  unchangedOnFailure(shopper, () => E.buyItem(shopper, 'fruit'), 'Four purchases per week');
   const rebound = shopper.money.pendingRebound;
   E.advance(shopper, 'study'); resolve(shopper);
   const control = copy(shopper); control.money.pendingRebound = 0; control.money.reboundSchedule = []; control.money.reboundTurn = null;
@@ -73,10 +75,10 @@ module.exports = function verifyV4(ctx) {
       assert.ok(!/(여자|남자|여성|남성).{0,25}(유리|불리|확률|쉽|어렵)/.test(prose), 'Gender weights are never explained to the player');
     }
   }
-  assert.ok(femaleFriends > maleFriends, 'Gender weighting affects internal romance outcomes');
+  assert.equal(femaleFriends, maleFriends, 'The initial friendship stage does not use confession weighting');
   counters.romanceSamples = {maleFriends, femaleFriends, perGender:200};
 
-  // Only detected violations accumulate; two deliveries or five devices cause dorm expulsion.
+  // Only detected violations accumulate; two deliveries or four devices cause dorm expulsion.
   function nextViolation(state, action, mustCatch) {
     ready(state);
     const key = action === 'delivery' ? 'deliveryCaught' : 'electronicsCaught';
@@ -105,10 +107,10 @@ module.exports = function verifyV4(ctx) {
   resolve(boarder);
   unchangedOnFailure(boarder, () => E.advance(boarder, 'delivery'), 'Expelled student cannot order in dorm');
   let devices = fresh(913); resolve(devices);
-  for (let count=1; count<=5; count++) {
+  for (let count=1; count<=4; count++) {
     devices = nextViolation(devices, count%2 ? 'device_dorm' : 'device_study', true);
     assert.equal(devices.dorm.electronicsCaught, count, 'Both device locations share one counter');
-    assert.equal(devices.dorm.status, count===5 ? 'expelled' : 'resident');
+    assert.equal(devices.dorm.status, count===4 ? 'expelled' : 'resident');
   }
 
   // Scheduled school trips supply five credits; an independent activity supplies the sixth.
@@ -220,8 +222,8 @@ module.exports = function verifyV4(ctx) {
 
   // Extra weeks reset the shop limit, so a deferred graduate can still manage daily life.
   noEnglish.money.balance = Math.max(noEnglish.money.balance, 50000);
-  E.buyItem(noEnglish, 'snack'); E.buyItem(noEnglish, 'snack');
-  unchangedOnFailure(noEnglish, () => E.buyItem(noEnglish, 'snack'), 'Deferred week purchase limit');
+  E.buyItem(noEnglish, 'snack'); E.buyItem(noEnglish, 'meal'); E.buyItem(noEnglish, 'milk'); E.buyItem(noEnglish, 'fruit');
+  unchangedOnFailure(noEnglish, () => E.buyItem(noEnglish, 'tea'), 'Deferred week purchase limit');
   const extraBefore = noEnglish.extraWeeks;
   E.prepareToeic(noEnglish); resolve(noEnglish);
   assert.equal(noEnglish.extraWeeks, extraBefore+1);
