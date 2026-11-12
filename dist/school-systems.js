@@ -86,6 +86,23 @@
       if (member.id === 'player') return round(subject.score);
       return round(clamp(33 + member.stats.intelligence * 0.34 + member.stats.discipline * 0.28 + hash01(s.seed, `course:${term}:${subject.id}:${member.id}`) * 20, 0, 100));
     }
+    function getEnrollment(s, subject, term) {
+      const cohort = s.school?.cohort || init(s).school.cohort;
+      // Synthetic course rosters belong to this cohort, course, and semester.
+      // They use the fixed seed, so other random events and save reloads cannot reroll them.
+      const ranges = { specialist: [12, 40], liberal: [10, 30], design: [6, 18] };
+      const range = ranges[subject.category];
+      if (range) {
+        const key = `enrollment:${term}:${subject.id}`;
+        const size = range[0] + Math.floor(hash01(s.seed, `${key}:size`) * (range[1] - range[0] + 1));
+        const classmates = cohort.filter(m => m.id !== 'player').map(m => ({ id: m.id, order: hash01(s.seed, `${key}:${m.id}`) }))
+          .sort((a, b) => a.order - b.order || a.id.localeCompare(b.id, 'en'));
+        const enrolled = new Set(classmates.slice(0, size - 1).map(m => m.id));
+        return cohort.filter(m => m.id === 'player' || enrolled.has(m.id));
+      }
+      // Preserve old saves' elective choices; common required courses use the full cohort.
+      return cohort.filter(m => m.id === 'player' || !ELECTIVES.includes(subject.id) || m.electives.includes(subject.id));
+    }
     function dormExcluded(s, member) { return member.id === 'player' ? s.dorm?.status === 'expelled' || s.dormExpelled === true : !!member.dormExpelled; }
     function modelScore(s, member, term, dorm) {
       const isPlayer = member.id === 'player', st = isPlayer ? s.stats : member.stats;
@@ -107,11 +124,11 @@
       if (q.awardedTerms.includes(term)) return [];
       const subjects = [];
       for (const subject of g.subjects) {
-        const eligible = q.cohort.filter(m => m.id === 'player' || !ELECTIVES.includes(subject.id) || m.electives.includes(subject.id));
+        const eligible = getEnrollment(s, subject, term);
         const ranked = rankCandidates(eligible.map(m => ({ id: m.id, name: m.id === 'player' ? s.name : m.name, score: subjectScore(s, m, subject, term) })));
         const quota = Math.ceil(eligible.length * 0.05), recipients = ranked.slice(0, quota), player = ranked.find(m => m.id === 'player');
         const awarded = recipients.some(m => m.id === 'player');
-        subjects.push({ id: subject.id, name: subject.name, score: subject.score, rank: player.rank, enrollment: eligible.length, quota, awarded, recipients });
+        subjects.push({ id: subject.id, name: subject.name, ...(subject.category === undefined ? {} : { category: subject.category }), score: subject.score, rank: player.rank, enrollment: eligible.length, quota, awarded, recipients });
         if (awarded) award(s, { id: `subject:${term}:${subject.id}`, kind: 'subject', name: `${g.year}학년 ${g.semester}학기 ${subject.name} 교과우수상`, year: g.year, semester: g.semester, term, turn: s.turn, subjectId: subject.id, rank: player.rank, enrollment: eligible.length, quota });
       }
       const classes = [];
@@ -261,7 +278,7 @@
       const q = s.school;
       return { cohortSize: COHORT_SIZE, classSize: CLASS_SIZE, classCount: CLASS_COUNT, classId: 1, assumption: '게임용 가상 학생 96명, 16명씩 6개 반. 실제 학교 학생 수가 아닙니다.', officers: q?.officerHistory?.at(-1) || null, latestAwards: q?.termResults?.at(-1) || null };
     }
-    return { init, migrate, actions: ACTIONS, validateAction, performAction, scheduleEvents, onSemesterEnd, resolve, getFieldStatus, makeupFieldTrip, nationalTeamEvents, cohortSummary, getClassRoleBonus, rankCandidates, trips: TRIPS };
+    return { init, migrate, actions: ACTIONS, validateAction, performAction, scheduleEvents, onSemesterEnd, resolve, getEnrollment, getFieldStatus, makeupFieldTrip, nationalTeamEvents, cohortSummary, getClassRoleBonus, rankCandidates, trips: TRIPS };
   }
   const API = { createAPI, rankCandidates, trips: TRIPS, cohortSize: COHORT_SIZE, classSize: CLASS_SIZE };
   root.GSASchoolSystems = API;

@@ -14,7 +14,7 @@ module.exports = function verifyV5(ctx) {
     const choose=(event,state)=>{if(observe)observe(event,state);return declineRisks(event);};
     resolve(s,choose);
     if(!s.alive)return;
-    if(E.getPhase(s).needsElectives) E.chooseElectives(s,['advanced_math','advanced_physics']);
+    if(E.needsEnrollment(s)) E.enrollSemester(s,E.recommendEnrollment(s,'physics'));
     if(E.getPhase(s).needsApplications) E.applyUniversities(s,['gist']);
     resolve(s,choose);
   }

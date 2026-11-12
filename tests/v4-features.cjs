@@ -168,9 +168,11 @@ module.exports = function verifyV4(ctx) {
   assert.equal(school.officerHistory.length, 6, 'Each semester has a class election');
   assert.equal(new Set(school.officerHistory.map(h=>h.term)).size, 6, 'A semester election cannot duplicate');
   assert.equal(school.termResults.length, 6, 'Each term has one awards result');
+  const enrollmentAPI=require('../dist/school-systems.js').createAPI({});
   for (const result of school.termResults) {
     for (const subject of result.subjects) {
-      const actualEnrollment = school.cohort.filter(m=>m.id==='player' || !subject.id.startsWith('advanced_') || m.electives.includes(subject.id)).length;
+      const gradeSubject=graduating.grades.find(g=>(g.year-1)*2+g.semester-1===result.term).subjects.find(c=>c.id===subject.id);
+      const actualEnrollment = enrollmentAPI.getEnrollment(graduating,gradeSubject,result.term).length;
       assert.equal(subject.enrollment, actualEnrollment, 'Award denominator counts the actual course cohort');
       assert.equal(subject.quota, Math.ceil(subject.enrollment*.05));
       assert.equal(subject.recipients.length, subject.quota, 'Exactly the highest five percent receive the subject award');

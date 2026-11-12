@@ -4,6 +4,8 @@
   const campusModule = root.GSACampusSystems || (typeof require === 'function' ? require('./campus-systems.js') : null);
   const schoolModule = root.GSASchoolSystems || (typeof require === 'function' ? require('./school-systems.js') : null);
   const tournamentModule = root.GSATournamentSystems || (typeof require === 'function' ? require('./tournament-systems.js') : null);
+  const curriculumModule = root.GSACurriculumSystems || (typeof require === 'function' ? require('./curriculum-systems.js') : null);
+  const majorModule = root.GSAMajorSystems || (typeof require === 'function' ? require('./major-systems.js') : null);
 
   const statLabels = { intelligence: '지능', social: '사회성', athletics: '운동', discipline: '자기관리', luck: '행운', creativity: '창의성', resilience: '회복력', leadership: '리더십', fatigue: '피로도', health: '체력', stress: '스트레스', research: '연구 역량' };
   const archetypes = [
@@ -101,26 +103,30 @@
   function note(s, message, category = 'life') { s.log.unshift({ turn: s.turn, message, category }); }
   const hooks = { rng, shift, note, clamp, round, addLearning, getPhase, getSubjects, assertAlive };
   const campus = campusModule.createAPI(hooks), school = schoolModule.createAPI(hooks), tournaments = tournamentModule.createAPI(hooks);
+  const curriculum = curriculumModule.createAPI({ ...hooks, legacySubjects: getLegacySubjects });
+  const majors = majorModule.createAPI({ ...hooks, getEvidence: curriculum.getEvidence, universities });
   actions.push(...campus.actions, ...school.actions);
   function create(name = '새로운 학생', seed, options = {}) {
     const randomSeed = seed === undefined ? (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0 : seedNumber(seed);
-    const s = { version: 5, name: String(name).trim().slice(0, 16) || '새로운 학생', seed: randomSeed, rng: randomSeed, turn: 0, stats: {}, archetype: null, academicClub: null, activityClub: null, sportsClubs: [], sportsTryouts: [], electives: [], grades: [], semesterLearning: {}, midterm: null, pendingEvent: null, councilRole: '일반 학생', councilHistory: [], interview: null, captain: false, captainClub: null, relationships: 10, clubWeeks: 0, councilWeeks: 0, researchWeeks: 0, sportsWeeks: 0, illnessWeeks: 0, illnessCount: 0, researchProject: '아직 연구 주제를 찾는 중', badges: [], log: [], admissions: null, admissionRolls: {}, enrolledUniversity: null };
+    const s = { version: 6, name: String(name).trim().slice(0, 16) || '새로운 학생', seed: randomSeed, rng: randomSeed, turn: 0, stats: {}, archetype: null, academicClub: null, activityClub: null, sportsClubs: [], sportsTryouts: [], electives: [], grades: [], semesterLearning: {}, midterm: null, pendingEvent: null, councilRole: '일반 학생', councilHistory: [], interview: null, captain: false, captainClub: null, relationships: 10, clubWeeks: 0, councilWeeks: 0, researchWeeks: 0, sportsWeeks: 0, illnessWeeks: 0, illnessCount: 0, researchProject: '아직 연구 주제를 찾는 중', badges: [], log: [], admissions: null, admissionRolls: {}, enrolledUniversity: null };
     Object.assign(s, { alive: true, ending: null, emergency: null, hospitalizations: [], eventQueue: [], dormHarmony: 65, awards: [], tournamentHistory: [], olympiadHistory: [], toeic: { best: 0, attempts: [], practice: 0 }, extraWeeks: 0, applications: [], applicationSnapshot: null, universityInterview: null, universityInterviews: [], admissionStage: 'not_started', dailySeen: [], captainSelectionDone: false });
     const type = archetypes[Math.floor(rng(s) * archetypes.length)]; s.archetype = type.id;
     for (const k of ['intelligence', 'social', 'athletics', 'discipline', 'luck', 'creativity', 'resilience', 'leadership']) s.stats[k] = clamp(32 + Math.floor(rng(s) * 25) + (type.bonuses[k] || 0));
     Object.assign(s.stats, { health: 85, fatigue: 15, stress: 15, research: 8 });
     campus.init(s, { legacy: false, gender: options.gender || null }); school.init(s); tournaments.init(s);
     s.focus = 'balanced'; s.lastWeekReport = null;
+    curriculum.init(s); s.applicationMajors = {}; s.majorSnapshot = null;
     for (const u of universities) s.admissionRolls[u.id] = rng(s);
     note(s, `${type.name}의 가능성을 안고 광주과학고에 입학했다. 첫 주 운동부 테스트가 기다린다.`, 'milestone');
     return s;
   }
   function getPhase(s) {
     const t = Math.min(s.turn, 47), term = Math.floor(t / 8), week = t % 8 + 1, isDead = s.alive === false, isEnd = isDead || s.turn >= 48, graduationReady = s.turn >= 48 && getGraduationStatus(s).eligible;
+    const needsEnrollment = !isDead && s.turn >= 24 && s.turn < 48 && curriculum.needsEnrollment(s);
     const weeksToExam = (week <= 4 ? 4 : 8) - week;
     const nightAvailable = !isEnd && weeksToExam <= 2, dawnAvailable = !isEnd && weeksToExam <= 1;
     const availableStudyModes = ['normal']; if (nightAvailable) availableStudyModes.push('night'); if (dawnAvailable) availableStudyModes.push('dawn', 'both');
-    return { year: Math.floor(term / 2) + 1, semester: term % 2 + 1, term, week, exam: isEnd ? null : week === 4 ? 'midterm' : week === 8 ? 'final' : null, isEnd, isDead, needsApplications: !isDead && s.turn >= 32 && !(s.applications || []).length && !s.admissions, graduationPending: !isDead && s.turn >= 48 && !graduationReady, needsGender: !!s.needsGender, needsElectives: !isDead && s.turn >= 24 && s.turn < 48 && s.electives.length !== 2, weeksToExam, nightAvailable, dawnAvailable, availableStudyModes, examName: week <= 4 ? '중간고사' : '기말고사', label: isDead ? '이야기의 마지막' : s.turn >= 48 ? graduationReady ? '졸업 · 진학' : '졸업 요건 준비' : `${Math.floor(term / 2) + 1}학년 ${term % 2 + 1}학기 · ${week}주차` };
+    return { year: Math.floor(term / 2) + 1, semester: term % 2 + 1, term, week, exam: isEnd ? null : week === 4 ? 'midterm' : week === 8 ? 'final' : null, isEnd, isDead, needsApplications: !isDead && !needsEnrollment && s.turn >= 32 && !(s.applications || []).length && !s.admissions, graduationPending: !isDead && s.turn >= 48 && !graduationReady, needsGender: !!s.needsGender, needsEnrollment, needsElectives: needsEnrollment, weeksToExam, nightAvailable, dawnAvailable, availableStudyModes, examName: week <= 4 ? '중간고사' : '기말고사', label: isDead ? '이야기의 마지막' : s.turn >= 48 ? graduationReady ? '졸업 · 진학' : '졸업 요건 준비' : `${Math.floor(term / 2) + 1}학년 ${term % 2 + 1}학기 · ${week}주차` };
   }
   function assertAlive(s) { if (s.alive === false) throw new Error('이 이야기는 끝났어요. 새로운 학교생활로 다시 시작할 수 있어요.'); }
   function getDormStatus(s) {
@@ -136,7 +142,9 @@
   function getGraduationStatus(s) {
     const toeicScore = Number(s.toeic && s.toeic.best) || 0, field = school.getFieldStatus(s);
     const fieldCredits = Number(field.total) || 0, toeicPassed = toeicScore >= 730, fieldPassed = fieldCredits >= 6;
-    return { toeicScore, toeicRequired: 730, toeicPassed, fieldCredits, fieldRequired: 6, fieldPassed, eligible: s.alive !== false && !s.emergency && toeicPassed && fieldPassed, requirements: [{ id: 'toeic', label: 'TOEIC 730점', current: toeicScore, required: 730, complete: toeicPassed }, { id: 'field', label: '현장연구 6학점', current: fieldCredits, required: 6, complete: fieldPassed }] };
+    const curriculumStatus = curriculum.getStatus(s), courseRequirements = Array.isArray(curriculumStatus.requirements) ? curriculumStatus.requirements : [];
+    const curriculumPassed = !s.curriculum || !!curriculumStatus.legacyExempt || courseRequirements.every(r => r.complete);
+    return { toeicScore, toeicRequired: 730, toeicPassed, fieldCredits, fieldRequired: 6, fieldPassed, curriculumPassed, curriculumStatus, eligible: s.alive !== false && !s.emergency && toeicPassed && fieldPassed && curriculumPassed, requirements: [{ id: 'toeic', label: 'TOEIC 730점', current: toeicScore, required: 730, complete: toeicPassed }, { id: 'field', label: '현장연구 6학점', current: fieldCredits, required: 6, complete: fieldPassed }, ...courseRequirements] };
   }
   function getActionDisabledReason(s, id) {
     if (s.alive === false) return '이 이야기는 끝났어요.';
@@ -284,7 +292,7 @@
     s.log = (s.log || []).map(l => ({ ...l, message: cleanVisibleText(l.message) || '학교생활의 한 순간을 기록했다.' }));
     nextEvent(s); updateEnding(s); return s;
   }
-  function migrate(s) {
+  function migrateV5(s) {
     if (!s || !s.stats || !Number.isInteger(s.turn) || s.turn < 0 || s.turn > 48 || !Array.isArray(s.grades)) throw new Error('저장 데이터를 읽을 수 없어요.');
     if (s.version !== 5) {
       if (s.version !== 4) migrateV4(s);
@@ -296,10 +304,25 @@
     s.log = (s.log || []).map(l => ({ ...l, message: cleanVisibleText(l.message) || '학교생활의 한 순간을 기록했다.' }));
     nextEvent(s); updateEnding(s); return s;
   }
-  function getSubjects(s) {
-    if (s.turn < 24) return core.map(x => ({ ...x }));
-    return [core[0], core[4], core[5], ...s.electives.map(id => electives.find(e => e.id === id)).filter(Boolean), { id: 'research', name: '융합 탐구', field: 'research', credits: 4 }].map(x => ({ ...x }));
+  function migrate(s) {
+    if (!s || !s.stats || !Number.isInteger(s.turn) || s.turn < 0 || s.turn > 48 || !Array.isArray(s.grades)) throw new Error('저장 데이터를 읽을 수 없어요.');
+    if (s.version !== 6) {
+      const legacyGraduated = s.turn >= 48 && s.ending === 'graduated';
+      if (s.version !== 5) migrateV5(s);
+      curriculum.migrate(s, { legacyGraduated });
+      if (!s.applicationMajors || typeof s.applicationMajors !== 'object') s.applicationMajors = {};
+      for (const id of s.applications || []) if (!s.applicationMajors[id]) s.applicationMajors[id] = 'general';
+      if (!s.majorSnapshot) s.majorSnapshot = (s.applications || []).length ? { version: 1, submittedTurn: s.applicationSnapshot?.turn ?? s.turn, legacy: true, evidence: { courses: [], byField: {} }, applicationMajors: { ...s.applicationMajors }, applications: s.applications.map(id => ({ universityId: id, majorId: s.applicationMajors[id], majorName: majors.getMajor(s.applicationMajors[id])?.name || '자유 탐색', fitScore: 0 })) } : null;
+      s.version = 6;
+    }
+    s.log = (s.log || []).map(l => ({ ...l, message: cleanVisibleText(l.message) || '학교생활의 한 순간을 기록했다.' }));
+    nextEvent(s); updateEnding(s); return s;
   }
+  function getLegacySubjects(s) {
+    if (s.turn < 24) return core.map(x => ({ ...x }));
+    return [core[0], core[4], core[5], ...(s.electives || []).map(id => electives.find(e => e.id === id)).filter(Boolean), { id: 'research', name: '융합 탐구', field: 'research', credits: 4 }].map(x => ({ ...x }));
+  }
+  function getSubjects(s) { return curriculum.getSubjects(s) || getLegacySubjects(s); }
   function setClubs(s, academicId, activityId) {
     assertAlive(s);
     if (s.turn !== 0 || s.academicClub) throw new Error('동아리는 입학할 때 한 번 선택할 수 있어요.');
@@ -310,14 +333,8 @@
     s.pendingEvent = sportsEvent(s); s.eventQueue.push(...school.scheduleEvents(s));
     return s;
   }
-  function chooseElectives(s, ids) {
-    assertAlive(s);
-    if (s.turn < 24 || s.turn >= 48 || s.electives.length) throw new Error('선택과목은 2학년 2학기 시작에 선택해요.');
-    if (!Array.isArray(ids) || ids.length !== 2 || new Set(ids).size !== 2 || ids.some(id => !electives.some(e => e.id === id))) throw new Error('서로 다른 선택과목 두 개를 골라 주세요.');
-    s.electives = [...ids];
-    note(s, `${ids.map(id => electives.find(e => e.id === id).name).join(' · ')}를 선택했다.`, 'milestone');
-    return s;
-  }
+  function enrollSemester(s, ids) { assertAlive(s); return curriculum.enroll(s, ids); }
+  function chooseElectives(s, ids) { return enrollSemester(s, ids); }
   function getTournamentEligibility(s) { return tournaments.getEligibility(s); }
   function tournamentEvent(s) { return tournaments.startEvent(s); }
   function getOlympiadChance(s) { return clamp(0.04 + Math.max(0, s.stats.intelligence - 60) * 0.014 + s.stats.discipline * 0.0012 + s.stats.research * 0.001 + s.stats.luck * 0.001, 0.05, 0.88); }
@@ -332,14 +349,16 @@
       { title: '연구 경험과 검증', question: 'R&E에서 예상과 다른 결과가 나왔다. 어떤 변인을 먼저 확인하고, 내 해석의 한계를 어떻게 설명할까?', answers: [['통제 변인과 측정 오차를 점검하고 재현 실험과 대안 가설을 제시한다',8],['실험을 다시 반복해 같은 결과가 나오는지 본다',4],['예상한 그래프와 맞지 않는 결과는 제외한다고 답한다',-2]] },
       { title: '진로·협업과 성장', question: '대학에서 이어가고 싶은 질문은 무엇이며, 팀원과 해석이 다를 때 어떻게 연구를 진행할까?', answers: [['현재 연구의 한계에서 새 질문을 만들고 근거를 비교해 공동 실험을 제안한다',8],['관심 분야를 공부하고 서로의 의견을 차례로 듣겠다고 답한다',4],['수상 결과만 말하고 내 의견을 팀이 따라야 한다고 답한다',-2]] }
     ];
-    const q = questions[n];
-    return { id: 'university_interview', title: `${u.name} 면접 · ${n + 1} / 3`, description: `${q.title} — ${q.question}`, choices: q.answers.map(([label,points]) => ({ label, description: '내 생각을 면접관에게 설명한다.', universityPoints: points })) };
+    const majorId = s.applicationMajors && s.applicationMajors[i.universityId] || 'general', major = majors.getMajor(majorId);
+    if (majorId !== 'general') questions[0] = majors.firstInterviewQuestion(s, i.universityId, majorId);
+    const q = questions[n], majorName = major && major.name || '자유 탐색';
+    return { id: 'university_interview', title: `${u.name} · ${majorName} 면접 · ${n + 1} / 3`, description: `${q.title} — ${q.question}`, choices: q.answers.map(([label,points]) => ({ label, description: '내 생각을 면접관에게 설명한다.', universityPoints: points })) };
   }
   function beginUniversityInterviews(s) {
     if (!s.applications.length || s.admissions) return null;
     const next = s.applications.find(id => !s.universityInterviews.some(i => i.id === id));
     if (!next) { s.admissionStage = 'awaiting_results'; return null; }
-    s.admissionStage = 'interview'; s.universityInterview = { universityId: next, answers: [], points: 0 };
+    s.admissionStage = 'interview'; s.universityInterview = { universityId: next, majorId: s.applicationMajors && s.applicationMajors[next] || 'general', answers: [], points: 0 };
     return universityQuestionEvent(s);
   }
   function resultsEvent() { return { id: 'university_results', title: '대학 전형 결과가 도착했다', description: '원서와 학교생활, 면접에서 나눈 이야기를 바탕으로 결과가 도착했다. 합격한 경우에도 졸업 요건을 충족해야 진학할 수 있다.', choices: [{ label: '전형 결과 확인', description: '다음 출발을 확인한다.', resolveAdmissions: true }] }; }
@@ -466,8 +485,8 @@
     if (p.isEnd) throw new Error('3년의 이야기가 끝났어요. 진학 결과를 확인해 주세요.');
     if (s.pendingEvent) throw new Error('먼저 지금의 사건에서 선택해 주세요.');
     if (!s.academicClub) throw new Error('입학할 때 동아리를 먼저 골라 주세요.');
+    if (p.needsEnrollment) throw new Error('이번 학기 수강신청을 먼저 마쳐 주세요.');
     if (p.needsApplications) throw new Error('3학년 1학기 원서 접수를 먼저 마쳐 주세요.');
-    if (p.needsElectives) throw new Error('2학년 2학기 선택과목 두 개를 먼저 골라 주세요.');
     const disabledReason = routine ? getCommitmentDisabledReason(s, routine.commitment) : getActionDisabledReason(s, actionId); if (disabledReason) throw new Error(disabledReason);
     if (actionId === 'toeic' && s.turn < 8) throw new Error('TOEIC 응시는 1학년 2학기부터 선택할 수 있어요. 준비는 1학년부터 가능해요.');
     if (!p.availableStudyModes.includes(studyMode)) throw new Error('심야자습은 시험 2주 전부터, 새벽자습은 1주 전부터 선택할 수 있어요.');
@@ -477,7 +496,9 @@
     if (s.stats.social < 35) s.relationships = round(clamp(s.relationships - (s.dormHarmony < 45 ? 2 : 0.5)));
     const dorm = getDormStatus(s);
     if (dorm.efficiency < 1) { shift(s, { fatigue: 2, stress: 2 }); messages.push(s.dorm && s.dorm.status === 'expelled' ? '통학에 쓰는 시간과 피로 때문에 공부에 집중할 여유가 줄었다.' : '기숙사 관계가 불편해 잠과 공부에 집중하기 어려웠다.'); }
-    const efficiency = (wasSick ? 0.72 : 1) * dorm.efficiency;
+    const courseLoad = curriculum.workload(s);
+    const efficiency = (wasSick ? 0.72 : 1) * dorm.efficiency * courseLoad.learningMultiplier;
+    if (courseLoad.fatigueExtra || courseLoad.stressExtra) { shift(s, { fatigue: courseLoad.fatigueExtra, stress: courseLoad.stressExtra }); if (routine) routine.activities.push(`${courseLoad.totalCredits}학점의 수업과 과제를 계획에 맞춰 진행했다.`); }
     const learn = (n, field) => addLearning(s, n * efficiency, field);
     learn(1.35 + s.stats.discipline * 0.004);
     shift(s, { fatigue: 2, stress: 1 });
@@ -518,6 +539,7 @@
         const credits = subjects.reduce((a, x) => a + x.credits, 0), earnedCredits = subjects.filter(x => x.point > 0).reduce((a, x) => a + x.credits, 0);
         const gpa = Math.round(subjects.reduce((a, x) => a + x.point * x.credits, 0) / credits * 100) / 100;
         semesterResult = { year: p.year, semester: p.semester, gpa, credits, earnedCredits, subjects, gradeScaleVersion: 4 }; s.grades.push(semesterResult);
+        curriculum.onSemesterEnd(s, semesterResult);
         s.eventQueue.push(...school.onSemesterEnd(s, semesterResult));
         messages.push(`${p.year}학년 ${p.semester}학기 성적 확정: ${gpa.toFixed(2)} / 4.30.`);
         s.semesterLearning = {}; s.midterm = null; shift(s, { fatigue: -12, stress: -14 });
@@ -534,7 +556,7 @@
     if (routine && s.turn < 48) { s.eventQueue.push(...campus.automaticEvents(s, { focusId: routine.focus.id, commitment: routine.commitment, fromTurn: s.turn - 1 })); nextEvent(s); }
     if (crossedLimit) triggerEmergency(s, crisisSnapshot);
     updateEnding(s);
-    if (s.turn === 48 && !s.emergency) { messages.push(getGraduationStatus(s).eligible ? '3년의 과정과 영어·현장연구 졸업 요건을 모두 마쳤다.' : '3년의 수업을 마쳤다. TOEIC 730점과 현장연구 6학점을 모두 충족할 때까지 졸업은 보류된다.'); note(s, messages[messages.length - 1], 'milestone'); }
+    if (s.turn === 48 && !s.emergency) { messages.push(getGraduationStatus(s).eligible ? '3년의 과정과 영어·현장연구·선택과목 졸업 요건을 모두 마쳤다.' : '3년의 수업을 마쳤다. 남은 영어·현장연구·선택과목 학점을 보완하면 졸업할 수 있다.'); note(s, messages[messages.length - 1], 'milestone'); }
     return { messages, event: s.pendingEvent, semesterResult };
   }
   function chooseEvent(s, index) {
@@ -587,7 +609,7 @@
     }else if(typeof c.universityPoints==='number'){
       const i=s.universityInterview;if(!i)throw new Error('진행 중인 대학 면접이 없어요.');i.answers.push(c.label);i.points+=c.universityPoints;
       if(i.answers.length<3)s.pendingEvent=universityQuestionEvent(s);
-      else{const u=universities.find(x=>x.id===i.universityId);s.universityInterviews.push({id:i.universityId,name:u.name,answers:[...i.answers],score:i.points});messages.push(`${u.name} 면접을 마쳤다. 답변과 연구 경험이 전형 기록에 남았다.`);s.universityInterview=null;s.pendingEvent=beginUniversityInterviews(s);if(!s.pendingEvent&&s.turn>=39&&!s.admissions)s.pendingEvent=resultsEvent();}
+      else{const u=universities.find(x=>x.id===i.universityId);s.universityInterviews.push({id:i.universityId,name:u.name,majorId:s.applicationMajors[i.universityId]||'general',majorName:majors.getMajor(s.applicationMajors[i.universityId]||'general')?.name||'자유 탐색',answers:[...i.answers],score:i.points});messages.push(`${u.name} · ${majors.getMajor(s.applicationMajors[i.universityId]||'general')?.name||'자유 탐색'} 면접을 마쳤다. 답변과 연구 경험이 전형 기록에 남았다.`);s.universityInterview=null;s.pendingEvent=beginUniversityInterviews(s);if(!s.pendingEvent&&s.turn>=39&&!s.admissions)s.pendingEvent=resultsEvent();}
     }else if(c.resolveAdmissions){if(s.universityInterviews.length!==s.applications.length)throw new Error('면접을 먼저 마쳐야 해요.');resolveAdmissions(s);messages.push('대학 전형 결과를 확인했다. 최종 진학을 위해 졸업 요건도 확인하자.');}
     // Generic choice effects also apply to informational and skip choices.
     if(!externallyHandled){if(c.effects)shift(s,c.effects);if(c.bond)s.relationships=clamp(s.relationships+c.bond);if(c.harmony)s.dormHarmony=round(clamp(s.dormHarmony+c.harmony));if(c.learning)addLearning(s,c.learning);if(c.project)s.researchProject=c.project;if(c.badge)s.badges.push(c.badge);}
@@ -625,23 +647,25 @@
   function getAdmissionChance(s,id,answerScore) {
     const u=universities.find(x=>x.id===id);if(!u)throw new Error('대학을 확인해주세요.');
     const p=getProfile(s),rw=u.researchWeight,interview=answerScore===undefined?(s.universityInterviews.find(x=>x.id===id)?.score||0):answerScore;
-    const score=p.gpa/4.3*100*(0.78-rw)+s.stats.research*rw+s.stats.discipline*.09+s.stats.leadership*.07+s.stats.social*.06+(s.captain?1:0)+(s.councilHistory.some(h=>h.passed)?1:0)+(s.stats.luck-50)*.04+interview*.35;
+    const score=p.gpa/4.3*100*(0.78-rw)+s.stats.research*rw+s.stats.discipline*.09+s.stats.leadership*.07+s.stats.social*.06+(s.captain?1:0)+(s.councilHistory.some(h=>h.passed)?1:0)+(s.stats.luck-50)*.04+interview*.35+majors.getFit(s,id,s.applicationMajors?.[id]||'general',s.majorSnapshot);
     let chance=clamp(1/(1+Math.exp((u.threshold-score)/6.5)),.03,.97);
     if(['kaist','gist','unist','dgist'].includes(id)&&s.awards.some(a=>a.kind==='olympiad'||a.kind==='nationalTeam'))chance=clamp(Math.max(chance,.91+s.stats.luck*.0004+Math.max(0,interview)*.001),.91,.985);
     return chance;
   }
-  function applyUniversities(s,ids){
+  function applyUniversities(s,entries){
     assertAlive(s);if(s.turn<32)throw new Error('대학 원서는 3학년 1학기에 접수해요.');if(s.pendingEvent)throw new Error('현재의 사건을 먼저 마쳐 주세요.');
+    if(curriculum.needsEnrollment(s))throw new Error('이번 학기 수강신청을 마친 뒤 원서를 제출해 주세요.');
     if(s.applications.length||s.admissions)throw new Error('원서는 이미 제출했어요.');
-    if(!Array.isArray(ids)||ids.length<1||ids.length>3||new Set(ids).size!==ids.length||ids.some(id=>!universities.some(u=>u.id===id)))throw new Error('지원할 대학을 1~3곳 골라 주세요.');
-    s.applications=[...ids];s.applicationSnapshot={turn:s.turn,gpa:getProfile(s).gpa,research:s.stats.research};s.admissionStage='applied';
-    note(s,`${ids.map(id=>universities.find(u=>u.id===id).name).join(' · ')}에 원서를 제출했다. 학교생활과 연구 경험을 정리했다.`,'admission');
+    const validated=majors.validateApplications(s,entries);
+    s.applications=[...validated.applicationIds];s.applicationMajors={...validated.applicationMajors};s.majorSnapshot=validated.majorSnapshot;
+    s.applicationSnapshot={turn:s.turn,gpa:getProfile(s).gpa,research:s.stats.research,majorSnapshot:s.majorSnapshot};s.admissionStage='applied';
+    note(s,validated.applications.map(a=>`${universities.find(u=>u.id===a.universityId).name} · ${a.majorName || majors.getMajor(a.majorId)?.name || '자유 탐색'}`).join(' / ')+'에 원서를 제출했다. 2학년 2학기 이수 과목과 지원 경로를 전형 기록으로 남겼다.','admission');
     if(s.turn>=36)s.pendingEvent=beginUniversityInterviews(s);
     return s.applications;
   }
   function resolveAdmissions(s){
     assertAlive(s);if(s.admissions)return s.admissions;
-    s.admissions=s.applications.map(id=>{const u=universities.find(x=>x.id===id),chance=getAdmissionChance(s,id),roll=s.admissionRolls[id];return{id,name:u.name,accepted:roll<chance,conditional:true,probability:Math.round(chance*100),reason:'학교생활 기록과 면접 답변을 검토한 가상 전형 결과입니다. 최종 진학은 졸업 요건 충족이 필요합니다.'};});
+    s.admissions=s.applications.map(id=>{const u=universities.find(x=>x.id===id),chance=getAdmissionChance(s,id),roll=s.admissionRolls[id];return{id,name:u.name,majorId:s.applicationMajors[id]||'general',majorName:majors.getMajor(s.applicationMajors[id]||'general')?.name||'자유 탐색',accepted:roll<chance,conditional:true,probability:Math.round(chance*100),reason:'학교생활 기록과 면접 답변을 검토한 가상 전형 결과입니다. 최종 진학은 졸업 요건 충족이 필요합니다.'};});
     s.admissionStage='results';return s.admissions;
   }
   function recordToeic(s){
@@ -672,7 +696,16 @@
     if (crisisLimit(s)) triggerEmergency(s); nextEvent(s); updateEnding(s);
     return { ...result, event: s.pendingEvent };
   }
-  const API = { create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason };
+  function makeupCourse(s, id) {
+    deferredCheck(s); const result = curriculum.makeupCourse(s, id); s.extraWeeks++;
+    if (!Array.isArray(result.messages)) result.messages = [];
+    deferredCampusWeek(s, result.messages);
+    if (result.events) s.eventQueue.push(...result.events);
+    for (const message of result.messages) note(s, message, 'course');
+    if (crisisLimit(s)) triggerEmergency(s); nextEvent(s); updateEnding(s);
+    return { ...result, event: s.pendingEvent };
+  }
+  const API = { create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
   root.GSAEngine = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);
