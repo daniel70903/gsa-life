@@ -61,7 +61,7 @@
     { id: 'friends', name: '친구와 시간', icon: 'people', description: '같이 이야기하며 서로의 하루를 나눠요.', effectsText: '사회성 ↑↑ · 유대감 ↑ · 스트레스 ↓' },
     { id: 'council', name: '학생회 활동', icon: 'flag', description: '학급을 돕고 학교 행사와 공약을 준비해요.', effectsText: '리더십 ↑↑ · 사회성 ↑ · 피로도 ↑' },
     { id: 'english', name: 'TOEIC 준비', icon: 'book', description: '1학년부터 듣기와 독해를 연습해 졸업 영어 기준을 준비해요.', effectsText: '영어 준비도 ↑ · 자기관리 ↑ · 피로도 ↑' },
-    { id: 'toeic', name: 'TOEIC 응시', icon: 'book', description: '2학년부터 응시할 수 있어요. 졸업 기준은 730점이에요.', effectsText: '영어 성적 기록 · 피로도 ↑ · 스트레스 ↑' },
+    { id: 'toeic', name: 'TOEIC 응시', icon: 'book', description: '1학년 2학기부터 응시할 수 있어요. 졸업 기준은 730점이에요.', effectsText: '영어 성적 기록 · 피로도 ↑ · 스트레스 ↑' },
     { id: 'rest', name: '충분히 쉬기', icon: 'moon', description: '잠을 충분히 자고 다음 주의 여유를 만들어요.', effectsText: '피로도 ↓↓ · 회복력 ↑ · 스트레스 ↓↓' }
   ];
   const core = [
@@ -332,7 +332,7 @@
     if (p.needsElectives) throw new Error('2학년 2학기 선택과목 두 개를 먼저 골라 주세요.');
     if (!actions.some(a => a.id === actionId)) throw new Error('진행할 활동을 골라 주세요.');
     if (actionId === 'sports' && !s.sportsClubs.length) throw new Error('운동부 테스트에 합격한 뒤 팀 훈련에 참여할 수 있어요.');
-    if (actionId === 'toeic' && s.turn < 16) throw new Error('TOEIC 응시는 2학년부터 선택할 수 있어요. 준비는 1학년부터 가능해요.');
+    if (actionId === 'toeic' && s.turn < 8) throw new Error('TOEIC 응시는 1학년 2학기부터 선택할 수 있어요. 준비는 1학년부터 가능해요.');
     if (!p.availableStudyModes.includes(studyMode)) throw new Error('심야자습은 시험 2주 전부터, 새벽자습은 1주 전부터 선택할 수 있어요.');
     const messages = [], action = actions.find(a => a.id === actionId), wasSick = s.illnessWeeks > 0;
     s.dormHarmony = round(clamp(s.dormHarmony + (s.stats.social < 35 ? -4 : s.stats.social < 50 ? -1.5 : 1)));
