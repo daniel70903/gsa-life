@@ -1,0 +1,295 @@
+{
+  "sourceCommit": "351d73c867144c48564a3493fa3ef86ab9dba6b4",
+  "intelligence": 75,
+  "discipline": 75,
+  "cases": [
+    {
+      "seed": "v8-grade-0",
+      "focus": "balanced",
+      "mean": 96.89999999999999,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-1",
+      "focus": "balanced",
+      "mean": 90.57142857142857,
+      "gpa": 4.2
+    },
+    {
+      "seed": "v8-grade-2",
+      "focus": "balanced",
+      "mean": 92,
+      "gpa": 4.26
+    },
+    {
+      "seed": "v8-grade-3",
+      "focus": "balanced",
+      "mean": 95.35714285714286,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-4",
+      "focus": "balanced",
+      "mean": 93.98571428571428,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-5",
+      "focus": "balanced",
+      "mean": 94.72857142857143,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-6",
+      "focus": "balanced",
+      "mean": 96.68571428571428,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-7",
+      "focus": "balanced",
+      "mean": 92.71428571428574,
+      "gpa": 4.21
+    },
+    {
+      "seed": "v8-grade-8",
+      "focus": "balanced",
+      "mean": 95.89999999999999,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-9",
+      "focus": "balanced",
+      "mean": 94.85714285714286,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-10",
+      "focus": "balanced",
+      "mean": 93.55714285714286,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-11",
+      "focus": "balanced",
+      "mean": 94.95714285714287,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-12",
+      "focus": "balanced",
+      "mean": 96.02857142857144,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-13",
+      "focus": "balanced",
+      "mean": 92.9857142857143,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-14",
+      "focus": "balanced",
+      "mean": 94.58571428571429,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-15",
+      "focus": "balanced",
+      "mean": 94.11428571428571,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-0",
+      "focus": "intelligence",
+      "mean": 100,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-1",
+      "focus": "intelligence",
+      "mean": 99.5,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-2",
+      "focus": "intelligence",
+      "mean": 99.39999999999999,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-3",
+      "focus": "intelligence",
+      "mean": 97.68571428571428,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-4",
+      "focus": "intelligence",
+      "mean": 99.39999999999999,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-5",
+      "focus": "intelligence",
+      "mean": 99.44285714285715,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-6",
+      "focus": "intelligence",
+      "mean": 100,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-7",
+      "focus": "intelligence",
+      "mean": 98.95714285714287,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-8",
+      "focus": "intelligence",
+      "mean": 99.82857142857142,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-9",
+      "focus": "intelligence",
+      "mean": 99.57142857142857,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-10",
+      "focus": "intelligence",
+      "mean": 99.08571428571429,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-11",
+      "focus": "intelligence",
+      "mean": 99.57142857142857,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-12",
+      "focus": "intelligence",
+      "mean": 100,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-13",
+      "focus": "intelligence",
+      "mean": 99.77142857142857,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-14",
+      "focus": "intelligence",
+      "mean": 98.77142857142859,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-15",
+      "focus": "intelligence",
+      "mean": 99.45714285714287,
+      "gpa": 4.3
+    },
+    {
+      "seed": "v8-grade-0",
+      "focus": "recovery",
+      "mean": 88.7,
+      "gpa": 4.09
+    },
+    {
+      "seed": "v8-grade-1",
+      "focus": "recovery",
+      "mean": 88.3142857142857,
+      "gpa": 4.06
+    },
+    {
+      "seed": "v8-grade-2",
+      "focus": "recovery",
+      "mean": 89.8,
+      "gpa": 4.12
+    },
+    {
+      "seed": "v8-grade-3",
+      "focus": "recovery",
+      "mean": 85.15714285714286,
+      "gpa": 3.88
+    },
+    {
+      "seed": "v8-grade-4",
+      "focus": "recovery",
+      "mean": 86.67142857142858,
+      "gpa": 3.99
+    },
+    {
+      "seed": "v8-grade-5",
+      "focus": "recovery",
+      "mean": 85.15714285714286,
+      "gpa": 3.88
+    },
+    {
+      "seed": "v8-grade-6",
+      "focus": "recovery",
+      "mean": 85.44285714285715,
+      "gpa": 3.85
+    },
+    {
+      "seed": "v8-grade-7",
+      "focus": "recovery",
+      "mean": 85.95714285714287,
+      "gpa": 3.91
+    },
+    {
+      "seed": "v8-grade-8",
+      "focus": "recovery",
+      "mean": 87.08571428571429,
+      "gpa": 4.05
+    },
+    {
+      "seed": "v8-grade-9",
+      "focus": "recovery",
+      "mean": 85.95714285714287,
+      "gpa": 3.93
+    },
+    {
+      "seed": "v8-grade-10",
+      "focus": "recovery",
+      "mean": 86.72857142857143,
+      "gpa": 4
+    },
+    {
+      "seed": "v8-grade-11",
+      "focus": "recovery",
+      "mean": 88.17142857142856,
+      "gpa": 4.05
+    },
+    {
+      "seed": "v8-grade-12",
+      "focus": "recovery",
+      "mean": 85.04285714285713,
+      "gpa": 3.9
+    },
+    {
+      "seed": "v8-grade-13",
+      "focus": "recovery",
+      "mean": 84.95714285714284,
+      "gpa": 3.85
+    },
+    {
+      "seed": "v8-grade-14",
+      "focus": "recovery",
+      "mean": 86.02857142857142,
+      "gpa": 3.97
+    },
+    {
+      "seed": "v8-grade-15",
+      "focus": "recovery",
+      "mean": 88.49999999999999,
+      "gpa": 4.09
+    }
+  ]
+}

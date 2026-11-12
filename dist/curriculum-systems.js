@@ -24,6 +24,40 @@
     ['environment_inquiry','환경융합탐구','earth',[4,5]], ['biology_trends','생명과학 최신 연구 동향','biology',[4]], ['japanese','일본어','language',[4]], ['spanish','스페인어','language',[5]]
   ];
   for (const [id,name,field,terms] of liberalTuples) CATALOG.push({id,name,field,terms,credits:2,category:'liberal',difficulty:2,workload:2,source:'2026학기 교재 목록',description:'전문 분야를 넓히는 융합·교양 과목'});
+  // Actual subject names, credits and school terms from the public 2022/2024/2025 textbook lists.
+  // These archived offerings are selectable together for the game; they are not a 2026 opening notice.
+  const HISTORICAL_SOURCES = {
+    2022: { sourceURL:'https://gsa.jge.hs.kr/xboard/board.php?mode=view&number=5417&tbnum=6', sourceDocumentURL:'https://gsa.jge.hs.kr/xboard/board.php?mode=downpost&tbnum=6&number=5417&file_num=6542', sourceSemester:2 },
+    2024: { sourceURL:'https://gsa.jge.hs.kr/xboard/board.php?mode=view&number=5525&tbnum=6', sourceDocumentURL:'https://gsa.jge.hs.kr/xboard/board.php?mode=downpost&tbnum=6&number=5525&file_num=6707', sourceSemester:1 },
+    2025: { sourceURL:'https://gsa.jge.hs.kr/xboard/board.php?mode=view&number=5612&tbnum=6', sourceDocumentURL:'https://gsa.jge.hs.kr/xboard/board.php?mode=downpost&tbnum=6&number=5612&file_num=6806', sourceSemester:1 }
+  };
+  const historicalTuples = [
+    ['historical_ai_math','인공지능과 수학',2,'math',[4],'specialist',2025,4,'인공지능 모델을 수학으로 해석하는 과목. 계산과 개념 이해를 함께 준비해야 합니다.'],
+    ['historical_applied_math_2','응용수학Ⅱ',3,'math',[4],'design',2024,4,'움직임과 생체역학을 수학으로 분석하는 자율설계 주제입니다.'],
+    ['historical_physics_inquiry','물리탐구',3,'physics',[3,4],'specialist',2024,3,'물리 개념을 연결해 낯선 문제를 풀고 풀이를 설명합니다.'],
+    ['historical_advanced_physics','첨단과학과 물리',2,'physics',[4],'liberal',2025,3,'첨단 기술 속 물리 원리를 찾아 설명하는 융합과학 과목입니다.'],
+    ['historical_basic_analysis','기초분석화학',3,'chemistry',[4],'specialist',2025,4,'측정값과 오차를 해석하고 화학 분석의 원리를 익힙니다.'],
+    ['historical_basic_inorganic','기초무기화학',3,'chemistry',[4],'specialist',2024,4,'원소의 성질과 구조, 화학 결합을 깊이 있게 다룹니다.'],
+    ['historical_organic_reactions','유기화학 반응매커니즘',3,'chemistry',[4],'specialist',2025,4,'유기 반응의 과정을 단계별로 추론하고 설명합니다. 과목명은 당시 교재 목록 표기를 따릅니다.'],
+    ['historical_organic_intro','유기화학 입문',3,'chemistry',[3],'design',2022,3,'유기 분자의 구조와 반응을 탐구하는 자율설계 주제입니다.'],
+    ['historical_general_earth','일반지구과학 및 실험',3,'earth',[4],'specialist',2025,3,'지구과학 원리를 실험과 관찰 자료에 연결합니다.'],
+    ['historical_observational_astronomy','관측천문학',3,'earth',[4],'specialist',2025,3,'천체를 관측하고 기록한 자료를 분석합니다.'],
+    ['historical_natural_disasters','자연재해와 인간의 삶',2,'earth',[4],'liberal',2025,3,'자연재해의 원인과 인간 사회의 대응을 함께 탐구합니다.'],
+    ['historical_machine_learning','머신러닝과 딥러닝',3,'ai',[3,4],'specialist',2025,4,'데이터와 코드를 이용해 학습 모델을 만들고 결과를 해석합니다.'],
+    ['historical_information_life','정보과학과 생활',2,'ai',[5],'liberal',2022,2,'생활 속 데이터를 분석하고 작은 프로그램으로 문제를 해결합니다.'],
+    ['historical_humanities','인문학의 이해',2,'social',[3,5],'liberal',2022,2,'사람과 사회에 관한 글을 읽고 자기 관점을 논리적으로 표현합니다.']
+  ];
+  for (const [id,name,credits,field,terms,category,sourceYear,difficulty,description] of historicalTuples) {
+    CATALOG.push({id,name,credits,field,terms,category,difficulty,workload:credits+(difficulty===4?1:0),historical:true,sourceYear,
+      ...HISTORICAL_SOURCES[sourceYear],source:`${sourceYear}학년도 ${HISTORICAL_SOURCES[sourceYear].sourceSemester}학기 교재 목록 · 과거 개설`,
+      scheduleNote:'과거 개설 학기를 바탕으로 여러 연도 과목을 함께 선택하도록 재구성한 게임 목록입니다. 올해 개설을 뜻하지 않습니다.',description});
+  }
+  // Both subjects also appear in the 2022 second-semester list; the later list confirms three credits.
+  for (const id of ['historical_physics_inquiry','historical_machine_learning']) {
+    const course=CATALOG.find(c=>c.id===id);
+    course.sourceYears=[2022,course.sourceYear];
+    course.additionalSources=[{...HISTORICAL_SOURCES[2022],sourceYear:2022,term:3}];
+  }
   for (const term of [3,4]) for (const field of FIELDS) CATALOG.push({id:`design_${term}_${field}`,name:`${FIELD_NAMES[field]} 자율설계 ${term===3?'Ⅰ':'Ⅱ'}`,field,terms:[term],credits:3,category:'design',difficulty:3,workload:3,source:'게임용 설계 주제·학기 배분',description:'직접 탐구 주제를 설계하는 과목. 3학점씩 두 학기에 나누는 것은 게임 규칙입니다.'});
   const REQUIRED_COURSES = {
     3: [['literature_2','문학Ⅱ',3,'language'],['korean_history','한국사',3,'social'],['advanced_english_reading','고급영어독해',2,'language'],['conversation_2','영어회화Ⅱ',1,'language'],['pe_4','체육Ⅳ',1,'athletics'],['advanced_research_2','심화자율연구Ⅱ',5,'research']],
@@ -48,7 +82,7 @@
     function getEnrollmentOptions(s){
       const term=termAt(s),used=alreadySelected(s,term);
       const courses=CATALOG.filter(c=>c.terms.includes(term)&&!used.has(c.id)).map(c=>({...c,term,source:c.id==='information_project'&&term===5?'편성표 기반 게임 개설':c.source}));
-      return {term,year:Math.floor(term/2)+1,semester:term%2+1,courses,requiredCourses:requiredCourses(term),rules:{specialistMin:6,specialistMax:16,liberalMin:0,liberalMax:4,designCredits:term<5?3:0,designCount:term<5?1:0},notes:['학기별 전문선택 6~16학점·융합교양 0~4학점은 게임 규칙입니다.','자율설계는 2학년 2학기와 3학년 1학기에 3학점씩 배분했습니다. 실제 고정 배분으로 확인된 규칙이 아닙니다.','미적분학Ⅰ 4학점·수학세미나Ⅱ 3학점은 해당 학기 교재 목록 표기를 게임에 사용합니다. 편성표에는 각각 3·4학점으로 표시되어 있습니다.','Ⅰ 과목을 먼저 통과해야 Ⅱ를 듣는다는 선수조건은 설정하지 않았습니다.','3학년 2학기 정보과목 일부는 공식 편성표를 바탕으로 게임에서 개설한 과목입니다. 실제 해당 학기 개설 확정 목록은 아닙니다.'],readOnly:s.turn<24||s.turn>=48||!!s.curriculum?.plans?.[term]||s.curriculum?.legacyOngoingTerm===term};
+      return {term,year:Math.floor(term/2)+1,semester:term%2+1,courses,requiredCourses:requiredCourses(term),rules:{specialistMin:6,specialistMax:16,liberalMin:0,liberalMax:4,designCredits:term<5?3:0,designCount:term<5?1:0},notes:['과거 개설 표시는 2022·2024·2025년 공식 교재 목록에서 확인한 과목입니다. 여러 연도 과목을 한 게임에서 함께 선택하도록 재구성했으며, 2026년 실제 개설을 뜻하지 않습니다.','학기별 전문선택 6~16학점·융합교양 0~4학점은 게임 규칙입니다.','자율설계는 2학년 2학기와 3학년 1학기에 3학점씩 배분했습니다. 실제 고정 배분으로 확인된 규칙이 아닙니다.','미적분학Ⅰ 4학점·수학세미나Ⅱ 3학점은 해당 학기 교재 목록 표기를 게임에 사용합니다. 편성표에는 각각 3·4학점으로 표시되어 있습니다.','Ⅰ 과목을 먼저 통과해야 Ⅱ를 듣는다는 선수조건은 설정하지 않았습니다.','3학년 2학기 정보과목 일부는 공식 편성표를 바탕으로 게임에서 개설한 과목입니다. 실제 해당 학기 개설 확정 목록은 아닙니다.'],readOnly:s.turn<24||s.turn>=48||!!s.curriculum?.plans?.[term]||s.curriculum?.legacyOngoingTerm===term};
     }
     function needsEnrollment(s){if(s.alive===false||s.turn<24||s.turn>=48)return false;const t=termAt(s),q=s.curriculum;return !q?.plans?.[t]&&q?.legacyOngoingTerm!==t;}
     function validateEnrollment(s,ids){

@@ -109,7 +109,7 @@
   function create(name = '새로운 학생', seed, options = {}) {
     const randomSeed = seed === undefined ? (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0 : seedNumber(seed);
     const s = { version: 6, name: String(name).trim().slice(0, 16) || '새로운 학생', seed: randomSeed, rng: randomSeed, turn: 0, stats: {}, archetype: null, academicClub: null, activityClub: null, sportsClubs: [], sportsTryouts: [], electives: [], grades: [], semesterLearning: {}, midterm: null, pendingEvent: null, councilRole: '일반 학생', councilHistory: [], interview: null, captain: false, captainClub: null, relationships: 10, clubWeeks: 0, councilWeeks: 0, researchWeeks: 0, sportsWeeks: 0, illnessWeeks: 0, illnessCount: 0, researchProject: '아직 연구 주제를 찾는 중', badges: [], log: [], admissions: null, admissionRolls: {}, enrolledUniversity: null };
-    Object.assign(s, { alive: true, ending: null, emergency: null, hospitalizations: [], eventQueue: [], dormHarmony: 65, awards: [], tournamentHistory: [], olympiadHistory: [], toeic: { best: 0, attempts: [], practice: 0 }, extraWeeks: 0, applications: [], applicationSnapshot: null, universityInterview: null, universityInterviews: [], admissionStage: 'not_started', dailySeen: [], captainSelectionDone: false });
+    Object.assign(s, { alive: true, ending: null, emergency: null, hospitalizations: [], eventQueue: [], dormHarmony: 65, awards: [], tournamentHistory: [], olympiadHistory: [], toeic: { best: 0, attempts: [], practice: 0 }, extraWeeks: 0, applications: [], applicationSnapshot: null, universityInterview: null, universityInterviews: [], admissionStage: 'not_started', dailySeen: [], captainSelectionDone: false, captainHistory: [] });
     const type = archetypes[Math.floor(rng(s) * archetypes.length)]; s.archetype = type.id;
     for (const k of ['intelligence', 'social', 'athletics', 'discipline', 'luck', 'creativity', 'resilience', 'leadership']) s.stats[k] = clamp(32 + Math.floor(rng(s) * 25) + (type.bonuses[k] || 0));
     Object.assign(s.stats, { health: 85, fatigue: 15, stress: 15, research: 8 });
@@ -193,7 +193,6 @@
   }
   function councilEvent(s) {
     const year = getPhase(s).year;
-    if (s.turn === 24 && s.councilRole !== '일반 학생') { note(s, `${s.councilRole} 임기를 마쳤다. 새로운 학년의 학생회에 다시 도전할 수 있다.`, 'council'); s.councilRole = '일반 학생'; }
     return { id: 'council_apply', title: `${year}학년 2학기 학생회 모집`, description: `${year === 1 ? '부회장 또는 각 부서 차장' : '회장 또는 각 부서 부장'} 중 한 자리에 지원할 수 있다. 회장·부회장 후보는 학생들의 공개 질문에 답하고, 부서 지원자는 면접을 진행한다.`, choices: [...councilRoles(s).map(role => ({ label: `${role.name} 지원`, description: role.department ? `${[...new Set([statLabels[departments.find(d => d.id === role.department).stat], '사회성', '리더십'])].join('·')}을 살릴 수 있는 자리` : '사회성과 리더십으로 학생들의 의견을 모으는 자리', councilCandidate: role })), { label: '이번에는 지원하지 않는다', description: '현재의 공부와 활동을 계속한다.', skipCouncil: true }] };
   }
   function interviewEvent(s) {
@@ -231,6 +230,39 @@
   function captainEvent(s) {
     const targets = [...academicClubs.filter(c => c.id === s.academicClub), ...activityClubs.filter(c => c.id === s.activityClub && c.id !== 'none'), ...sportsClubs.filter(c => s.sportsClubs.includes(c.id))];
     return { id: 'club_captain', title: '1학년의 끝, 다음 기장 선출', description: '한 해의 동아리 활동을 돌아보며 다음 기장을 정한다. 가입한 동아리 한 곳에서 다음 활동을 이끌겠다고 나설 수 있다.', choices: [...targets.map(c => ({ label: `${c.name} 기장 지원`, description: '내가 함께 만들어갈 활동을 이야기한다.', captainTarget: { id: c.id, name: c.name } })), { label: '팀원으로 함께한다', description: '사회성 +5 · 유대감 +8 · 스트레스 −4', effects: { social: 5, stress: -4 }, bond: 8 }] };
+  }
+  function syncRoleTerms(s, announce = false) {
+    if (!Array.isArray(s.captainHistory)) s.captainHistory = [];
+    const oldCaptainBadge = (s.badges || []).find(b => typeof b === 'string' && b.endsWith(' 기장'));
+    if ((s.captain || oldCaptainBadge) && !s.captainHistory.some(h => h.passed)) {
+      s.captainHistory.push({ club: s.captainClub || oldCaptainBadge?.replace(/ 기장$/, '') || '동아리', selectedTurn: 16, expiresTurn: 32, endedTurn: null, passed: true, legacy: true });
+    }
+    for (const h of s.captainHistory) if (h.passed && s.turn >= 32 && h.endedTurn == null) h.endedTurn = 32;
+    if (s.turn >= 32) {
+      if (s.captain && announce) note(s, `${s.captainClub || '동아리'} 기장 임기를 마쳤다. 함께 이끈 활동은 학교생활 기록에 남는다.`, 'club');
+      s.captain = false; s.captainClub = null;
+    }
+    if (!Array.isArray(s.councilHistory)) s.councilHistory = [];
+    if (s.councilRole && s.councilRole !== '일반 학생' && !s.councilHistory.some(h => h.passed && h.role === s.councilRole)) {
+      const year = /부회장|차장/.test(s.councilRole) ? 1 : 2;
+      s.councilHistory.push({ year, role: s.councilRole, department: null, passed: true, chance: null, answers: [], legacy: true });
+    }
+    for (const h of s.councilHistory) if (h.passed) {
+      if (h.selectedTurn == null) h.selectedTurn = h.year === 1 ? 8 : 24;
+      if (h.expiresTurn == null) h.expiresTurn = h.year === 1 ? 24 : 40;
+      if (h.endedTurn === undefined) h.endedTurn = null;
+      if (s.turn >= h.expiresTurn && h.endedTurn == null) h.endedTurn = h.expiresTurn;
+    }
+    const activeCouncil = [...s.councilHistory].reverse().find(h => h.passed && h.role === s.councilRole);
+    if (s.councilRole !== '일반 학생' && (s.turn >= 40 || activeCouncil && s.turn >= activeCouncil.expiresTurn)) {
+      if (announce) note(s, `${s.councilRole}의 임기를 마쳤다. 학생회 경험은 활동 이력에 남는다.`, 'council');
+      s.councilRole = '일반 학생';
+    }
+    // Old saves may contain an unfinished selection from an already expired term.
+    const expiredEvent = e => !!e && ((e.id === 'club_captain' && s.turn >= 32) || (['council_apply', 'council_debate', 'council_interview'].includes(e.id) && (s.turn >= 40 || s.interview?.year === 1 && s.turn >= 24)));
+    if (expiredEvent(s.pendingEvent)) s.pendingEvent = null;
+    if (Array.isArray(s.eventQueue)) s.eventQueue = s.eventQueue.filter(e => !expiredEvent(e));
+    if (s.interview && (s.turn >= 40 || s.interview.year === 1 && s.turn >= 24)) s.interview = null;
   }
   function migrateV2(s) {
     if (!s || !s.stats || !Number.isInteger(s.turn) || s.turn < 0 || s.turn > 48 || !Array.isArray(s.grades)) throw new Error('저장 데이터를 읽을 수 없어요.');
@@ -315,6 +347,8 @@
       if (!s.majorSnapshot) s.majorSnapshot = (s.applications || []).length ? { version: 1, submittedTurn: s.applicationSnapshot?.turn ?? s.turn, legacy: true, evidence: { courses: [], byField: {} }, applicationMajors: { ...s.applicationMajors }, applications: s.applications.map(id => ({ universityId: id, majorId: s.applicationMajors[id], majorName: majors.getMajor(s.applicationMajors[id])?.name || '자유 탐색', fitScore: 0 })) } : null;
       s.version = 6;
     }
+    campus.migrate(s);
+    syncRoleTerms(s);
     s.log = (s.log || []).map(l => ({ ...l, message: cleanVisibleText(l.message) || '학교생활의 한 순간을 기록했다.' }));
     nextEvent(s); updateEnding(s); return s;
   }
@@ -363,13 +397,14 @@
   }
   function resultsEvent() { return { id: 'university_results', title: '대학 전형 결과가 도착했다', description: '원서와 학교생활, 면접에서 나눈 이야기를 바탕으로 결과가 도착했다. 합격한 경우에도 졸업 요건을 충족해야 진학할 수 있다.', choices: [{ label: '전형 결과 확인', description: '다음 출발을 확인한다.', resolveAdmissions: true }] }; }
   function scheduleEvents(s) {
+    syncRoleTerms(s, true);
     const events = [];
     if ([8,24].includes(s.turn)) { events.push(councilEvent(s)); events.push(tournamentEvent(s)); }
     if (s.turn === 16) { if (!s.captainSelectionDone) events.push(captainEvent(s)); events.push(sportsEvent(s, true)); }
     if ([12,28].includes(s.turn)) events.push(olympiadEvent(s));
     if (s.turn === 36 && s.applications.length) { const e = beginUniversityInterviews(s); if(e) events.push(e); }
     if (s.turn === 39 && s.applications.length && !s.admissions) events.push(resultsEvent());
-    if (s.turn === 40) { if (s.councilRole !== '일반 학생') { note(s, `${s.councilRole}의 1년 임기를 마쳤다. 학생회 경험은 활동 이력에 남는다.`, 'council'); s.councilRole = '일반 학생'; } events.push(tournamentEvent(s)); }
+    if (s.turn === 40) events.push(tournamentEvent(s));
     const milestones = {
       17: { id:'research_topic', title:'나만의 R&E 질문', description:'2학년 연구가 시작됐다. 어떤 질문을 끝까지 붙잡아볼까?', choices:[{label:'실험으로 원리를 검증한다',description:'연구 역량 +8 · 지능 +2',effects:{research:8,intelligence:2},project:'실험으로 검증한 자연의 원리'},{label:'데이터와 코드로 예측한다',description:'연구 역량 +8 · 창의성 +2',effects:{research:8,creativity:2},project:'데이터로 예측하는 세상'}]},
       35: { id:'presentation',title:'연구 발표회',description:'실패한 실험까지 한 장의 포스터로 묶었다. 내 연구를 설명할 시간이다.',choices:[{label:'결과와 한계를 솔직하게 설명한다',description:'연구 역량 +7 · 리더십 +3',effects:{research:7,leadership:3}},{label:'친구들과 역할을 나누어 발표한다',description:'연구 역량 +5 · 사회성 +5',effects:{research:5,social:5},harmony:7}]},
@@ -391,11 +426,16 @@
     const healthPenalty = Math.max(0, 55 - s.stats.health) * 0.3;
     const stressPenalty = Math.max(0, s.stats.stress - 40) * 0.14;
     return getSubjects(s).map(sub => {
-      const knowledge = s.semesterLearning[sub.id] || 0;
+      const knowledge = Math.max(0, s.semesterLearning[sub.id] || 0);
+      // Repeated revision still helps, but cannot turn every subject into an
+      // automatic perfect score. Preparedness is independent of raw ability.
+      const preparation = (Math.min(18, knowledge) + Math.max(0, knowledge - 18) * 0.55) * 0.9;
+      const ability = value => Math.min(70, value) + Math.max(0, value - 70) * 0.65;
       const midtermAdjustment = phase.exam === 'midterm' ? 8 : 0;
       const academicAffinity = sub.field === s.academicClub ? 2 : 0;
-      const researchBoost = sub.field === 'research' ? s.stats.research * 0.12 + s.stats.creativity * 0.03 : 0;
-      const score = round(clamp(36 + s.stats.intelligence * 0.22 + s.stats.discipline * 0.15 + knowledge * 1.3 + midtermAdjustment + academicAffinity + researchBoost + bonus - healthPenalty - stressPenalty - (s.illnessWeeks > 0 ? 7 : 0) + (s.stats.luck - 50) * 0.025 + (rng(s) - 0.5) * 10));
+      const researchBoost = sub.field === 'research' ? s.stats.research * 0.08 + s.stats.creativity * 0.02 : 0;
+      const courseDifficulty = Math.max(0, (sub.difficulty || 2) - 2) * 2.2;
+      const score = round(clamp(36 + ability(s.stats.intelligence) * 0.17 + ability(s.stats.discipline) * 0.1 + preparation + midtermAdjustment + academicAffinity + researchBoost + bonus - courseDifficulty - healthPenalty - stressPenalty - (s.illnessWeeks > 0 ? 7 : 0) + (s.stats.luck - 50) * 0.025 + (rng(s) - 0.5) * 10));
       return { ...sub, score };
     });
   }
@@ -458,7 +498,7 @@
       recovery: { fatigue: -(17 + s.stats.resilience * 0.07), stress: -17, resilience: 0.8, discipline: 0.3 }
     }[id];
     shift(s, Object.fromEntries(Object.entries(growth).map(([key, value]) => [key, ['fatigue', 'stress'].includes(key) ? value : value * strength * efficiency])));
-    if (id === 'intelligence') learn(1.8 * strength);
+    if (id === 'intelligence') learn(2.5 * strength);
     if (id === 'discipline') learn(0.9 * strength);
     if (id === 'research') { s.researchWeeks++; learn(0.4 * strength); }
     if (id === 'leadership') s.councilWeeks++;
@@ -589,11 +629,11 @@
       if(!s.interview)throw new Error('진행 중인 질문이 없어요.');
       s.interview.answers.push(c.label);s.interview.points+=c.interviewPoints;
       if(s.interview.answers.length<2)s.pendingEvent=interviewEvent(s);
-      else{const i=s.interview,chance=getCouncilChance(s,i,i.points),passed=rng(s)<chance;s.councilHistory.push({year:i.year,role:i.role,department:i.department,passed,chance,answers:[...i.answers],answerScore:i.points});
+      else{const i=s.interview,chance=getCouncilChance(s,i,i.points),passed=rng(s)<chance;s.councilHistory.push({year:i.year,role:i.role,department:i.department,passed,chance,answers:[...i.answers],answerScore:i.points,...(passed?{selectedTurn:s.turn,expiresTurn:i.year===1?24:40,endedTurn:null}:{})});
         if(passed){s.councilRole=i.role;shift(s,{leadership:7,social:3,stress:3});s.badges.push(`${i.year}학년 ${i.role}`);messages.push(i.department?`${i.role} 면접에 합격했다!`:`학생들의 투표 결과, ${i.role}에 당선됐다!`);}
         else{shift(s,{leadership:2,resilience:2});messages.push(i.department?`${i.role} 면접에서 이번에는 선발되지 않았다.`:`개표 결과, 이번 ${i.role} 선거에서는 당선되지 않았다.`);}s.interview=null;}
     }else if(c.skipCouncil){s.councilHistory.push({year:getPhase(s).year,role:'지원하지 않음',department:null,passed:false,chance:null,answers:[]});messages.push('이번 학생회 모집에는 지원하지 않기로 했다.');}
-    else if(c.captainTarget){s.captainSelectionDone=true;if(rng(s)<getCaptainChance(s)){s.captain=true;s.captainClub=c.captainTarget.name;shift(s,{leadership:8,social:3});s.badges.push(`${s.captainClub} 기장`);messages.push(`${s.captainClub} 기장으로 선출됐다! 다음 해의 활동을 준비한다.`);}else{shift(s,{social:2,leadership:2});messages.push(`${c.captainTarget.name} 기장은 다른 친구가 맡았다. 함께하는 팀원으로 계속 성장한다.`);}}
+    else if(c.captainTarget){s.captainSelectionDone=true;const passed=rng(s)<getCaptainChance(s);if(!Array.isArray(s.captainHistory))s.captainHistory=[];s.captainHistory.push({club:c.captainTarget.name,clubId:c.captainTarget.id,selectedTurn:s.turn,expiresTurn:32,endedTurn:null,passed});if(passed){s.captain=true;s.captainClub=c.captainTarget.name;shift(s,{leadership:8,social:3});s.badges.push(`${s.captainClub} 기장`);messages.push(`${s.captainClub} 기장으로 선출됐다! 다음 해의 활동을 준비한다.`);}else{shift(s,{social:2,leadership:2});messages.push(`${c.captainTarget.name} 기장은 다른 친구가 맡았다. 함께하는 팀원으로 계속 성장한다.`);}}
     else if(c.participateTournament){
       if(s.tournamentHistory.some(h=>h.year===c.tournamentYear))throw new Error('올해 대회 기록은 이미 남았어요.');
       if(!getTournamentEligibility(s))throw new Error('학교 대표로 선발되지 않았어요.');
@@ -647,7 +687,7 @@
   function getAdmissionChance(s,id,answerScore) {
     const u=universities.find(x=>x.id===id);if(!u)throw new Error('대학을 확인해주세요.');
     const p=getProfile(s),rw=u.researchWeight,interview=answerScore===undefined?(s.universityInterviews.find(x=>x.id===id)?.score||0):answerScore;
-    const score=p.gpa/4.3*100*(0.78-rw)+s.stats.research*rw+s.stats.discipline*.09+s.stats.leadership*.07+s.stats.social*.06+(s.captain?1:0)+(s.councilHistory.some(h=>h.passed)?1:0)+(s.stats.luck-50)*.04+interview*.35+majors.getFit(s,id,s.applicationMajors?.[id]||'general',s.majorSnapshot);
+    const score=p.gpa/4.3*100*(0.78-rw)+s.stats.research*rw+s.stats.discipline*.09+s.stats.leadership*.07+s.stats.social*.06+(s.captain||(s.captainHistory||[]).some(h=>h.passed)?1:0)+(s.councilHistory.some(h=>h.passed)?1:0)+(s.stats.luck-50)*.04+interview*.35+majors.getFit(s,id,s.applicationMajors?.[id]||'general',s.majorSnapshot);
     let chance=clamp(1/(1+Math.exp((u.threshold-score)/6.5)),.03,.97);
     if(['kaist','gist','unist','dgist'].includes(id)&&s.awards.some(a=>a.kind==='olympiad'||a.kind==='nationalTeam'))chance=clamp(Math.max(chance,.91+s.stats.luck*.0004+Math.max(0,interview)*.001),.91,.985);
     return chance;
@@ -705,7 +745,7 @@
     if (crisisLimit(s)) triggerEmergency(s); nextEvent(s); updateEnding(s);
     return { ...result, event: s.pendingEvent };
   }
-  const API = { create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
+  const API = { create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
   root.GSAEngine = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);

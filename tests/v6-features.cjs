@@ -158,7 +158,11 @@ module.exports = function verifyV6(ctx) {
     if(old.version===5&&old.midterm) {
       assert.deepEqual(E.getSubjects(migrated).map(c=>[c.id,c.credits]),old.midterm.map(c=>[c.id,c.credits]),'Old active semester retains its course list');
     }
-    if(old.version===5&&old.pendingEvent) assert.deepEqual(migrated.pendingEvent,old.pendingEvent,'Existing selected events are not replaced');
+    if(old.version===5&&old.pendingEvent) {
+      const preserved=copy(migrated.pendingEvent);
+      if(/^campus_romance_/.test(preserved.id)){delete preserved.characterId;delete preserved.characterName;delete preserved.portraitIndex;}
+      assert.deepEqual(preserved,old.pendingEvent,'Existing selected events are not replaced; romance only gains stable person identity');
+    }
   }
 
   // Actual elective cohorts, including liberal and design classes, are finite and deterministic.

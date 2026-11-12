@@ -172,4 +172,5 @@ for(let seed=0;seed<30;seed++)assert.deepEqual(fullRun(seed),fullRun(seed),'Same
 require('./v4-features.cjs')({E,copy,check,fresh,resolve,ready,toTurn,seek,noLeak,counters,fixtures,dead});
 require('./v5-features.cjs')({E,copy,check,fresh,resolve,ready,toTurn,seek,noLeak,counters,fixtures,dead});
 require('./v6-features.cjs')({E,copy,check,fresh,resolve,ready,toTurn,seek,noLeak,counters,fixtures,dead});
+require('./v8-features.cjs')({E,copy,check,fresh,resolve,ready,toTurn,seek,noLeak,counters,fixtures,dead});
 console.log(JSON.stringify({result:'pass',...counters,coverage:['migration','hidden modifiers','emergency/death','tournament medals','captain timing','public Q&A','weekly events','dorm efficiency','olympiad/IST','TOEIC graduation','early university interviews','money/shop/rebound','hidden romance','dorm expulsion','field-credit graduation','cohort award quotas','national-team selection','semester enrollment','earned elective credits','major eligibility/applications','major-specific interviews','curriculum make-up graduation']}));
