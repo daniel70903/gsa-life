@@ -1,6 +1,8 @@
 (function (root) {
   'use strict';
   const dailyEvents = root.GSALifeEvents || (typeof require === 'function' ? require('./life-events.js') : []);
+  const campusModule = root.GSACampusSystems || (typeof require === 'function' ? require('./campus-systems.js') : null);
+  const schoolModule = root.GSASchoolSystems || (typeof require === 'function' ? require('./school-systems.js') : null);
 
   const statLabels = { intelligence: '지능', social: '사회성', athletics: '운동', discipline: '자기관리', luck: '행운', creativity: '창의성', resilience: '회복력', leadership: '리더십', fatigue: '피로도', health: '체력', stress: '스트레스', research: '연구 역량' };
   const archetypes = [
@@ -85,29 +87,52 @@
     s.stats.health = round(Math.max(0, 100 - s.stats.fatigue));
   }
   function note(s, message, category = 'life') { s.log.unshift({ turn: s.turn, message, category }); }
-  function create(name = '새로운 학생', seed) {
+  const hooks = { rng, shift, note, clamp, round, addLearning, getPhase, getSubjects, assertAlive };
+  const campus = campusModule.createAPI(hooks), school = schoolModule.createAPI(hooks);
+  actions.push(...campus.actions, ...school.actions);
+  function create(name = '새로운 학생', seed, options = {}) {
     const randomSeed = seed === undefined ? (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0 : seedNumber(seed);
-    const s = { version: 3, name: String(name).trim().slice(0, 16) || '새로운 학생', seed: randomSeed, rng: randomSeed, turn: 0, stats: {}, archetype: null, academicClub: null, activityClub: null, sportsClubs: [], sportsTryouts: [], electives: [], grades: [], semesterLearning: {}, midterm: null, pendingEvent: null, councilRole: '일반 학생', councilHistory: [], interview: null, captain: false, captainClub: null, relationships: 10, clubWeeks: 0, councilWeeks: 0, researchWeeks: 0, sportsWeeks: 0, illnessWeeks: 0, illnessCount: 0, researchProject: '아직 연구 주제를 찾는 중', badges: [], log: [], admissions: null, admissionRolls: {}, enrolledUniversity: null };
+    const s = { version: 4, name: String(name).trim().slice(0, 16) || '새로운 학생', seed: randomSeed, rng: randomSeed, turn: 0, stats: {}, archetype: null, academicClub: null, activityClub: null, sportsClubs: [], sportsTryouts: [], electives: [], grades: [], semesterLearning: {}, midterm: null, pendingEvent: null, councilRole: '일반 학생', councilHistory: [], interview: null, captain: false, captainClub: null, relationships: 10, clubWeeks: 0, councilWeeks: 0, researchWeeks: 0, sportsWeeks: 0, illnessWeeks: 0, illnessCount: 0, researchProject: '아직 연구 주제를 찾는 중', badges: [], log: [], admissions: null, admissionRolls: {}, enrolledUniversity: null };
     Object.assign(s, { alive: true, ending: null, emergency: null, hospitalizations: [], eventQueue: [], dormHarmony: 65, awards: [], tournamentHistory: [], olympiadHistory: [], toeic: { best: 0, attempts: [], practice: 0 }, extraWeeks: 0, applications: [], applicationSnapshot: null, universityInterview: null, universityInterviews: [], admissionStage: 'not_started', dailySeen: [], captainSelectionDone: false });
     const type = archetypes[Math.floor(rng(s) * archetypes.length)]; s.archetype = type.id;
     for (const k of ['intelligence', 'social', 'athletics', 'discipline', 'luck', 'creativity', 'resilience', 'leadership']) s.stats[k] = clamp(32 + Math.floor(rng(s) * 25) + (type.bonuses[k] || 0));
     Object.assign(s.stats, { health: 85, fatigue: 15, stress: 15, research: 8 });
+    campus.init(s, { legacy: false, gender: options.gender || null }); school.init(s);
     for (const u of universities) s.admissionRolls[u.id] = rng(s);
     note(s, `${type.name}의 가능성을 안고 광주과학고에 입학했다. 첫 주 운동부 테스트가 기다린다.`, 'milestone');
     return s;
   }
   function getPhase(s) {
-    const t = Math.min(s.turn, 47), term = Math.floor(t / 8), week = t % 8 + 1, isDead = s.alive === false, isEnd = isDead || s.turn >= 48, toeicBest = s.toeic ? s.toeic.best : 0;
+    const t = Math.min(s.turn, 47), term = Math.floor(t / 8), week = t % 8 + 1, isDead = s.alive === false, isEnd = isDead || s.turn >= 48, graduationReady = s.turn >= 48 && getGraduationStatus(s).eligible;
     const weeksToExam = (week <= 4 ? 4 : 8) - week;
     const nightAvailable = !isEnd && weeksToExam <= 2, dawnAvailable = !isEnd && weeksToExam <= 1;
     const availableStudyModes = ['normal']; if (nightAvailable) availableStudyModes.push('night'); if (dawnAvailable) availableStudyModes.push('dawn', 'both');
-    return { year: Math.floor(term / 2) + 1, semester: term % 2 + 1, term, week, exam: isEnd ? null : week === 4 ? 'midterm' : week === 8 ? 'final' : null, isEnd, isDead, needsApplications: !isDead && s.turn >= 32 && !(s.applications || []).length && !s.admissions, graduationPending: !isDead && s.turn >= 48 && toeicBest < 730, needsElectives: !isDead && s.turn >= 24 && s.turn < 48 && s.electives.length !== 2, weeksToExam, nightAvailable, dawnAvailable, availableStudyModes, examName: week <= 4 ? '중간고사' : '기말고사', label: isDead ? '이야기의 마지막' : s.turn >= 48 ? toeicBest >= 730 ? '졸업 · 진학' : '졸업 요건 준비' : `${Math.floor(term / 2) + 1}학년 ${term % 2 + 1}학기 · ${week}주차` };
+    return { year: Math.floor(term / 2) + 1, semester: term % 2 + 1, term, week, exam: isEnd ? null : week === 4 ? 'midterm' : week === 8 ? 'final' : null, isEnd, isDead, needsApplications: !isDead && s.turn >= 32 && !(s.applications || []).length && !s.admissions, graduationPending: !isDead && s.turn >= 48 && !graduationReady, needsGender: !!s.needsGender, needsElectives: !isDead && s.turn >= 24 && s.turn < 48 && s.electives.length !== 2, weeksToExam, nightAvailable, dawnAvailable, availableStudyModes, examName: week <= 4 ? '중간고사' : '기말고사', label: isDead ? '이야기의 마지막' : s.turn >= 48 ? graduationReady ? '졸업 · 진학' : '졸업 요건 준비' : `${Math.floor(term / 2) + 1}학년 ${term % 2 + 1}학기 · ${week}주차` };
   }
   function assertAlive(s) { if (s.alive === false) throw new Error('이 이야기는 끝났어요. 새로운 학교생활로 다시 시작할 수 있어요.'); }
   function getDormStatus(s) {
     const harmony = s.dormHarmony === undefined ? 65 : s.dormHarmony;
     const efficiency = harmony < 25 ? 0.72 : harmony < 45 ? 0.86 : 1;
-    return { label: harmony < 25 ? '갈등으로 지친 기숙사' : harmony < 45 ? '어색한 기숙사 생활' : '안정적인 기숙사 생활', efficiency, description: harmony < 25 ? '친구와 갈등이 쌓여 휴식과 집중이 어려워요. 대화와 관계 회복이 필요해요.' : harmony < 45 ? '서로의 생활 습관을 맞추는 중이에요. 잠과 공부에 조금 영향을 받고 있어요.' : '서로의 공간을 존중하며 하루를 마무리하고 있어요.' };
+    const base = { label: harmony < 25 ? '갈등으로 지친 기숙사' : harmony < 45 ? '어색한 기숙사 생활' : '안정적인 기숙사 생활', efficiency, description: harmony < 25 ? '친구와 갈등이 쌓여 휴식과 집중이 어려워요. 대화와 관계 회복이 필요해요.' : harmony < 45 ? '서로의 생활 습관을 맞추는 중이에요. 잠과 공부에 조금 영향을 받고 있어요.' : '서로의 공간을 존중하며 하루를 마무리하고 있어요.' };
+    if (s.dorm && s.dorm.status === 'expelled') {
+      const status = campus.getDormStatus(s);
+      return { ...base, ...status, efficiency: Math.min(base.efficiency, status.efficiency === undefined ? 0.85 : status.efficiency) };
+    }
+    return base;
+  }
+  function getGraduationStatus(s) {
+    const toeicScore = Number(s.toeic && s.toeic.best) || 0, field = school.getFieldStatus(s);
+    const fieldCredits = Number(field.total) || 0, toeicPassed = toeicScore >= 730, fieldPassed = fieldCredits >= 6;
+    return { toeicScore, toeicRequired: 730, toeicPassed, fieldCredits, fieldRequired: 6, fieldPassed, eligible: s.alive !== false && !s.emergency && toeicPassed && fieldPassed, requirements: [{ id: 'toeic', label: 'TOEIC 730점', current: toeicScore, required: 730, complete: toeicPassed }, { id: 'field', label: '현장연구 6학점', current: fieldCredits, required: 6, complete: fieldPassed }] };
+  }
+  function getActionDisabledReason(s, id) {
+    if (s.alive === false) return '이 이야기는 끝났어요.';
+    if (s.turn >= 48) return '졸업 요건 보완 활동을 선택해 주세요.';
+    if (!actions.some(a => a.id === id)) return '진행할 활동을 골라 주세요.';
+    if (id === 'sports' && !s.sportsClubs.length) return '운동부 테스트에 합격한 뒤 팀 훈련에 참여할 수 있어요.';
+    if (id === 'toeic' && s.turn < 8) return 'TOEIC 응시는 1학년 2학기부터 선택할 수 있어요.';
+    try { campus.validateAction(s, id); school.validateAction(s, id); } catch (error) { return error.message; }
+    return null;
   }
   function crisisLimit(s) { return s.stats.fatigue >= 100 || s.stats.stress >= 100 || (s.stats.fatigue >= 90 && s.stats.stress >= 90); }
   function getEmergencySurvivalChance(s) { return clamp(0.4 + s.stats.luck * 0.0045, 0.4, 0.87); }
@@ -122,7 +147,7 @@
   function nextEvent(s) { if (!s.pendingEvent && s.alive) s.pendingEvent = s.eventQueue.shift() || null; }
   function updateEnding(s) {
     if (!s.alive) { s.ending = 'death'; return; }
-    if (s.turn >= 48 && !s.emergency) s.ending = s.toeic.best >= 730 ? 'graduated' : 'deferred';
+    if (s.turn >= 48 && !s.emergency) s.ending = getGraduationStatus(s).eligible ? 'graduated' : 'deferred';
   }
   function getLeadershipBonus(s) { return Math.min(2, s.sportsClubs.length) * 0.08 + Math.min(2, (s.awards || []).filter(a => a.kind === 'sports').length) * 0.08; }
   function getSportsChance(s, clubId) {
@@ -211,9 +236,9 @@
       .replace(/(학생회 (?:부)?회장)에 지원해 면접을 시작했다/g, '$1 후보로 학생들의 공개 질문을 받는다')
       .replace(/(학생회 (?:부)?회장) 면접에서 이번에는 선발되지 않았다/g, '개표 결과, 이번 $1 선거에서는 당선되지 않았다')
       .replace(/새로운 학년의 학생회 면접에/g, '새로운 학년의 학생회에')
-      .replace(/[^.!?\n]*(?:가산점|가산|보너스|선발 확률|선출 가능성)[^.!?\n]*[.!?]?/g, '').trim();
+      .replace(/[^.!?\n]*(?:(?:운동부|교육감배|메달)[^.!?\n]*(?:가산|보너스|선발 확률|선출 가능성)|(?:선발 확률|선출 가능성))[^.!?\n]*[.!?]?/g, '').trim();
   }
-  function migrate(s) {
+  function migrateV3(s) {
     if (!s || !s.stats || !Number.isInteger(s.turn) || s.turn < 0 || s.turn > 48 || !Array.isArray(s.grades)) throw new Error('저장 데이터를 읽을 수 없어요.');
     if (s.version === 3) { s.log = (s.log || []).map(l => ({ ...l, message: cleanVisibleText(l.message) || '학교생활의 한 순간을 기록했다.' })); return s; }
     if (s.version !== 2) migrateV2(s);
@@ -236,6 +261,16 @@
     note(s, '지금까지의 성적과 활동을 이어간다. 졸업 영어 성적은 새 규칙에서 응시해 기록할 수 있다.', 'milestone');
     return s;
   }
+  function migrate(s) {
+    if (!s || !s.stats || !Number.isInteger(s.turn) || s.turn < 0 || s.turn > 48 || !Array.isArray(s.grades)) throw new Error('저장 데이터를 읽을 수 없어요.');
+    if (s.version !== 4) {
+      migrateV3(s); campus.migrate(s); school.migrate(s); s.version = 4;
+      if (s.alive !== false && s.academicClub) s.eventQueue.push(...school.scheduleEvents(s));
+      note(s, '이전 성적과 활동 기록을 그대로 이어간다. 현장연구 학점은 새 활동과 보완 과정에서 이수할 수 있다.', 'milestone');
+    }
+    s.log = (s.log || []).map(l => ({ ...l, message: cleanVisibleText(l.message) || '학교생활의 한 순간을 기록했다.' }));
+    nextEvent(s); updateEnding(s); return s;
+  }
   function getSubjects(s) {
     if (s.turn < 24) return core.map(x => ({ ...x }));
     return [core[0], core[4], core[5], ...s.electives.map(id => electives.find(e => e.id === id)).filter(Boolean), { id: 'research', name: '융합 탐구', field: 'research', credits: 4 }].map(x => ({ ...x }));
@@ -247,7 +282,7 @@
     s.academicClub = academicId; s.activityClub = activityId;
     const ac = academicClubs.find(c => c.id === academicId), club = activityClubs.find(c => c.id === activityId);
     note(s, `${ac.name} · ${club.name} 선택. 학교생활을 시작했다.`, 'club');
-    s.pendingEvent = sportsEvent(s);
+    s.pendingEvent = sportsEvent(s); s.eventQueue.push(...school.scheduleEvents(s));
     return s;
   }
   function chooseElectives(s, ids) {
@@ -300,6 +335,7 @@
       46: { id:'last_memory',title:'마지막으로 남길 장면',description:'익숙한 교실과 운동장도 조금 다르게 보인다. 어떤 순간을 기억하고 싶을까?',choices:[{label:'친구들과 운동장에서 사진을 찍는다',description:'유대감 +12 · 스트레스 −8',effects:{stress:-8},bond:12,harmony:10},{label:'연구 노트를 후배에게 남긴다',description:'연구 역량 +4 · 리더십 +4',effects:{research:4,leadership:4}},{label:'나에게 3년의 편지를 쓴다',description:'자기관리 +4 · 피로도 −6',effects:{discipline:4,fatigue:-6}}]}
     };
     if(milestones[s.turn]) events.push(milestones[s.turn]);
+    events.push(...school.scheduleEvents(s));
     if (!events.length && s.turn < 48 && s.turn !== 32 && rng(s) < 0.74 && dailyEvents.length) {
       let pool = dailyEvents.filter(e => (e.context !== 'sports' || s.sportsClubs.length) && (e.context !== 'research' || s.turn >= 8) && !s.dailySeen.slice(-12).includes(e.id));
       if (s.dormHarmony < 40 && rng(s) < 0.55) { const dorm = pool.filter(e => e.context === 'dorm'); if(dorm.length)pool=dorm; }
@@ -309,7 +345,7 @@
     s.eventQueue.push(...events); nextEvent(s);
   }
   function addLearning(s, n, field) { for (const sub of getSubjects(s)) if (!field || field === sub.field) s.semesterLearning[sub.id] = round((s.semesterLearning[sub.id] || 0) + n); }
-  function letter(score) { if (score >= 95) return ['A+', 4.3]; if (score >= 90) return ['A0', 4]; if (score >= 85) return ['A−', 3.7]; if (score >= 80) return ['B+', 3.3]; if (score >= 75) return ['B0', 3]; if (score >= 70) return ['B−', 2.7]; if (score >= 65) return ['C+', 2.3]; if (score >= 60) return ['C0', 2]; if (score >= 55) return ['C−', 1.7]; if (score >= 50) return ['D+', 1.3]; if (score >= 45) return ['D0', 1]; return ['F', 0]; }
+  function letter(score) { if (score >= 90) return ['A+', 4.3]; if (score >= 85) return ['A0', 4]; if (score >= 80) return ['A−', 3.7]; if (score >= 75) return ['B+', 3.3]; if (score >= 70) return ['B0', 3]; if (score >= 65) return ['B−', 2.7]; if (score >= 60) return ['C+', 2.3]; if (score >= 55) return ['C0', 2]; if (score >= 50) return ['C−', 1.7]; if (score >= 45) return ['D+', 1.3]; if (score >= 40) return ['D0', 1]; return ['F', 0]; }
   function examScores(s, bonus, phase) {
     const healthPenalty = Math.max(0, 55 - s.stats.health) * 0.3;
     const stressPenalty = Math.max(0, s.stats.stress - 40) * 0.14;
@@ -330,15 +366,14 @@
     if (!s.academicClub) throw new Error('입학할 때 동아리를 먼저 골라 주세요.');
     if (p.needsApplications) throw new Error('3학년 1학기 원서 접수를 먼저 마쳐 주세요.');
     if (p.needsElectives) throw new Error('2학년 2학기 선택과목 두 개를 먼저 골라 주세요.');
-    if (!actions.some(a => a.id === actionId)) throw new Error('진행할 활동을 골라 주세요.');
-    if (actionId === 'sports' && !s.sportsClubs.length) throw new Error('운동부 테스트에 합격한 뒤 팀 훈련에 참여할 수 있어요.');
+    const disabledReason = getActionDisabledReason(s, actionId); if (disabledReason) throw new Error(disabledReason);
     if (actionId === 'toeic' && s.turn < 8) throw new Error('TOEIC 응시는 1학년 2학기부터 선택할 수 있어요. 준비는 1학년부터 가능해요.');
     if (!p.availableStudyModes.includes(studyMode)) throw new Error('심야자습은 시험 2주 전부터, 새벽자습은 1주 전부터 선택할 수 있어요.');
     const messages = [], action = actions.find(a => a.id === actionId), wasSick = s.illnessWeeks > 0;
     s.dormHarmony = round(clamp(s.dormHarmony + (s.stats.social < 35 ? -4 : s.stats.social < 50 ? -1.5 : 1)));
     if (s.stats.social < 35) s.relationships = round(clamp(s.relationships - (s.dormHarmony < 45 ? 2 : 0.5)));
     const dorm = getDormStatus(s);
-    if (dorm.efficiency < 1) { shift(s, { fatigue: 2, stress: 2 }); messages.push('기숙사 관계가 불편해 잠과 공부에 집중하기 어려웠다.'); }
+    if (dorm.efficiency < 1) { shift(s, { fatigue: 2, stress: 2 }); messages.push(s.dorm && s.dorm.status === 'expelled' ? '통학에 쓰는 시간과 피로 때문에 공부에 집중할 여유가 줄었다.' : '기숙사 관계가 불편해 잠과 공부에 집중하기 어려웠다.'); }
     const efficiency = (wasSick ? 0.72 : 1) * dorm.efficiency;
     const learn = (n, field) => addLearning(s, n * efficiency, field);
     learn(1.35 + s.stats.discipline * 0.004);
@@ -359,6 +394,10 @@
       case 'toeic': messages.push(recordToeic(s)); shift(s, { fatigue: 8, stress: 5 }); break;
       case 'rest': shift(s, { fatigue: -(22 + s.stats.resilience * 0.12), stress: -24, discipline: 0.5, resilience: 0.7 }); if (wasSick) { s.illnessWeeks = 0; messages.push('충분히 쉬며 아픈 몸을 회복했다.'); } break;
     }
+    const schoolAction = school.performAction(s, actionId);
+    if (schoolAction && schoolAction.handled) { messages.push(...(schoolAction.messages || [])); s.eventQueue.push(...(schoolAction.events || [])); }
+    const campusWeek = campus.weekly(s, actionId, { efficiency, wasSick });
+    if (campusWeek) { messages.push(...(campusWeek.messages || [])); s.eventQueue.push(...(campusWeek.events || [])); }
     if (studyMode === 'night' || studyMode === 'both') { learn(1.9); shift(s, { fatigue: 11, stress: 6 }); messages.push('심야자습으로 시험 준비도를 쌓았다. 피로도 +11.'); }
     if (studyMode === 'dawn' || studyMode === 'both') { learn(1.3); shift(s, { fatigue: 7, stress: 4, discipline: 0.5 }); messages.push('새벽자습으로 핵심 내용을 정리했다. 피로도 +7.'); }
     const crossedLimit = crisisLimit(s), crisisSnapshot = { fatigue: s.stats.fatigue, stress: s.stats.stress };
@@ -373,7 +412,8 @@
         const subjects = scores.map(sub => { const mid = s.midterm && s.midterm.find(m => m.id === sub.id); const score = round((mid ? mid.score : sub.score) * 0.4 + sub.score * 0.6); const [grade, point] = letter(score); return { ...sub, score, grade, point }; });
         const credits = subjects.reduce((a, x) => a + x.credits, 0), earnedCredits = subjects.filter(x => x.point > 0).reduce((a, x) => a + x.credits, 0);
         const gpa = Math.round(subjects.reduce((a, x) => a + x.point * x.credits, 0) / credits * 100) / 100;
-        semesterResult = { year: p.year, semester: p.semester, gpa, credits, earnedCredits, subjects }; s.grades.push(semesterResult);
+        semesterResult = { year: p.year, semester: p.semester, gpa, credits, earnedCredits, subjects, gradeScaleVersion: 4 }; s.grades.push(semesterResult);
+        s.eventQueue.push(...school.onSemesterEnd(s, semesterResult));
         messages.push(`${p.year}학년 ${p.semester}학기 성적 확정: ${gpa.toFixed(2)} / 4.30.`);
         s.semesterLearning = {}; s.midterm = null; shift(s, { fatigue: -12, stress: -14 });
       }
@@ -388,7 +428,7 @@
     scheduleEvents(s);
     if (crossedLimit) triggerEmergency(s, crisisSnapshot);
     updateEnding(s);
-    if (s.turn === 48 && !s.emergency) { messages.push(s.toeic.best >= 730 ? '3년의 과정을 마치고 영어 졸업 기준도 충족했다.' : '3년의 수업을 마쳤다. TOEIC 730점을 충족할 때까지 졸업은 보류된다.'); note(s, messages[messages.length - 1], 'milestone'); }
+    if (s.turn === 48 && !s.emergency) { messages.push(getGraduationStatus(s).eligible ? '3년의 과정과 영어·현장연구 졸업 요건을 모두 마쳤다.' : '3년의 수업을 마쳤다. TOEIC 730점과 현장연구 6학점을 모두 충족할 때까지 졸업은 보류된다.'); note(s, messages[messages.length - 1], 'milestone'); }
     return { messages, event: s.pendingEvent, semesterResult };
   }
   function chooseEvent(s, index) {
@@ -397,7 +437,10 @@
     if (!e || !Number.isInteger(index) || !e.choices[index]) throw new Error('지금 가능한 선택지를 골라 주세요.');
     const c = e.choices[index], messages = [];
     s.pendingEvent = null;
-    if (c.resolveEmergency) {
+    const campusResult = campus.resolve(s, e, c), externalResult = campusResult && campusResult.handled ? campusResult : school.resolve(s, e, c);
+    const externallyHandled = externalResult && externalResult.handled;
+    if (externallyHandled) { messages.push(...(externalResult.messages || [])); s.eventQueue.unshift(...(externalResult.events || [])); }
+    else if (c.resolveEmergency) {
       if (!s.emergency) throw new Error('진행 중인 치료가 없어요.');
       const survived = rng(s) < getEmergencySurvivalChance(s);
       s.hospitalizations.push({ ...s.emergency, survived }); s.emergency = null;
@@ -433,14 +476,14 @@
     else if(c.participateOlympiad){
       if(s.stats.intelligence<60)throw new Error('아직 기초를 더 준비해야 해요.');
       const won=rng(s)<getOlympiadChance(s);s.olympiadHistory.push({turn:s.turn,year:getPhase(s).year,participated:true,won});shift(s,{intelligence:1.5,research:3,fatigue:6,stress:3});
-      if(won){const award={kind:'olympiad',name:'과학 올림피아드 수상',year:getPhase(s).year,turn:s.turn};s.awards.push(award);s.badges.push(award.name);messages.push('어려운 문제를 끝까지 풀어 과학 올림피아드에서 상을 받았다!');}else messages.push('올림피아드 수상에는 이르지 못했지만 새로운 문제를 풀며 많이 배웠다.');
+      if(won){const award={kind:'olympiad',name:'과학 올림피아드 수상',year:getPhase(s).year,turn:s.turn};s.awards.push(award);s.badges.push(award.name);messages.push('어려운 문제를 끝까지 풀어 과학 올림피아드에서 상을 받았다!');s.eventQueue.unshift(...school.nationalTeamEvents(s,s.olympiadHistory[s.olympiadHistory.length-1]));}else messages.push('올림피아드 수상에는 이르지 못했지만 새로운 문제를 풀며 많이 배웠다.');
     }else if(typeof c.universityPoints==='number'){
       const i=s.universityInterview;if(!i)throw new Error('진행 중인 대학 면접이 없어요.');i.answers.push(c.label);i.points+=c.universityPoints;
       if(i.answers.length<3)s.pendingEvent=universityQuestionEvent(s);
       else{const u=universities.find(x=>x.id===i.universityId);s.universityInterviews.push({id:i.universityId,name:u.name,answers:[...i.answers],score:i.points});messages.push(`${u.name} 면접을 마쳤다. 답변과 연구 경험이 전형 기록에 남았다.`);s.universityInterview=null;s.pendingEvent=beginUniversityInterviews(s);if(!s.pendingEvent&&s.turn>=39&&!s.admissions)s.pendingEvent=resultsEvent();}
     }else if(c.resolveAdmissions){if(s.universityInterviews.length!==s.applications.length)throw new Error('면접을 먼저 마쳐야 해요.');resolveAdmissions(s);messages.push('대학 전형 결과를 확인했다. 최종 진학을 위해 졸업 요건도 확인하자.');}
     // Generic choice effects also apply to informational and skip choices.
-    if(c.effects)shift(s,c.effects);if(c.bond)s.relationships=clamp(s.relationships+c.bond);if(c.harmony)s.dormHarmony=round(clamp(s.dormHarmony+c.harmony));if(c.learning)addLearning(s,c.learning);if(c.project)s.researchProject=c.project;if(c.badge)s.badges.push(c.badge);
+    if(!externallyHandled){if(c.effects)shift(s,c.effects);if(c.bond)s.relationships=clamp(s.relationships+c.bond);if(c.harmony)s.dormHarmony=round(clamp(s.dormHarmony+c.harmony));if(c.learning)addLearning(s,c.learning);if(c.project)s.researchProject=c.project;if(c.badge)s.badges.push(c.badge);}
     if(c.skipOlympiad)s.olympiadHistory.push({turn:s.turn,year:getPhase(s).year,participated:false,won:false});
     if(e.id==='club_captain')s.captainSelectionDone=true;
     if(!messages.length)messages.push(`${e.title}: ${c.label}.`);
@@ -472,7 +515,7 @@
     const p=getProfile(s),rw=u.researchWeight,interview=answerScore===undefined?(s.universityInterviews.find(x=>x.id===id)?.score||0):answerScore;
     const score=p.gpa/4.3*100*(0.78-rw)+s.stats.research*rw+s.stats.discipline*.09+s.stats.leadership*.07+s.stats.social*.06+(s.captain?1:0)+(s.councilHistory.some(h=>h.passed)?1:0)+(s.stats.luck-50)*.04+interview*.35;
     let chance=clamp(1/(1+Math.exp((u.threshold-score)/6.5)),.03,.97);
-    if(['kaist','gist','unist','dgist'].includes(id)&&s.awards.some(a=>a.kind==='olympiad'))chance=clamp(Math.max(chance,.91+s.stats.luck*.0004+Math.max(0,interview)*.001),.91,.985);
+    if(['kaist','gist','unist','dgist'].includes(id)&&s.awards.some(a=>a.kind==='olympiad'||a.kind==='nationalTeam'))chance=clamp(Math.max(chance,.91+s.stats.luck*.0004+Math.max(0,interview)*.001),.91,.985);
     return chance;
   }
   function applyUniversities(s,ids){
@@ -495,9 +538,29 @@
     return `TOEIC ${score}점. 최고 점수 ${s.toeic.best}점${s.toeic.best>=730?'으로 졸업 영어 기준을 충족했다.':'이며 졸업 기준 730점까지 더 준비할 수 있다.'}`;
   }
   function deferredCheck(s){assertAlive(s);if(s.turn<48||s.ending==='graduated')throw new Error('졸업 요건을 보완하는 기간에 사용할 수 있어요.');if(s.pendingEvent)throw new Error('현재의 사건을 먼저 마쳐 주세요.');}
-  function takeToeic(s){deferredCheck(s);s.extraWeeks++;shift(s,{fatigue:9,stress:5});const message=recordToeic(s);note(s,message,'toeic');if(crisisLimit(s))triggerEmergency(s);updateEnding(s);return{messages:[message],event:s.pendingEvent};}
-  function prepareToeic(s){deferredCheck(s);s.extraWeeks++;s.toeic.practice=round(s.toeic.practice+1.5);shift(s,{fatigue:-14,stress:-10,discipline:.5});if(s.illnessWeeks)s.illnessWeeks=0;const message='생활 리듬을 회복하며 듣기와 독해를 차근차근 준비했다.';note(s,message,'toeic');updateEnding(s);return{messages:[message],event:s.pendingEvent};}
-  const API = { create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, takeToeic, prepareToeic };
+  function deferredCampusWeek(s, messages) {
+    const result = campus.weekly(s, 'deferred', { deferred: true });
+    messages.push(...(result.messages || [])); s.eventQueue.push(...(result.events || []));
+  }
+  function takeToeic(s){deferredCheck(s);s.extraWeeks++;shift(s,{fatigue:9,stress:5});const messages=[recordToeic(s)];deferredCampusWeek(s,messages);for(const message of messages)note(s,message,'toeic');if(crisisLimit(s))triggerEmergency(s);nextEvent(s);updateEnding(s);return{messages,event:s.pendingEvent};}
+  function prepareToeic(s){deferredCheck(s);s.extraWeeks++;s.toeic.practice=round(s.toeic.practice+1.5);shift(s,{fatigue:-14,stress:-10,discipline:.5});if(s.illnessWeeks)s.illnessWeeks=0;const messages=['생활 리듬을 회복하며 듣기와 독해를 차근차근 준비했다.'];deferredCampusWeek(s,messages);for(const message of messages)note(s,message,'toeic');if(crisisLimit(s))triggerEmergency(s);nextEvent(s);updateEnding(s);return{messages,event:s.pendingEvent};}
+  function setGender(s, value) { assertAlive(s); return campus.setGender(s, value); }
+  function getShop(s) { return campus.getShop(s); }
+  function buyItem(s, id) {
+    assertAlive(s); if (s.pendingEvent) throw new Error('현재의 사건을 먼저 마쳐 주세요.');
+    if (s.ending === 'graduated') throw new Error('이미 졸업한 이야기예요.');
+    const result = campus.buyItem(s, id);
+    if (crisisLimit(s)) triggerEmergency(s); updateEnding(s); return { ...result, event: s.pendingEvent };
+  }
+  function makeupFieldTrip(s) {
+    deferredCheck(s);
+    const result = school.makeupFieldTrip(s); s.extraWeeks++; deferredCampusWeek(s, result.messages);
+    if (result && result.events) s.eventQueue.push(...result.events);
+    for (const message of result.messages || []) note(s, message, 'field');
+    if (crisisLimit(s)) triggerEmergency(s); nextEvent(s); updateEnding(s);
+    return { ...result, event: s.pendingEvent };
+  }
+  const API = { create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus };
   root.GSAEngine = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);

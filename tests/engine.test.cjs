@@ -3,25 +3,26 @@ const assert = require('node:assert/strict');
 const E = require('../dist/engine.js');
 const old1 = require('./v1-save-fixtures.json');
 const old2 = require('./v2-save-fixtures.json');
+const old3 = require('./v3-save-fixtures.json');
 const copy = x => JSON.parse(JSON.stringify(x));
 const counters = {fullRuns:0, checks:0, events:0,dailyEvents:0};
 function check(v,m){counters.checks++;assert.ok(v,m);}
-function fresh(seed=1){const s=E.create('시뮬레이션 검증',seed);E.setClubs(s,'physics','none');return s;}
+function fresh(seed=1){const s=E.create('시뮬레이션 검증',seed,{gender:'male'});E.setClubs(s,'physics','none');return s;}
 function visibleText(value){
  const fields=new Set(['title','description','label','message','reason','effectsText']);
  const out=[];function walk(v){if(Array.isArray(v))return v.forEach(walk);if(v&&typeof v==='object')for(const [k,x]of Object.entries(v)){if(fields.has(k)&&typeof x==='string')out.push(x);else if(typeof x==='object')walk(x);}}walk(value);return out.join('\n');
 }
-function noLeak(s){const text=visibleText([s.pendingEvent,s.eventQueue,s.log,s.admissions]);check(!/(가산점|보너스|%p|운동부.{0,20}확률.{0,8}(상승|높|증가)|메달.{0,20}(합격 확률|선발 확률))/.test(text),'Hidden sports/medal modifiers must not appear in player-facing prose');}
+function noLeak(s){const text=visibleText([s.pendingEvent,s.eventQueue,s.log,s.admissions]);check(!/(%p|(운동부|메달|교육감배)[^\n]{0,80}(가산점|보너스|선발 확률|선출 가능성)|(가산점|보너스)[^\n]{0,60}(운동부|메달|교육감배))/.test(text),'Hidden sports/medal modifiers must not appear in player-facing prose');}
 function resolve(s,chooser=()=>0){let n=0;while(s.pendingEvent&&s.alive){check(++n<60,'Finite event queue');noLeak(s);if(s.pendingEvent.id.startsWith('daily_')){counters.dailyEvents++;if(s.pendingEvent.context==='sports')assert.ok(s.sportsClubs.length,'Team event requires membership');if(s.pendingEvent.context==='research')assert.ok(s.turn>=8,'Research events follow the first semester');}const index=chooser(s.pendingEvent,s);const restored=copy(s);E.chooseEvent(s,index);E.chooseEvent(restored,index);assert.deepEqual(restored,s,'JSON save preserves pending event resolution');counters.events++;}return s;}
-function ready(s){resolve(s);if(!s.alive)return;if(E.getPhase(s).needsElectives)E.chooseElectives(s,['advanced_physics','advanced_math']);if(E.getPhase(s).needsApplications)E.applyUniversities(s,['kaist','gist','dgist']);resolve(s);}
-function safeAction(s){if(s.stats.fatigue>43||s.stats.stress>50||s.illnessWeeks)return 'rest';if(s.turn>=16&&s.toeic.best<730)return s.turn%2?'toeic':'english';return ['study','research','friends','academic'][s.turn%4];}
+function ready(s){if(s.needsGender)E.setGender(s,'male');resolve(s);if(!s.alive)return;if(E.getPhase(s).needsElectives)E.chooseElectives(s,['advanced_physics','advanced_math']);if(E.getPhase(s).needsApplications)E.applyUniversities(s,['kaist','gist','dgist']);resolve(s);}
+function safeAction(s){if(s.stats.fatigue>43||s.stats.stress>50||s.illnessWeeks)return 'rest';if(s.turn>=32&&E.getFieldStatus(s).canIndependent)return 'fieldresearch';if(s.turn>=8&&s.toeic.best<730)return s.turn%2?'toeic':'english';return ['study','research','friends','academic'][s.turn%4];}
 function toTurn(s,target){let guard=0;while(s.turn<target&&s.alive){check(++guard<65,'Progress makes turns');ready(s);if(!s.alive)break;E.advance(s,safeAction(s),'normal');}assert.equal(s.turn,target,'Safe strategy reaches requested turn');return s;}
 function seek(s,id){let n=0;while(s.pendingEvent&&s.pendingEvent.id!==id&&s.alive){assert.ok(++n<40,'Scheduled event remains reachable');E.chooseEvent(s,0);}assert.equal(s.pendingEvent?.id,id);return s.pendingEvent;}
 function bounds(s){for(const [k,v]of Object.entries(s.stats)){check(Number.isFinite(v)&&v>=0&&v<=(['fatigue','stress'].includes(k)?120:100),`Valid ${k}`);}assert.ok(s.sportsClubs.length<=2);assert.equal(new Set(s.sportsClubs).size,s.sportsClubs.length);}
 
 // Versioning, eight character traits and seeded starts remain intact.
 assert.equal(E.archetypes.length,6);
-const seen=new Set();for(let seed=0;seed<180;seed++){const s=E.create('학생',seed);assert.equal(s.version,3);seen.add(s.archetype);assert.deepEqual(E.create('학생',seed),s);for(const k of ['intelligence','social','athletics','discipline','luck','creativity','resilience','leadership'])check(Number.isFinite(s.stats[k]),k);bounds(s);}assert.equal(seen.size,6);
+const seen=new Set();for(let seed=0;seed<180;seed++){const s=E.create('학생',seed);assert.equal(s.version,4);seen.add(s.archetype);assert.deepEqual(E.create('학생',seed),s);for(const k of ['intelligence','social','athletics','discipline','luck','creativity','resilience','leadership'])check(Number.isFinite(s.stats[k]),k);bounds(s);}assert.equal(seen.size,6);
 const start=fresh(41);assert.equal(start.pendingEvent.id,'sports_tryout');assert.equal(start.sportsClubs.length,0);assert.throws(()=>E.advance(start,'study'));
 const athletic=copy(start), weak=copy(start);athletic.stats.athletics=90;weak.stats.athletics=10;check(E.getSportsChance(athletic,'basketball')>E.getSportsChance(weak,'basketball'),'Athletics affect tryouts');
 resolve(start);noLeak(start);
@@ -90,7 +91,7 @@ check(E.getDormStatus(isolated).efficiency<E.getDormStatus(connected).efficiency
 // Science olympiad eligibility/reward grows with intelligence; awards strongly aid IST in this fictional model.
 const genius=copy(base),novice=copy(base);genius.stats.intelligence=95;novice.stats.intelligence=20;check(E.getOlympiadChance(genius)>E.getOlympiadChance(novice),'Intelligence affects olympiad success');
 assert.ok(E.universities.some(u=>u.id==='dgist'),'DGIST belongs to the IST options');
-const applicant=toTurn(fresh(44),32);ready(applicant);const ordinary=copy(applicant),winner=copy(applicant);ordinary.awards=[];winner.awards=[{kind:'olympiad',name:'물리 올림피아드 금상',year:2,turn:28}];
+const applicant=toTurn(fresh(44),32);ready(applicant);const ordinary=copy(applicant),winner=copy(applicant);ordinary.awards=[];ordinary.grades=[];winner.grades=[];winner.awards=[{kind:'olympiad',name:'물리 올림피아드 금상',year:2,turn:28}];
 for(const id of ['kaist','gist','unist','dgist']){const low=E.getAdmissionChance(ordinary,id,0),high=E.getAdmissionChance(winner,id,0);check(high>=0.9&&high<1,'Olympiad award makes IST likely but not guaranteed');check(high>low,'IST award materially improves admission chance');}
 
 // Olympiad awards arise from the actual choice, and low-intelligence pupils can prepare first.
@@ -130,8 +131,8 @@ assert.equal(struggling.ending, 'graduated', 'Persistent preparation can overcom
 assert.deepEqual(struggling.grades, transcriptBeforeRetakes, 'Retakes never repeat school semesters');
 
 // Legacy states retain progress and records while upgrading visible event/log descriptions.
-const fixtures=[...Object.entries(old1).map(([label,state])=>({label:'v1-'+label,state})),...old2];
-for(const fixture of fixtures){const before=copy(fixture.state),after=E.migrate(copy(before));assert.equal(after.version,3);assert.equal(after.turn,before.turn);assert.deepEqual(after.grades,before.grades,'Migration preserves transcript');if(before.admissions)assert.deepEqual(after.admissions.map(a=>[a.id,a.accepted]),before.admissions.filter(a=>a.id!=='new_path').map(a=>[a.id,a.accepted]),'Migration preserves actual university offers');assert.ok(Array.isArray(after.eventQueue));assert.ok(after.toeic&&Array.isArray(after.toeic.attempts));assert.ok(Number.isFinite(after.dormHarmony));noLeak(after);const twice=E.migrate(copy(after));assert.deepEqual(twice,after,'Migration is idempotent');}
+const fixtures=[...Object.entries(old1).map(([label,state])=>({label:'v1-'+label,state})),...old2,...old3];
+for(const fixture of fixtures){const before=copy(fixture.state),after=E.migrate(copy(before));assert.equal(after.version,4);assert.equal(after.turn,before.turn);assert.deepEqual(after.grades,before.grades,'Migration preserves transcript');if(before.admissions)assert.deepEqual(after.admissions.map(a=>[a.id,a.accepted]),before.admissions.filter(a=>a.id!=='new_path').map(a=>[a.id,a.accepted]),'Migration preserves actual university offers');assert.ok(Array.isArray(after.eventQueue));assert.ok(after.toeic&&Array.isArray(after.toeic.attempts));assert.ok(Number.isFinite(after.dormHarmony));noLeak(after);const twice=E.migrate(copy(after));assert.deepEqual(twice,after,'Migration is idempotent');}
 
 // Actual old saves can continue through new application, interview and graduation gates.
 for (const fixture of fixtures) {
@@ -144,6 +145,7 @@ for (const fixture of fixtures) {
 }
 
 // Repeated complete lives exercise frequent events, deterministic saves and all semester transitions.
-function fullRun(seed){const s=fresh(seed),dailyBefore=counters.dailyEvents;let count=0;while(s.turn<48&&s.alive){const oldEvents=counters.events;ready(s);count+=counters.events-oldEvents;if(!s.alive)break;const action=safeAction(s),saved=copy(s);E.advance(s,action,'normal');E.advance(saved,action,'normal');assert.deepEqual(s,saved,'JSON save preserves following week');bounds(s);noLeak(s);}resolve(s);if(s.alive){assert.equal(s.grades.length,6);assert.equal(E.getProfile(s).attemptedCredits,120);assert.equal(s.councilHistory.length,2);assert.ok(['graduated','deferred'].includes(s.ending));if(s.ending==='graduated')assert.ok(s.toeic.best>=730);assert.equal(s.admissionStage,'results');assert.equal(s.universityInterviews.length,3);check(count>=20,'Many more weekly events than the old milestone-only game');check(counters.dailyEvents-dailyBefore>=15,'Ordinary daily choices recur throughout the three years');}else assert.equal(s.ending,'death');counters.fullRuns++;return s;}
-for(let seed=0;seed<40;seed++)assert.deepEqual(fullRun(seed),fullRun(seed),'Same life seed stays reproducible');
-console.log(JSON.stringify({result:'pass',...counters,coverage:['migration','hidden modifiers','emergency/death','tournament medals','captain timing','public Q&A','weekly events','dorm efficiency','olympiad/IST','TOEIC graduation','early university interviews']}));
+function fullRun(seed){const s=fresh(seed),dailyBefore=counters.dailyEvents;let count=0;while(s.turn<48&&s.alive){const oldEvents=counters.events;ready(s);count+=counters.events-oldEvents;if(!s.alive)break;const action=safeAction(s),saved=copy(s);E.advance(s,action,'normal');E.advance(saved,action,'normal');assert.deepEqual(s,saved,'JSON save preserves following week');bounds(s);noLeak(s);}resolve(s);if(s.alive){assert.equal(s.grades.length,6);assert.equal(E.getProfile(s).attemptedCredits,120);assert.equal(s.councilHistory.length,2);assert.ok(['graduated','deferred'].includes(s.ending));if(s.ending==='graduated'){assert.ok(s.toeic.best>=730);assert.ok(E.getFieldStatus(s).total>=6);}assert.equal(s.admissionStage,'results');assert.equal(s.universityInterviews.length,3);check(count>=20,'Many more weekly events than the old milestone-only game');check(counters.dailyEvents-dailyBefore>=15,'Ordinary daily choices recur throughout the three years');}else assert.equal(s.ending,'death');counters.fullRuns++;return s;}
+for(let seed=0;seed<30;seed++)assert.deepEqual(fullRun(seed),fullRun(seed),'Same life seed stays reproducible');
+require('./v4-features.cjs')({E,copy,check,fresh,resolve,ready,toTurn,seek,noLeak,counters,fixtures,dead});
+console.log(JSON.stringify({result:'pass',...counters,coverage:['migration','hidden modifiers','emergency/death','tournament medals','captain timing','public Q&A','weekly events','dorm efficiency','olympiad/IST','TOEIC graduation','early university interviews','money/shop/rebound','hidden romance','dorm expulsion','field-credit graduation','cohort award quotas','national-team selection']}));
