@@ -60,7 +60,7 @@
     { id: 'sports', name: '운동부 훈련', icon: 'ball', description: '합격한 운동부에서 팀원들과 함께 훈련해요.', effectsText: '운동 ↑ · 사회성 ↑ · 동아리 경험 ↑ · 피로도 ↑' },
     { id: 'friends', name: '친구와 시간', icon: 'people', description: '같이 이야기하며 서로의 하루를 나눠요.', effectsText: '사회성 ↑↑ · 유대감 ↑ · 스트레스 ↓' },
     { id: 'council', name: '학생회 활동', icon: 'flag', description: '학급을 돕고 학교 행사와 공약을 준비해요.', effectsText: '리더십 ↑↑ · 사회성 ↑ · 피로도 ↑' },
-    { id: 'english', name: 'TOEIC 준비', icon: 'book', description: '듣기와 독해를 연습해 졸업 영어 기준을 준비해요.', effectsText: '영어 준비도 ↑ · 자기관리 ↑ · 피로도 ↑' },
+    { id: 'english', name: 'TOEIC 준비', icon: 'book', description: '1학년부터 듣기와 독해를 연습해 졸업 영어 기준을 준비해요.', effectsText: '영어 준비도 ↑ · 자기관리 ↑ · 피로도 ↑' },
     { id: 'toeic', name: 'TOEIC 응시', icon: 'book', description: '2학년부터 응시할 수 있어요. 졸업 기준은 730점이에요.', effectsText: '영어 성적 기록 · 피로도 ↑ · 스트레스 ↑' },
     { id: 'rest', name: '충분히 쉬기', icon: 'moon', description: '잠을 충분히 자고 다음 주의 여유를 만들어요.', effectsText: '피로도 ↓↓ · 회복력 ↑ · 스트레스 ↓↓' }
   ];
@@ -110,7 +110,7 @@
     return { label: harmony < 25 ? '갈등으로 지친 기숙사' : harmony < 45 ? '어색한 기숙사 생활' : '안정적인 기숙사 생활', efficiency, description: harmony < 25 ? '친구와 갈등이 쌓여 휴식과 집중이 어려워요. 대화와 관계 회복이 필요해요.' : harmony < 45 ? '서로의 생활 습관을 맞추는 중이에요. 잠과 공부에 조금 영향을 받고 있어요.' : '서로의 공간을 존중하며 하루를 마무리하고 있어요.' };
   }
   function crisisLimit(s) { return s.stats.fatigue >= 100 || s.stats.stress >= 100 || (s.stats.fatigue >= 90 && s.stats.stress >= 90); }
-  function getEmergencySurvivalChance(s) { return clamp(0.5 + s.stats.luck * 0.0045, 0.5, 0.97); }
+  function getEmergencySurvivalChance(s) { return clamp(0.4 + s.stats.luck * 0.0045, 0.4, 0.87); }
   function emergencyEvent(s) { return { id: 'emergency', title: '갑작스러운 응급실 이송', description: '몸과 마음에 쌓인 부담이 한계를 넘었다. 친구가 도움을 요청했고, 응급실에서 치료가 시작되었다. 결과를 기다리고 있다.', choices: [{ label: '치료 결과 확인', description: '이 이야기의 다음 순간을 확인한다.', resolveEmergency: true }] }; }
   function triggerEmergency(s, snapshot) {
     if (!s.alive || s.emergency) return;
@@ -332,7 +332,7 @@
     if (p.needsElectives) throw new Error('2학년 2학기 선택과목 두 개를 먼저 골라 주세요.');
     if (!actions.some(a => a.id === actionId)) throw new Error('진행할 활동을 골라 주세요.');
     if (actionId === 'sports' && !s.sportsClubs.length) throw new Error('운동부 테스트에 합격한 뒤 팀 훈련에 참여할 수 있어요.');
-    if (['english','toeic'].includes(actionId) && s.turn < 16) throw new Error('TOEIC 준비와 응시는 2학년부터 선택할 수 있어요.');
+    if (actionId === 'toeic' && s.turn < 16) throw new Error('TOEIC 응시는 2학년부터 선택할 수 있어요. 준비는 1학년부터 가능해요.');
     if (!p.availableStudyModes.includes(studyMode)) throw new Error('심야자습은 시험 2주 전부터, 새벽자습은 1주 전부터 선택할 수 있어요.');
     const messages = [], action = actions.find(a => a.id === actionId), wasSick = s.illnessWeeks > 0;
     s.dormHarmony = round(clamp(s.dormHarmony + (s.stats.social < 35 ? -4 : s.stats.social < 50 ? -1.5 : 1)));
