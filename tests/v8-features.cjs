@@ -69,7 +69,8 @@ module.exports = function verifyV8(ctx) {
   const lastCouncil=before40.councilHistory.filter(h=>h.passed).at(-1);
   assert.equal(lastCouncil.endedTurn,40);
   const experienced=copy(before32),noExperience=copy(before32);
-  for(const s of [experienced,noExperience]){s.awards=[];s.councilHistory=[];for(const k of Object.keys(s.stats))s.stats[k]=50;}
+  // Compare near the selection boundary so the probability ceiling cannot hide a real bonus.
+  for(const s of [experienced,noExperience]){s.awards=[];s.councilHistory=[];s.grades=[{credits:10,subjects:[{credits:10,point:3.8}]}];s.applicationSnapshot={...(s.applicationSnapshot||{}),gpa:3.8};for(const k of Object.keys(s.stats))s.stats[k]=50;}
   noExperience.captainHistory=[];
   assert.ok(E.getAdmissionChance(experienced,'gist',0)>E.getAdmissionChance(noExperience,'gist',0),'Completed captain service still contributes to the existing admission evaluation');
 

@@ -112,7 +112,7 @@ check(E.getDormStatus(isolated).efficiency<E.getDormStatus(connected).efficiency
 // Science olympiad eligibility/reward grows with intelligence; awards strongly aid IST in this fictional model.
 const genius=copy(base),novice=copy(base);genius.stats.intelligence=95;novice.stats.intelligence=20;check(E.getOlympiadChance(genius)>E.getOlympiadChance(novice),'Intelligence affects olympiad success');
 assert.ok(E.universities.some(u=>u.id==='dgist'),'DGIST belongs to the IST options');
-const applicant=toTurn(fresh(44),32);ready(applicant);const ordinary=copy(applicant),winner=copy(applicant);ordinary.awards=[];ordinary.grades=[];winner.grades=[];winner.awards=[{kind:'olympiad',name:'물리 올림피아드 금상',year:2,turn:28}];
+const applicant=toTurn(fresh(44),32);ready(applicant);const ordinary=copy(applicant),winner=copy(applicant);ordinary.awards=[];for(const s of [ordinary,winner]){s.grades=[{credits:10,subjects:[{credits:10,point:3.8}]}];s.applicationSnapshot.gpa=3.8;for(const key of ['research','discipline','leadership','social','luck'])s.stats[key]=50;}winner.awards=[{kind:'olympiad',name:'물리 올림피아드 금상',year:2,turn:28}];
 for(const id of ['kaist','gist','unist','dgist']){const low=E.getAdmissionChance(ordinary,id,0),high=E.getAdmissionChance(winner,id,0);check(high>=0.9&&high<1,'Olympiad award makes IST likely but not guaranteed');check(high>low,'IST award materially improves admission chance');}
 
 // Olympiad awards arise from the actual choice, and low-intelligence pupils can prepare first.
@@ -174,4 +174,7 @@ require('./v5-features.cjs')({E,copy,check,fresh,resolve,ready,toTurn,seek,noLea
 require('./v6-features.cjs')({E,copy,check,fresh,resolve,ready,toTurn,seek,noLeak,counters,fixtures,dead});
 require('./v8-features.cjs')({E,copy,check,fresh,resolve,ready,toTurn,seek,noLeak,counters,fixtures,dead});
 require('./v9-features.cjs')({E,copy,check,fresh,resolve,ready,toTurn,seek,noLeak,counters,fixtures,dead});
+require('./v10-grades.cjs')({E,copy,check,fresh,resolve,ready,toTurn,seek,noLeak,counters,fixtures,dead});
+require('./v10-admissions.cjs');
+require('./v10-economy.cjs')({E,copy,check,fresh,resolve,ready,toTurn,seek,noLeak,counters,fixtures,dead});
 console.log(JSON.stringify({result:'pass',...counters,coverage:['migration','hidden modifiers','emergency/death','tournament medals','captain timing','public Q&A','weekly events','dorm efficiency','olympiad/IST','TOEIC graduation','early university interviews','money/shop/rebound','hidden romance','dorm expulsion','field-credit graduation','cohort award quotas','national-team selection','semester enrollment','earned elective credits','major eligibility/applications','major-specific interviews','curriculum make-up graduation']}));

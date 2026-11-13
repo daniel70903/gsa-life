@@ -1,14 +1,16 @@
 (function (root) {
   'use strict';
+  const economyVersion = 2;
+  const weeklyAllowance = 5000;
   const shopItems = [
-    { id: 'energy', name: '에너지 음료', category: 'drink', price: 3000, description: '짧게 집중을 돕지만 수면을 대신하지 못해요.', effectsText: '피로도 −14 · 다음 주 반동 +9', fatigue: -14, rebound: 9 },
-    { id: 'snack', name: '작은 간식', category: 'food', price: 2000, description: '쉬는 시간에 즐기는 소소한 간식이에요.', effectsText: '스트레스 −8 · 피로도 −2', fatigue: -2, stress: -8 },
-    { id: 'meal', name: '든든한 식사', category: 'food', price: 5000, description: '끼니를 챙기고 잠깐 쉬어 가요.', effectsText: '피로도 −9 · 스트레스 −3', fatigue: -9, stress: -3 },
-    { id: 'milk', name: '따뜻한 우유', category: 'drink', price: 2500, description: '하루를 마치며 천천히 마셔요.', effectsText: '피로도 −4 · 스트레스 −2', fatigue: -4, stress: -2 },
-    { id: 'fruit', name: '과일 컵', category: 'food', price: 4000, description: '상큼한 과일로 기분을 환기해요.', effectsText: '피로도 −3 · 스트레스 −5', fatigue: -3, stress: -5 },
-    { id: 'tea', name: '허브 차', category: 'drink', price: 3500, description: '차를 마시며 잠시 호흡을 고르는 시간이에요.', effectsText: '스트레스 −10', stress: -10 },
-    { id: 'sandwich', name: '샌드위치 도시락', category: 'food', price: 6500, description: '바쁜 날에도 균형 있게 한 끼를 챙겨요.', effectsText: '피로도 −11 · 스트레스 −4', fatigue: -11, stress: -4 },
-    { id: 'workbook', name: '교과 문제집', category: 'study', price: 9000, description: '짧은 문제 풀이로 배운 개념을 정리해요.', effectsText: '이번 학기 교과 이해 +1.2 · 피로도 +3', learning: 1.2, fatigue: 3 },
+    { id: 'energy', name: '에너지 음료', category: 'drink', price: 3500, description: '짧게 집중을 돕지만 수면을 대신하지 못해요.', effectsText: '피로도 −14 · 다음 주 반동 +9', fatigue: -14, rebound: 9 },
+    { id: 'snack', name: '작은 간식', category: 'food', price: 2500, description: '쉬는 시간에 즐기는 소소한 간식이에요.', effectsText: '스트레스 −8 · 피로도 −2', fatigue: -2, stress: -8 },
+    { id: 'meal', name: '든든한 식사', category: 'food', price: 5500, description: '끼니를 챙기고 잠깐 쉬어 가요.', effectsText: '피로도 −9 · 스트레스 −3', fatigue: -9, stress: -3 },
+    { id: 'milk', name: '따뜻한 우유', category: 'drink', price: 3000, description: '하루를 마치며 천천히 마셔요.', effectsText: '피로도 −4 · 스트레스 −2', fatigue: -4, stress: -2 },
+    { id: 'fruit', name: '과일 컵', category: 'food', price: 4500, description: '상큼한 과일로 기분을 환기해요.', effectsText: '피로도 −3 · 스트레스 −5', fatigue: -3, stress: -5 },
+    { id: 'tea', name: '허브 차', category: 'drink', price: 4000, description: '차를 마시며 잠시 호흡을 고르는 시간이에요.', effectsText: '스트레스 −10', stress: -10 },
+    { id: 'sandwich', name: '샌드위치 도시락', category: 'food', price: 7000, description: '바쁜 날에도 균형 있게 한 끼를 챙겨요.', effectsText: '피로도 −11 · 스트레스 −4', fatigue: -11, stress: -4 },
+    { id: 'workbook', name: '교과 문제집', category: 'study', price: 10000, description: '짧은 문제 풀이로 배운 개념을 정리해요.', effectsText: '이번 학기 교과 이해 +1.2 · 피로도 +3', learning: 1.2, fatigue: 3 },
     { id: 'research_notebook', name: '연구 기록 노트', category: 'study', price: 20000, reusable: true, description: '질문과 실험 기록을 꾸준히 쌓는 공책이에요.', effectsText: '연구·학술 활동 시 교과 이해 +0.2' },
     { id: 'sports_tape', name: '스포츠 테이프', category: 'sports', price: 7000, description: '다음 운동 활동을 준비하는 소모품이에요.', effectsText: '다음 운동 활동의 피로도 −5', buff: 'sportsRecovery' },
     { id: 'basketball', name: '연습용 농구공', category: 'sports', price: 35000, reusable: true, description: '친구들과 팀 연습에 사용할 공이에요.', effectsText: '농구부 훈련 시 스트레스 −2' },
@@ -60,9 +62,15 @@
     function init(s, options = {}) {
       const mean = talentKeys.reduce((sum, key) => sum + (Number.isFinite(s.stats[key]) ? s.stats[key] : 45), 0) / talentKeys.length;
       if (!s.money) {
-        const startingBalance = Math.round(clamp(25000 + (65 - mean) * 2000, 25000, 140000) / 1000) * 1000;
+        const startingBalance = Math.round(clamp(10000 + (65 - mean) * 500, 10000, 25000) / 500) * 500;
         s.financialStrength = round(100 - mean);
-        s.money = { balance: startingBalance, startingBalance, allowance: 10000, ledger: [{ turn: s.turn, amount: startingBalance, reason: options.legacy ? '이어서 시작하는 생활비' : '입학 생활비', balance: startingBalance }], purchasesThisWeek: 0, purchaseTurn: weekClock(s), lastWeeklyTurn: weekClock(s) - 1, pendingRebound: 0, reboundTurn: null, reboundSchedule: [] };
+        s.money = { balance: startingBalance, startingBalance, allowance: weeklyAllowance, economyVersion, ledger: [{ turn: s.turn, amount: startingBalance, reason: options.legacy ? '이어서 시작하는 생활비' : '입학 생활비', balance: startingBalance }], purchasesThisWeek: 0, purchaseTurn: weekClock(s), lastWeeklyTurn: weekClock(s) - 1, pendingRebound: 0, reboundTurn: null, reboundSchedule: [] };
+      }
+      // Only future income changes for existing saves. Cash, ownership and
+      // historical transaction amounts retain exactly what the player earned.
+      if ((s.money.economyVersion || 0) < economyVersion) {
+        s.money.allowance = weeklyAllowance;
+        s.money.economyVersion = economyVersion;
       }
       if (!Array.isArray(s.money.reboundSchedule)) s.money.reboundSchedule = s.money.pendingRebound > 0 && s.money.reboundTurn !== null ? [{ turn: s.money.reboundTurn, amount: s.money.pendingRebound }] : [];
       if (!Array.isArray(s.money.ownedItems)) s.money.ownedItems = [];
@@ -288,7 +296,7 @@
       validateAction(s, id);
       if (id === 'earn') {
         const best = Math.max(...talentKeys.map(key => Number(s.stats[key]) || 0));
-        const reward = Math.min(16000, 6000 + Math.floor(best / 5) * 500);
+        const reward = Math.min(6500, 2500 + Math.floor(best / 5) * 200);
         ledger(s, reward, '도움 활동과 작은 작업');
         shift(s, { fatigue: 6, stress: 2 });
         messages.push(`나의 강점을 살린 작은 작업으로 ${reward.toLocaleString('ko-KR')}원을 벌었다.`);

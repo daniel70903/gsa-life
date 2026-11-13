@@ -48,14 +48,28 @@
     { id: 'advanced_earth', name: '지구·우주과학', field: 'earth', credits: 4 }
   ];
   const universities = [
-    { id: 'seoul', name: '서울대학교', description: '학업과 탐구의 균형을 보는 경로', threshold: 77, researchWeight: 0.18 },
-    { id: 'kaist', name: 'KAIST', description: '연구와 문제 해결에 무게를 둔 경로', threshold: 74, researchWeight: 0.27 },
-    { id: 'postech', name: 'POSTECH', description: '집중적인 탐구 경험을 보는 경로', threshold: 73, researchWeight: 0.28 },
-    { id: 'gist', name: 'GIST', description: '과학 탐구와 성장 가능성을 보는 경로', threshold: 68, researchWeight: 0.25 },
-    { id: 'unist', name: 'UNIST', description: '융합 탐구 경험을 보는 경로', threshold: 67, researchWeight: 0.25 },
-    { id: 'dgist', name: 'DGIST', description: '융합 과학과 탐구를 함께 보는 경로', threshold: 67, researchWeight: 0.25 },
-    { id: 'chonnam', name: '전남대학교', description: '학업과 학교 활동을 함께 보는 경로', threshold: 58, researchWeight: 0.16 }
+    // These targets and labels balance the game; they are not real admissions cutoffs or rankings.
+    { id: 'seoul', name: '서울대학교', group: 'sky', difficulty: '최상', description: '가장 높은 학업 성취와 탄탄한 면접을 요구하는 도전', gradeTarget: 4.24, minimumGpa: 4, strictMinimum: true, researchWeight: 0.04 },
+    { id: 'yonsei', name: '연세대학교', group: 'sky', difficulty: '매우 높음', description: '높은 학업 성취와 전공에 대한 설명이 필요한 도전', gradeTarget: 4.03, researchWeight: 0.045 },
+    { id: 'korea', name: '고려대학교', group: 'sky', difficulty: '매우 높음', description: '꾸준한 학업 성취와 사고력을 함께 보는 도전', gradeTarget: 4, researchWeight: 0.045 },
+    { id: 'kaist', name: 'KAIST', group: 'science', difficulty: '매우 높음', description: '연구와 문제 해결에 무게를 둔 경로', gradeTarget: 4.05, researchWeight: 0.075 },
+    { id: 'postech', name: 'POSTECH', group: 'science', difficulty: '매우 높음', description: '집중적인 탐구 경험을 보는 경로', gradeTarget: 4.02, researchWeight: 0.075 },
+    { id: 'gist', name: 'GIST', group: 'science', difficulty: '높음', description: '과학 탐구와 성장 가능성을 보는 경로', gradeTarget: 3.82, researchWeight: 0.065 },
+    { id: 'unist', name: 'UNIST', group: 'science', difficulty: '높음', description: '융합 탐구 경험을 보는 경로', gradeTarget: 3.78, researchWeight: 0.065 },
+    { id: 'dgist', name: 'DGIST', group: 'science', difficulty: '높음', description: '융합 과학과 탐구를 함께 보는 경로', gradeTarget: 3.76, researchWeight: 0.065 },
+    { id: 'sungkyunkwan', name: '성균관대학교', group: 'seoul', difficulty: '높음', description: '학업과 전공의 연결을 설명하는 경로', gradeTarget: 3.87, researchWeight: 0.05 },
+    { id: 'sogang', name: '서강대학교', group: 'seoul', difficulty: '높음', description: '개념의 이해와 논리적인 설명을 보는 경로', gradeTarget: 3.85, researchWeight: 0.045 },
+    { id: 'hanyang', name: '한양대학교', group: 'seoul', difficulty: '높음', description: '배운 지식을 문제 해결에 연결하는 경로', gradeTarget: 3.84, researchWeight: 0.05 },
+    { id: 'chungang', name: '중앙대학교', group: 'seoul', difficulty: '중상', description: '학업의 꾸준함과 진로 계획을 보는 경로', gradeTarget: 3.7, researchWeight: 0.045 },
+    { id: 'kyunghee', name: '경희대학교', group: 'seoul', difficulty: '중상', description: '학업과 다양한 탐구 경험을 함께 보는 경로', gradeTarget: 3.65, researchWeight: 0.045 },
+    { id: 'uos', name: '서울시립대학교', group: 'seoul', difficulty: '중상', description: '학업의 기초와 사회에 대한 질문을 보는 경로', gradeTarget: 3.64, researchWeight: 0.045 },
+    { id: 'hufs', name: '한국외국어대학교', group: 'seoul', difficulty: '중상', description: '교과 학습과 넓은 관심 분야를 연결하는 경로', gradeTarget: 3.6, researchWeight: 0.04 },
+    { id: 'konkuk', name: '건국대학교', group: 'seoul', difficulty: '중간', description: '학업의 성장과 진로에 대한 준비를 보는 경로', gradeTarget: 3.5, researchWeight: 0.04 },
+    { id: 'dongguk', name: '동국대학교', group: 'seoul', difficulty: '중간', description: '꾸준한 학습과 자신의 생각을 설명하는 경로', gradeTarget: 3.47, researchWeight: 0.04 },
+    { id: 'hongik', name: '홍익대학교', group: 'seoul', difficulty: '중간', description: '학업과 창의적인 문제 접근을 보는 경로', gradeTarget: 3.45, researchWeight: 0.04 },
+    { id: 'chonnam', name: '전남대학교', group: 'regional', difficulty: '중간', description: '학업과 학교 활동을 함께 보는 경로', gradeTarget: 3.35, researchWeight: 0.04 }
   ];
+  const originalAdmissionIds = ['seoul', 'kaist', 'postech', 'gist', 'unist', 'dgist', 'chonnam'];
   const actions = [
     { id: 'study', name: '교과 공부', icon: 'book', description: '수업 내용을 복습하고 다음 시험을 준비해요.', effectsText: '교과 이해 ↑ · 자기관리 ↑ · 스트레스 ↑' },
     { id: 'research', name: 'R&E 연구', icon: 'flask', description: '실험과 분석으로 나만의 질문을 발전시켜요.', effectsText: '연구 역량 ↑↑ · 창의성 ↑ · 피로도 ↑' },
@@ -116,7 +130,9 @@
     campus.init(s, { legacy: false, gender: options.gender || null }); school.init(s); tournaments.init(s);
     s.focus = 'balanced'; s.lastWeekReport = null;
     curriculum.init(s); s.applicationMajors = {}; s.majorSnapshot = null;
-    for (const u of universities) s.admissionRolls[u.id] = rng(s);
+    // Expanding the catalog must not reroll the existing life or its original seven results.
+    for (const id of originalAdmissionIds) s.admissionRolls[id] = rng(s);
+    ensureAdmissionRolls(s);
     note(s, `${type.name}의 가능성을 안고 광주과학고에 입학했다. 첫 주 운동부 테스트가 기다린다.`, 'milestone');
     return s;
   }
@@ -347,6 +363,7 @@
       if (!s.majorSnapshot) s.majorSnapshot = (s.applications || []).length ? { version: 1, submittedTurn: s.applicationSnapshot?.turn ?? s.turn, legacy: true, evidence: { courses: [], byField: {} }, applicationMajors: { ...s.applicationMajors }, applications: s.applications.map(id => ({ universityId: id, majorId: s.applicationMajors[id], majorName: majors.getMajor(s.applicationMajors[id])?.name || '자유 탐색', fitScore: 0 })) } : null;
       s.version = 6;
     }
+    ensureAdmissionRolls(s);
     campus.migrate(s);
     syncRoleTerms(s);
     s.log = (s.log || []).map(l => ({ ...l, message: cleanVisibleText(l.message) || '학교생활의 한 순간을 기록했다.' }));
@@ -427,15 +444,16 @@
     const stressPenalty = Math.max(0, s.stats.stress - 40) * 0.14;
     return getSubjects(s).map(sub => {
       const knowledge = Math.max(0, s.semesterLearning[sub.id] || 0);
-      // Repeated revision still helps, but cannot turn every subject into an
-      // automatic perfect score. Preparedness is independent of raw ability.
-      const preparation = (Math.min(18, knowledge) + Math.max(0, knowledge - 18) * 0.55) * 0.9;
+      // Ordinary lessons plus occasional focused study can reach an A0 average.
+      // Further revision has diminishing returns, leaving room for both exam luck
+      // and the stronger exam-week study choices without automatic perfect marks.
+      const preparation = (Math.min(18, knowledge) + Math.max(0, knowledge - 18) * 0.4) * 0.9;
       const ability = value => Math.min(70, value) + Math.max(0, value - 70) * 0.65;
       const midtermAdjustment = phase.exam === 'midterm' ? 8 : 0;
       const academicAffinity = sub.field === s.academicClub ? 2 : 0;
       const researchBoost = sub.field === 'research' ? s.stats.research * 0.08 + s.stats.creativity * 0.02 : 0;
       const courseDifficulty = Math.max(0, (sub.difficulty || 2) - 2) * 2.2;
-      const score = round(clamp(36 + ability(s.stats.intelligence) * 0.17 + ability(s.stats.discipline) * 0.1 + preparation + midtermAdjustment + academicAffinity + researchBoost + bonus - courseDifficulty - healthPenalty - stressPenalty - (s.illnessWeeks > 0 ? 7 : 0) + (s.stats.luck - 50) * 0.025 + (rng(s) - 0.5) * 10));
+      const score = round(clamp(46 + ability(s.stats.intelligence) * 0.17 + ability(s.stats.discipline) * 0.1 + preparation + midtermAdjustment + academicAffinity + researchBoost + bonus - courseDifficulty - healthPenalty - stressPenalty - (s.illnessWeeks > 0 ? 7 : 0) + (s.stats.luck - 50) * 0.04 + (rng(s) - 0.5) * 10));
       return { ...sub, score };
     });
   }
@@ -564,8 +582,8 @@
     if (schoolAction && schoolAction.handled) { messages.push(...(schoolAction.messages || [])); s.eventQueue.push(...(schoolAction.events || [])); if (routine) routine.activities.push('예약한 개별 현장탐사를 마치고 관찰 기록을 완성했다.'); }
     const campusWeek = campus.weekly(s, routine ? 'routine' : actionId, { efficiency, wasSick, focusId: routine && routine.focus.id, commitment: routine && routine.commitment });
     if (campusWeek) { messages.push(...(campusWeek.messages || [])); s.eventQueue.push(...(campusWeek.events || [])); }
-    if (studyMode === 'night' || studyMode === 'both') { learn(1.9); shift(s, { fatigue: 11, stress: 6 }); messages.push('심야자습으로 시험 준비도를 쌓았다. 피로도 +11.'); }
-    if (studyMode === 'dawn' || studyMode === 'both') { learn(1.3); shift(s, { fatigue: 7, stress: 4, discipline: 0.5 }); messages.push('새벽자습으로 핵심 내용을 정리했다. 피로도 +7.'); }
+    if (studyMode === 'night' || studyMode === 'both') { learn(3.8); shift(s, { fatigue: 11, stress: 6 }); messages.push('심야자습으로 시험 준비도를 충분히 쌓았다. 피로도 +11.'); }
+    if (studyMode === 'dawn' || studyMode === 'both') { learn(2.7); shift(s, { fatigue: 7, stress: 4, discipline: 0.5 }); messages.push('새벽자습으로 시험의 핵심 내용을 다시 정리했다. 피로도 +7.'); }
     const crossedLimit = crisisLimit(s), crisisSnapshot = { fatigue: s.stats.fatigue, stress: s.stats.stress };
     // Fatigue risk is evaluated after the week's choices; new illness affects this week's exam and the next week.
     if (!wasSick && !recovering && rng(s) < getIllnessRisk(s)) { s.illnessWeeks = 2; s.illnessCount++; messages.push('몸살 기운으로 아프기 시작했다. 이번 주와 다음 주 집중력이 떨어진다. 휴식하면 빨리 회복한다.'); }
@@ -684,12 +702,35 @@
     }
     return { gpa, credits: earned, attemptedCredits: attempted, rankLabel: gpa >= 3.7 ? '우수한 학업 성취' : gpa >= 3 ? '안정적인 학업 성취' : gpa > 0 ? '성장 중인 학업 성취' : '첫 성적을 기다리는 중', strength, ending, relationships: round(s.relationships) };
   }
-  function getAdmissionChance(s,id,answerScore) {
-    const u=universities.find(x=>x.id===id);if(!u)throw new Error('대학을 확인해주세요.');
-    const p=getProfile(s),rw=u.researchWeight,interview=answerScore===undefined?(s.universityInterviews.find(x=>x.id===id)?.score||0):answerScore;
-    const score=p.gpa/4.3*100*(0.78-rw)+s.stats.research*rw+s.stats.discipline*.09+s.stats.leadership*.07+s.stats.social*.06+(s.captain||(s.captainHistory||[]).some(h=>h.passed)?1:0)+(s.councilHistory.some(h=>h.passed)?1:0)+(s.stats.luck-50)*.04+interview*.35+majors.getFit(s,id,s.applicationMajors?.[id]||'general',s.majorSnapshot);
-    let chance=clamp(1/(1+Math.exp((u.threshold-score)/6.5)),.03,.97);
-    if(['kaist','gist','unist','dgist'].includes(id)&&s.awards.some(a=>a.kind==='olympiad'||a.kind==='nationalTeam'))chance=clamp(Math.max(chance,.91+s.stats.luck*.0004+Math.max(0,interview)*.001),.91,.985);
+  function ensureAdmissionRolls(s) {
+    if (!s.admissionRolls || typeof s.admissionRolls !== 'object') s.admissionRolls = {};
+    for (const u of universities) if (!Number.isFinite(s.admissionRolls[u.id])) s.admissionRolls[u.id] = seedNumber(`${s.seed}:${u.id}`) / 4294967296;
+  }
+  function getAdmissionStatus(s, id) {
+    const u = universities.find(x => x.id === id); if (!u) throw new Error('대학을 확인해주세요.');
+    const snapshot = Number.isFinite(s.applicationSnapshot?.gpa);
+    const gpa = clamp(snapshot ? s.applicationSnapshot.gpa : getProfile(s).gpa, 0, 4.3);
+    const minimumGpa = Number.isFinite(u.minimumGpa) ? u.minimumGpa : null;
+    const strictMinimum = !!u.strictMinimum;
+    const eligible = minimumGpa === null || (strictMinimum ? gpa > minimumGpa : gpa >= minimumGpa);
+    const requirementText = minimumGpa === null ? '학점·면접·탐구 기록을 종합 평가' : `게임 합격 조건 · 원서 제출 평점 ${minimumGpa.toFixed(2)} ${strictMinimum ? '초과' : '이상'}`;
+    return { id, gpa, snapshot, eligible, minimumGpa, strictMinimum, difficulty: u.difficulty, requirementText, message: eligible ? '학점이 높고 면접 준비가 충실할수록 유리해요. 합격은 보장되지 않아요.' : `원서는 낼 수 있지만 ${minimumGpa.toFixed(2)} ${strictMinimum ? '초과' : '이상'} 조건을 충족하지 못하면 불합격해요.` };
+  }
+  function getAdmissionChance(s, id, answerScore) {
+    const u = universities.find(x => x.id === id), status = getAdmissionStatus(s, id);
+    if (!status.eligible) return 0;
+    const interview = clamp(answerScore === undefined ? (s.universityInterviews.find(x => x.id === id)?.score || 0) : answerScore, -6, 24);
+    const score = (status.gpa - u.gradeTarget) * 16 + (s.stats.research - 50) * u.researchWeight
+      + (s.stats.discipline - 50) * .025 + (s.stats.leadership - 50) * .015 + (s.stats.social - 50) * .015
+      + (s.captain || (s.captainHistory || []).some(h => h.passed) ? .35 : 0) + (s.councilHistory.some(h => h.passed) ? .35 : 0)
+      + (s.stats.luck - 50) * .01 + interview * .1 + majors.getFit(s, id, s.applicationMajors?.[id] || 'general', s.majorSnapshot) * .3;
+    let chance = clamp(1 / (1 + Math.exp(-score / 1.5)), .005, id === 'seoul' ? .8 : .965);
+    if (['kaist', 'gist', 'unist', 'dgist'].includes(id) && s.awards.some(a => a.kind === 'olympiad' || a.kind === 'nationalTeam')) {
+      // Recognition remains powerful, but cannot erase an unsuccessful academic record.
+      const academicReadiness = 1 / (1 + Math.exp((3 - status.gpa) / .18));
+      const recognition = (.91 + s.stats.luck * .0004 + Math.max(0, interview) * .001) * academicReadiness;
+      chance = clamp(Math.max(chance, recognition), .005, .985);
+    }
     return chance;
   }
   function applyUniversities(s,entries){
@@ -705,7 +746,8 @@
   }
   function resolveAdmissions(s){
     assertAlive(s);if(s.admissions)return s.admissions;
-    s.admissions=s.applications.map(id=>{const u=universities.find(x=>x.id===id),chance=getAdmissionChance(s,id),roll=s.admissionRolls[id];return{id,name:u.name,majorId:s.applicationMajors[id]||'general',majorName:majors.getMajor(s.applicationMajors[id]||'general')?.name||'자유 탐색',accepted:roll<chance,conditional:true,probability:Math.round(chance*100),reason:'학교생활 기록과 면접 답변을 검토한 가상 전형 결과입니다. 최종 진학은 졸업 요건 충족이 필요합니다.'};});
+    ensureAdmissionRolls(s);
+    s.admissions=s.applications.map(id=>{const u=universities.find(x=>x.id===id),status=getAdmissionStatus(s,id),chance=getAdmissionChance(s,id),roll=s.admissionRolls[id];return{id,name:u.name,majorId:s.applicationMajors[id]||'general',majorName:majors.getMajor(s.applicationMajors[id]||'general')?.name||'자유 탐색',accepted:roll<chance,conditional:true,probability:Math.round(chance*100),evaluatedGpa:status.gpa,reason:status.eligible?'원서 제출 당시의 학점과 탐구 기록, 면접 답변을 검토한 게임 전형 결과입니다. 최종 진학은 졸업 요건 충족이 필요합니다.':`${status.requirementText} 조건을 충족하지 못했습니다. 실제 대학의 합격 기준이 아닌 게임 규칙입니다.`};});
     s.admissionStage='results';return s.admissions;
   }
   function recordToeic(s){
@@ -745,7 +787,7 @@
     if (crisisLimit(s)) triggerEmergency(s); nextEvent(s); updateEnding(s);
     return { ...result, event: s.pendingEvent };
   }
-  const API = { create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
+  const API = { create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, getAdmissionStatus, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
   root.GSAEngine = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);
