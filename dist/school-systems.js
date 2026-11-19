@@ -124,11 +124,21 @@
       if (q.awardedTerms.includes(term)) return [];
       const subjects = [];
       for (const subject of g.subjects) {
-        // 음악·미술·체육은 수행평가만으로 매겨 교과우수상 대상에서 뺍니다.
-        if (subject.kind === 'art') continue;
         const eligible = getEnrollment(s, subject, term);
+        // 수강 인원의 5%를 소수 첫째 자리에서 올림한 수만큼 수상합니다(부동소수 오차 방지).
+        const artQuota = Math.ceil(Math.round(eligible.length * 5) / 100 - 1e-9);
+        // 음악·미술·체육은 수행평가만으로 매겨 모두 만점에 가까우므로, 교과우수상은 능력치에 따라 확률로 정합니다.
+        if (subject.kind === 'art') {
+          const stat = /체육|운동|스포츠/.test(subject.name || '') ? s.stats.athletics : s.stats.creativity;
+          const chance = Math.min(0.5, (artQuota / Math.max(1, eligible.length)) * (0.3 + 1.7 * Math.pow(Math.max(0, Math.min(100, stat)) / 100, 2)));
+          let h = 2166136261; for (const c of `${s.seed}|art|${term}|${subject.id}`) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+          const awarded = ((h >>> 0) / 4294967296) < chance;
+          subjects.push({ id: subject.id, name: subject.name, ...(subject.category === undefined ? {} : { category: subject.category }), score: subject.score, rank: null, enrollment: eligible.length, quota: artQuota, awarded, recipients: [], lottery: true, chance: Math.round(chance * 1000) / 10 });
+          if (awarded) award(s, { id: `subject:${term}:${subject.id}`, kind: 'subject', name: `${g.year}학년 ${g.semester}학기 ${subject.name} 교과우수상`, year: g.year, semester: g.semester, term, turn: s.turn, subjectId: subject.id, rank: null, quota: artQuota });
+          continue;
+        }
         const ranked = rankCandidates(eligible.map(m => ({ id: m.id, name: m.id === 'player' ? s.name : m.name, score: subjectScore(s, m, subject, term) })));
-        const quota = Math.ceil(eligible.length * 0.05), recipients = ranked.slice(0, quota), player = ranked.find(m => m.id === 'player');
+        const quota = artQuota, recipients = ranked.slice(0, quota), player = ranked.find(m => m.id === 'player');
         const awarded = recipients.some(m => m.id === 'player');
         subjects.push({ id: subject.id, name: subject.name, ...(subject.category === undefined ? {} : { category: subject.category }), score: subject.score, rank: player.rank, enrollment: eligible.length, quota, awarded, recipients });
         if (awarded) award(s, { id: `subject:${term}:${subject.id}`, kind: 'subject', name: `${g.year}학년 ${g.semester}학기 ${subject.name} 교과우수상`, year: g.year, semester: g.semester, term, turn: s.turn, subjectId: subject.id, rank: player.rank, enrollment: eligible.length, quota });
