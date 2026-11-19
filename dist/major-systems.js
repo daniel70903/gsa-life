@@ -77,7 +77,7 @@
     }
     function validateApplications(s, entries) {
       if (s.alive === false) throw new Error('끝난 이야기에서는 지원할 수 없어요.');
-      if (s.turn < 32) throw new Error('2학년 2학기를 마친 뒤 희망 전공을 정해 지원할 수 있어요.');
+      if (s.turn < 35) throw new Error('3학년 1학기를 마친 뒤 희망 전공을 정해 지원할 수 있어요.');
       if (!Array.isArray(entries) || entries.length < 1) throw new Error('지원할 대학과 희망 전공을 1곳 이상 골라 주세요.');
       const normalized = entries.map(entry => typeof entry === 'string' ? { universityId: entry, majorId: 'general' } : entry && typeof entry === 'object' ? { universityId: entry.universityId, majorId: entry.majorId } : null);
       if (normalized.some(entry => !entry || !universityIds().includes(entry.universityId))) throw new Error('지원할 대학을 다시 확인해 주세요.');

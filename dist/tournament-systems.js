@@ -6,7 +6,7 @@
     const { rng, shift, clamp, getPhase, assertAlive } = hooks;
     const cap = (n, lo, hi) => clamp ? clamp(n, lo, hi) : Math.max(lo, Math.min(hi, n));
     const stat = (s, key) => Number.isFinite(s.stats?.[key]) ? s.stats[key] : 0;
-    const yearOf = s => getPhase ? getPhase(s).year : Math.floor(Math.min(s.turn, 47) / 16) + 1;
+    const yearOf = s => getPhase ? getPhase(s).year : Math.floor(Math.min(s.turn, 41) / 14) + 1;
     const clubName = id => CLUBS.find(c => c.id === id)?.name || '운동부';
     function alive(s) { if (assertAlive) assertAlive(s); else if (s.alive === false) throw new Error('이야기가 끝난 뒤에는 대회에 참가할 수 없어요.'); }
     function init(s) {

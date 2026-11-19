@@ -8,7 +8,7 @@
       {
         id: 'journey_jeju_1',
         title: '제주 ① · 시험지를 접고, 지도를 펴다',
-        description: '1학년 2학기 중간고사가 끝났다. 제주에 도착한 버스 안에서도 누군가는 시험 답을 맞춰 보고 있다. 창밖으로 검은 돌담과 바다가 보이자, 옆자리 친구가 오늘 탐방 지도를 펼친다. 이번 여행에서 무엇을 남겨 볼까?',
+        description: '2학기 중간고사가 끝났다. 제주에 도착한 버스 안에서도 누군가는 시험 답을 맞춰 보고 있다. 창밖으로 검은 돌담과 바다가 보이자, 옆자리 친구가 오늘 탐방 지도를 펼친다. 이번 여행에서 무엇을 남겨 볼까?',
         context: 'journey', journey: 'jeju', step: 0,
         choices: [
           {label: '돌담과 해안에서 궁금한 점을 하나씩 적는다', description: '시험 문제 대신 내 질문으로 여행을 시작한다.', effects: {research: 2, creativity: 2, fatigue: 1}, learning: 1},
@@ -100,7 +100,7 @@
       {
         id: 'journey_byeonsan_1',
         title: '변산 ① · 다시 함께 타는 버스',
-        description: '2학년 2학기 중간고사 뒤, 변산으로 향하는 버스에 올랐다. 1년 전 제주에서 나란히 앉았던 친구도 이제 선택과목과 진로 이야기를 한다. 서로 달라진 것 같아 반갑기도, 조금 낯설기도 하다. 차가 출발하자 친구가 먼저 말을 건넨다.',
+        description: '2학기 중간고사 뒤, 변산으로 향하는 버스에 올랐다. 늘 나란히 앉던 친구가 요즘은 선택과목과 진로 이야기를 꺼낸다. 서로 달라진 것 같아 반갑기도, 조금 낯설기도 하다. 차가 출발하자 친구가 먼저 말을 건넨다.',
         context: 'journey', journey: 'byeonsan', step: 0,
         choices: [
           {label: '요즘 가장 재미있는 수업과 고민을 서로 이야기한다', description: '달라진 관심사를 듣고 지금의 친구를 다시 알아 간다.', effects: {social: 3, stress: -4}, bond: 6, harmony: 3},
@@ -133,7 +133,7 @@
       {
         id: 'journey_byeonsan_4',
         title: '변산 ④ · 3학년의 나에게',
-        description: '돌아오기 전, 여행 기록의 마지막 장에 짧은 편지를 쓴다. 제주에서 시작한 첫 여행과 미국에서 품었던 질문, 오늘 친구와 나눈 말이 떠오른다. 곧 2학년을 마치고 3학년을 준비하게 된다. 미래의 나에게 어떤 문장을 남길까?',
+        description: '돌아오기 전, 여행 기록의 마지막 장에 짧은 편지를 쓴다. 그동안의 현장탐사에서 품었던 질문과 오늘 친구와 나눈 말이 떠오른다. 한 학년이 또 끝나 간다. 미래의 나에게 어떤 문장을 남길까?',
         context: 'journey', journey: 'byeonsan', step: 3,
         choices: [
           {label: '“내 질문을 끝까지 설명할 수 있도록 기록하자.”', description: '여행에서 익힌 관찰과 설명을 연구·수업으로 이어 간다.', effects: {research: 3, discipline: 2, fatigue: 1}, learning: 2},

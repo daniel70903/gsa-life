@@ -115,14 +115,14 @@ module.exports = function verifyV4(ctx) {
 
   // Scheduled school trips supply five credits; an independent activity supplies the sixth.
   const traveler = fresh(745); resolve(traveler);
-  toTurn(traveler, 12); resolve(traveler);
+  toTurn(traveler, 11); resolve(traveler);
   let field = E.getFieldStatus(traveler);
   assert.equal(field.schoolCredits, 1, 'First-year Jeju trip contributes one credit');
   assert.equal(field.independentCredits, 0);
-  toTurn(traveler, 24); resolve(traveler);
+  toTurn(traveler, 21); resolve(traveler);
   field = E.getFieldStatus(traveler);
   assert.equal(field.schoolCredits, 4, 'Second-year US trip contributes three more credits');
-  toTurn(traveler, 28); resolve(traveler);
+  toTurn(traveler, 25); resolve(traveler);
   field = E.getFieldStatus(traveler);
   assert.equal(field.schoolCredits, 5, 'Second-year Byeonsan trip completes five school credits');
   assert.equal(field.required, 6);
@@ -132,7 +132,7 @@ module.exports = function verifyV4(ctx) {
   unchangedOnFailure(traveler, () => E.advance(traveler, 'fieldresearch'), 'Independent credit cannot be farmed');
 
   // Graduation requires both TOEIC and six credits; missing trips remain recoverable after old saves.
-  const graduating = toTurn(fresh(746), 48); resolve(graduating);
+  const graduating = toTurn(fresh(746), 42); resolve(graduating);
   assert.equal(E.getFieldStatus(graduating).total, 6);
   const noEnglish = copy(graduating); noEnglish.toeic.best = 725; noEnglish.ending = 'deferred';
   assert.equal(E.getGraduationStatus(noEnglish).eligible, false);
@@ -214,10 +214,10 @@ module.exports = function verifyV4(ctx) {
   assert.equal(new Set(prizeIds).size, prizeIds.length, 'Named academic and school prizes have unique identities');
 
   // A deliberately missed trip can be recovered without repeating any of the attended trips.
-  const absent = toTurn(fresh(447), 12); seek(absent, 'school_trip_jeju');
+  const absent = toTurn(fresh(447), 11); seek(absent, 'school_trip_jeju');
   E.chooseEvent(absent, absent.pendingEvent.choices.findIndex(c=>c.schoolTripSkip));
   resolve(absent); assert.equal(E.getFieldStatus(absent).schoolCredits, 0);
-  toTurn(absent, 48); resolve(absent); absent.toeic.best = 730;
+  toTurn(absent, 42); resolve(absent); absent.toeic.best = 730;
   assert.equal(E.getFieldStatus(absent).total, 5);
   assert.equal(E.getGraduationStatus(absent).eligible, false);
   E.makeupFieldTrip(absent); resolve(absent);
@@ -235,7 +235,7 @@ module.exports = function verifyV4(ctx) {
   assert.equal(noEnglish.ending, 'deferred', 'Preparation without a passing exam keeps the graduation gate');
 
   // National-team recognition follows an Olympiad win, a camp and a separate fallible selection.
-  const candidate = toTurn(fresh(874), 11); ready(candidate);
+  const candidate = toTurn(fresh(874), 10); ready(candidate);
   candidate.stats.intelligence = 95; E.advance(candidate, 'rest'); seek(candidate, 'olympiad');
   let winning, nonWinning;
   for (let seed=0; seed<100 && (!winning || !nonWinning); seed++) {

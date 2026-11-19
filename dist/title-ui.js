@@ -34,14 +34,14 @@
   function progressLabel(s) {
     if (!s) return '';
     if (s.alive === false) return '이야기의 마지막';
-    if (s.turn >= 48) return s.ending === 'graduated' ? '졸업' : '졸업 요건 준비 중';
-    const t = Math.min(s.turn, 47), term = Math.floor(t / 8);
-    return `${Math.floor(term / 2) + 1}학년 ${(term % 2) + 1}학기 ${(t % 8) + 1}주차`;
+    if (s.turn >= 42) return s.ending === 'graduated' ? '졸업' : '졸업 요건 준비 중';
+    const t = Math.min(s.turn, 41), term = Math.floor(t / 7);
+    return `${Math.floor(term / 2) + 1}학년 ${(term % 2) + 1}학기 ${(t % 7) + 1}주차`;
   }
   function endingKind(s) {
     if (!s) return null;
     if (s.alive === false || s.ending === 'death') return 'death';
-    if (s.turn >= 48) return s.ending === 'graduated' ? 'graduated' : 'deferred';
+    if (s.turn >= 42) return s.ending === 'graduated' ? 'graduated' : 'deferred';
     return null;
   }
 
@@ -185,7 +185,7 @@
       .map((i, n) => `<span class="tt-cast tt-cast--${n}">${root.GSAPeople?.avatar ? root.GSAPeople.avatar(i, { size: 'normal', label: '' }) : ''}</span>`)
       .join('');
     const player = s && root.GSAPeople?.player ? root.GSAPeople.player(s, { size: 'small', label: `${s.name} 캐릭터` }) : '';
-    return `<div class="tt-screen" role="dialog" aria-modal="true" aria-labelledby="tt-title"><div class="tt-bg" aria-hidden="true"></div><header class="tt-top"><span class="tt-unofficial">비공식 팬 시뮬레이터</span><button type="button" class="tt-help" data-tt="help" aria-label="도움말 열기"><span aria-hidden="true">?</span>도움말</button></header><main class="tt-main"><div class="tt-hero"><div class="tt-logo" aria-hidden="true">g.</div><p class="tt-eyebrow">GSA LIFE · THREE YEARS, YOUR STORY</p><h1 id="tt-title">광곽에서<br>살아남기</h1><p class="tt-lead">입학부터 졸업까지 48주. 공부, 친구, 운동부, 학생회, 연구 중 무엇을 키울지는 네 선택이야.</p></div><div class="tt-cast-wrap" aria-hidden="true">${cast}</div><div class="tt-menu">${
+    return `<div class="tt-screen" role="dialog" aria-modal="true" aria-labelledby="tt-title"><div class="tt-bg" aria-hidden="true"></div><header class="tt-top"><span class="tt-unofficial">비공식 팬 시뮬레이터</span><button type="button" class="tt-help" data-tt="help" aria-label="도움말 열기"><span aria-hidden="true">?</span>도움말</button></header><main class="tt-main"><div class="tt-hero"><div class="tt-logo" aria-hidden="true">g.</div><p class="tt-eyebrow">GSA LIFE · THREE YEARS, YOUR STORY</p><h1 id="tt-title">광곽에서<br>살아남기</h1><p class="tt-lead">입학부터 졸업까지 42주. 공부, 친구, 운동부, 학생회, 연구 중 무엇을 키울지는 네 선택이야.</p></div><div class="tt-cast-wrap" aria-hidden="true">${cast}</div><div class="tt-menu">${
       s
         ? `<button type="button" class="tt-btn tt-btn--primary" data-tt="continue" data-tt-autofocus><span class="tt-btn-avatar">${player}</span><span class="tt-btn-text"><b>이어하기</b><small>${esc(s.name)} · ${esc(progressLabel(s))}</small></span></button><button type="button" class="tt-btn" data-tt="new"><b>새 게임</b><small>처음부터 다시 입학하기</small></button>`
         : `<button type="button" class="tt-btn tt-btn--primary" data-tt="start" data-tt-autofocus><span class="tt-btn-text"><b>게임 시작</b><small>바로 입학 카드 만들기</small></span></button>`

@@ -19,7 +19,7 @@ function play(seed, focus = 'balanced', club = 'physics') {
   E.setClubs(s, club, 'none');
   const resolve = () => { let n = 0; while (s.pendingEvent && s.alive && n++ < 80) E.chooseEvent(s, (seed + n) % s.pendingEvent.choices.length); };
   let guard = 0;
-  while (s.turn < 48 && s.alive && guard++ < 80) {
+  while (s.turn < 42 && s.alive && guard++ < 80) {
     if (s.needsGender) E.setGender(s, 'male');
     resolve();
     if (!s.alive) break;
@@ -28,7 +28,7 @@ function play(seed, focus = 'balanced', club = 'physics') {
     resolve();
     if (!s.alive) break;
     const f = s.stats.fatigue > 55 || s.stats.stress > 65 || s.illnessWeeks ? 'recovery' : s.turn % 3 ? focus : 'balanced';
-    E.simulateWeek(s, f, 'normal', s.turn >= 32 && E.getFieldStatus(s).canIndependent ? 'fieldresearch' : null);
+    E.simulateWeek(s, f, 'normal', s.turn >= 28 && E.getFieldStatus(s).canIndependent ? 'fieldresearch' : null);
   }
   resolve();
   return s;
@@ -78,7 +78,7 @@ module.exports = function verifyTitleAndComparison() {
   ok(C.compare(mathRun, E).fields.math >= 0.3, 'Math club and electives count toward mathematics');
 
   // 회고 마지막 장과 한 장 요약에 컴패리즌이 나옵니다.
-  const finished = runs.find((s) => s.alive && s.turn >= 48) || runs[0];
+  const finished = runs.find((s) => s.alive && s.turn >= 42) || runs[0];
   const data = R.build(finished, E);
   ok(data.comparison && data.comparison.best.id === C.compare(finished, E).best.id, 'Recap carries the comparison');
   assert.equal(data.slides.at(-1).id, 'comparison', 'Comparison is the last chapter before the summary card');
@@ -109,9 +109,9 @@ module.exports = function verifyTitleAndComparison() {
   assert.equal(list.length, 30, 'Archive keeps the latest 30 lives');
   assert.equal(list[0].key, 'k39');
   assert.equal(T.unlockedScientists([record, { key: 'x', scientist: null }]).size, 1);
-  assert.equal(T.progressLabel({ turn: 9, alive: true }), '1학년 2학기 2주차');
-  assert.equal(T.progressLabel({ turn: 48, alive: true, ending: 'graduated' }), '졸업');
-  assert.equal(T.progressLabel({ turn: 20, alive: false }), '이야기의 마지막');
+  assert.equal(T.progressLabel({ turn: 8, alive: true }), '1학년 2학기 2주차');
+  assert.equal(T.progressLabel({ turn: 42, alive: true, ending: 'graduated' }), '졸업');
+  assert.equal(T.progressLabel({ turn: 18, alive: false }), '이야기의 마지막');
 
   // 튜토리얼이 가리키는 화면 요소가 실제로 존재합니다.
   const sources = ['dist/app.js', 'dist/extras-ui.js', 'dist/character-ui.js'].map(read).join('\n');

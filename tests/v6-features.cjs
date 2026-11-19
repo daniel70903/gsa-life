@@ -17,23 +17,23 @@ module.exports = function verifyV6(ctx) {
   // Each of three enrollment windows records its own chosen subjects and rejects invalid plans atomically.
   const beforeEnrollment=fresh(6101); resolve(beforeEnrollment);
   rejectUnchanged(beforeEnrollment,()=>E.enrollSemester(beforeEnrollment,[]),'Enrollment is unavailable before year two semester two');
-  const curriculum=toTurn(fresh(6102),24); resolve(curriculum);
+  const curriculum=toTurn(fresh(6102),21); resolve(curriculum);
   const plans=[];
-  for(const turn of [24,32,40]) {
+  for(const turn of [21,28,35]) {
     if(curriculum.turn<turn)toTurn(curriculum,turn);
     resolve(curriculum);
     assert.ok(E.needsEnrollment(curriculum));
     assert.throws(()=>E.simulateWeek(curriculum,'balanced'),'The next semester cannot start without enrollment');
     const options=E.getEnrollmentOptions(curriculum), suggested=E.recommendEnrollment(curriculum,'physics');
-    assert.equal(options.term,turn/8);
+    assert.equal(options.term,turn/7);
     rejectUnchanged(curriculum,()=>E.enrollSemester(curriculum,[]),'An empty course plan is invalid');
     rejectUnchanged(curriculum,()=>E.enrollSemester(curriculum,[...suggested,suggested[0]]),'Duplicate course IDs are invalid');
     rejectUnchanged(curriculum,()=>E.enrollSemester(curriculum,[...suggested,'invented-course']),'Unknown course IDs are invalid');
     const designIds=options.courses.filter(c=>c.category==='design').map(c=>c.id);
     const allSpecialists=options.courses.filter(c=>c.category==='specialist');
     if(allSpecialists.reduce((n,c)=>n+c.credits,0)>16) rejectUnchanged(curriculum,()=>E.enrollSemester(curriculum,[...new Set([...suggested,...allSpecialists.map(c=>c.id)])]),'Specialist credit cap is enforced');
-    if(turn<40){const future=copy(curriculum);future.turn=turn+8;const futureOnly=E.getEnrollmentOptions(future).courses.find(c=>!options.courses.some(now=>now.id===c.id));if(futureOnly)rejectUnchanged(curriculum,()=>E.enrollSemester(curriculum,[...suggested,futureOnly.id]),'Courses from a later semester are invalid');}
-    if(turn<40) {
+    if(turn<35){const future=copy(curriculum);future.turn=turn+8;const futureOnly=E.getEnrollmentOptions(future).courses.find(c=>!options.courses.some(now=>now.id===c.id));if(futureOnly)rejectUnchanged(curriculum,()=>E.enrollSemester(curriculum,[...suggested,futureOnly.id]),'Courses from a later semester are invalid');}
+    if(turn<35) {
       rejectUnchanged(curriculum,()=>E.enrollSemester(curriculum,suggested.filter(id=>!designIds.includes(id))),'First two plans require a design course');
       const secondDesign=designIds.find(id=>!suggested.includes(id));
       if(secondDesign) rejectUnchanged(curriculum,()=>E.enrollSemester(curriculum,[...suggested,secondDesign]),'Two design courses exceed the semester requirement');
@@ -48,9 +48,9 @@ module.exports = function verifyV6(ctx) {
     if(E.getPhase(curriculum).needsApplications)E.applyUniversities(curriculum,['gist']);
   }
   const plannedIds=plans.flatMap(p=>p.ids);assert.equal(new Set(plannedIds).size,plannedIds.length,'Stable course IDs cannot earn duplicate planned credits across terms');
-  toTurn(curriculum,48); resolve(curriculum);
+  toTurn(curriculum,42); resolve(curriculum);
   for(const plan of plans) {
-    const term=plan.turn/8;
+    const term=plan.turn/7;
     const grade=curriculum.grades.find(g=>(g.year-1)*2+g.semester-1===term);
     const expected=new Set([...plan.ids,...plan.options.requiredCourses.map(c=>c.id)]);
     assert.deepEqual(new Set([...grade.subjects,...(grade.passFail||[])].map(c=>c.id)),expected,'Semester grades never include an unselected elective');
@@ -58,10 +58,10 @@ module.exports = function verifyV6(ctx) {
   }
 
   // Enrolling is not evidence of completing a course; failed courses never earn category credit.
-  const failing=toTurn(fresh(6110),24); resolve(failing); chooseRoute(failing,'physics');
+  const failing=toTurn(fresh(6110),21); resolve(failing); chooseRoute(failing,'physics');
   assert.equal(E.getCourseEvidence(failing).secondYearSecondTerm.length,0,'A planned course cannot unlock a major');
   assert.equal(E.getMajorOptions(failing).find(m=>m.id==='physics').unlocked,false);
-  toTurn(failing,31); ready(failing);
+  toTurn(failing,27); ready(failing);
   failing.semesterLearning={};
   failing.midterm=E.getSubjects(failing).map(c=>({...c,score:0}));
   failing.stats.intelligence=0; failing.stats.discipline=0; failing.stats.research=0;
@@ -78,8 +78,8 @@ module.exports = function verifyV6(ctx) {
 
   // Major eligibility reflects the actual second-year-second-semester route.
   function makeApplicant(field,seed) {
-    const s=toTurn(fresh(seed),24); resolve(s); chooseRoute(s,field);
-    toTurn(s,32); resolve(s); return s;
+    const s=toTurn(fresh(seed),21); resolve(s); chooseRoute(s,field);
+    toTurn(s,35); resolve(s); return s;
   }
   const physical=makeApplicant('physics',6120),chemical=makeApplicant('chemistry',6121);
   const physicsMajors=E.getMajorOptions(physical),chemistryMajors=E.getMajorOptions(chemical);
@@ -108,14 +108,14 @@ module.exports = function verifyV6(ctx) {
   entries[0].majorId='chemistry';
   assert.deepEqual(physical.majorSnapshot,snapshot,'Caller mutations cannot rewrite submitted eligibility');
   assert.ok(Object.isFrozen(physical.majorSnapshot));
-  toTurn(physical,36);
+  toTurn(physical,38);
   seek(physical,'university_interview');
   const firstQuestion=E.getMajorInterviewQuestion('physics');
   assert.ok(physical.pendingEvent.description.includes(firstQuestion.question),'The first interview question follows the selected major');
   const pendingInterview=E.migrate(copy(physical));
   E.chooseEvent(physical,0);E.chooseEvent(pendingInterview,0);
   assert.deepEqual(pendingInterview,physical,'Major-specific interviews survive reload');
-  resolve(physical);toTurn(physical,39);resolve(physical);
+  resolve(physical);toTurn(physical,40);resolve(physical);
   assert.deepEqual(physical.majorSnapshot,snapshot,'Later grades and activities cannot alter submitted major evidence');
   assert.deepEqual(physical.universityInterviews.map(i=>i.majorId),['physics','math']);
   assert.deepEqual(physical.admissions.map(a=>a.majorId),['physics','math']);
@@ -125,7 +125,7 @@ module.exports = function verifyV6(ctx) {
   assert.deepEqual(E.getCurriculumStatus(curriculum).required,required);
   for(const [category,credits] of Object.entries(required)) assert.ok(E.getCurriculumStatus(curriculum).earned[category]>=credits);
   assert.ok(E.getCurriculumStatus(curriculum).complete);
-  toTurn(failing,48);resolve(failing);
+  toTurn(failing,42);resolve(failing);
   failing.toeic.best=730;
   assert.equal(E.getFieldStatus(failing).total,6);
   assert.ok(!E.getCurriculumStatus(failing).complete);
@@ -192,7 +192,7 @@ module.exports = function verifyV6(ctx) {
   const routeResults=[];
   for(const [field,majorId] of Object.entries(knownRoutes)) {
     const s=fresh(`route-${field}`); s.stats.intelligence=80; s.stats.discipline=80;
-    while(s.turn<48&&s.alive) {
+    while(s.turn<42&&s.alive) {
       resolve(s);
       if(!s.alive)break;
       if(E.needsEnrollment(s))chooseRoute(s,field);
@@ -202,11 +202,11 @@ module.exports = function verifyV6(ctx) {
       }
       resolve(s);
       const focus=s.stats.fatigue>55||s.stats.stress>65||s.illnessWeeks?'recovery':s.toeic.best<730?'english':'balanced';
-      const commitment=s.turn>=32&&E.getFieldStatus(s).canIndependent?'fieldresearch':s.turn>=8&&s.toeic.best<730&&s.toeic.practice>=5?'toeic':null;
+      const commitment=s.turn>=28&&E.getFieldStatus(s).canIndependent?'fieldresearch':s.turn>=7&&s.toeic.best<730&&s.toeic.practice>=5?'toeic':null;
       E.simulateWeek(s,focus,'normal',commitment);
     }
     resolve(s);
-    assert.equal(s.turn,48);
+    assert.equal(s.turn,42);
     assert.equal(s.ending,'graduated',`${field} route reaches graduation with a safe strategy`);
     assert.equal(s.admissions[0].majorId,majorId);
     assert.ok(E.getCurriculumStatus(s).complete);

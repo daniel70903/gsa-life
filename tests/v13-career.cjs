@@ -10,7 +10,7 @@ module.exports = function verifyV13Career() {
   const s = E.create('c', 31, { gender: 'male' }); E.setClubs(s, 'math', 'none');
   ok(E.getCareer(s) === null, 'No career before graduation');
   const a0 = E.getAchievements(s); ok(a0.stars === 0 && a0.list.length >= 8, 'Achievements list exists');
-  const g = copy(s); g.turn = 48; g.awards = [{ kind: 'olympiad' }, { kind: 'contest', tier: '금상' }]; g.admissions = [{ id: 'seoul', name: '서울대학교', majorName: '수리과학부', accepted: true }];
+  const g = copy(s); g.turn = 42; g.awards = [{ kind: 'olympiad' }, { kind: 'contest', tier: '금상' }]; g.admissions = [{ id: 'seoul', name: '서울대학교', majorName: '수리과학부', accepted: true }];
   ok(E.getAchievements(g).stars === 3, 'olympiad, gold, SNU earn stars');
   const c = E.getCareer(g); ok(c && c.prize === '필즈상' && Array.isArray(c.timeline) && c.timeline.length >= 2, 'Math path aims at the Fields Medal');
   assert.deepEqual(E.getCareer(copy(g)), c); checks++;

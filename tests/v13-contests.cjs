@@ -16,7 +16,7 @@ module.exports = function verifyV13Contests() {
   for (let seed = 1; seed <= 12; seed++) {
     const s = E.create('c', seed, { gender: 'male' }); E.setClubs(s, 'math', 'none');
     let seen = 0, g = 0;
-    while (s.turn < 12 && s.alive && g++ < 30) {
+    while (s.turn < 11 && s.alive && g++ < 30) {
       let n = 0;
       while (s.pendingEvent && s.alive && n++ < 60) { const ev = s.pendingEvent; if (ev.contestId) seen++; E.chooseEvent(s, ev.contestId ? 0 : 0); }
       if (!s.alive) break;

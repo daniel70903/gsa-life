@@ -51,7 +51,7 @@ function verifyV10Grades(ctx = {}) {
     for(let seed=1;seed<=32;seed++) {
       const s=E.create('학업 균형 확인',seed,{gender:'male'});E.setClubs(s,'physics','none');
       if(policy==='giftedLucky'){s.stats.intelligence=100;s.stats.luck=90;}
-      while(s.alive&&s.turn<48) {
+      while(s.alive&&s.turn<42) {
         ready(s);
         let focus=policy==='intensive'?'intelligence':policy==='recovery'?'recovery':policy==='giftedLucky'?'balanced':s.turn%4===1?'intelligence':'balanced';
         if(s.stats.fatigue>60||s.stats.stress>65||s.illnessWeeks)focus='recovery';
@@ -62,12 +62,12 @@ function verifyV10Grades(ctx = {}) {
           if(policy==='both')mode=phase.dawnAvailable?'both':phase.nightAvailable?'night':'normal';
         }
         let commitment=null;
-        if(s.turn>=32&&E.getFieldStatus(s).canIndependent)commitment='fieldresearch';
-        else if(s.turn>=32&&s.toeic.best<730)commitment='toeic';
+        if(s.turn>=28&&E.getFieldStatus(s).canIndependent)commitment='fieldresearch';
+        else if(s.turn>=28&&s.toeic.best<730)commitment='toeic';
         s.studyPlanner=null; // v0.13: 플래너 대신 정책이 정한 자습만 비교합니다.
         E.simulateWeek(s,focus,mode,commitment);
       }
-      settle(s);assert.ok(s.alive&&s.turn===48,'Ordinary study plus recovery completes school safely');
+      settle(s);assert.ok(s.alive&&s.turn===42,'Ordinary study plus recovery completes school safely');
       runs.push({gpa:E.getProfile(s).gpa,application:s.applicationSnapshot.gpa});
     }
     results[policy]={median:median(runs.map(r=>r.gpa)),applicationMedian:median(runs.map(r=>r.application)),mean:runs.reduce((sum,r)=>sum+r.gpa,0)/runs.length};

@@ -7,11 +7,11 @@ const oldFixtures = require('./v7-save-fixtures.json');
 const originalIds = ['seoul', 'kaist', 'postech', 'gist', 'unist', 'dgist', 'chonnam'];
 function applicant(percentile = 0.5, seed = 123) {
   const s = E.create('입시 검증', seed, { gender: 'male' });
-  for (const turn of [24, 32]) {
+  for (const turn of [21, 28, 35]) {
     s.turn = turn;
     E.enrollSemester(s, E.recommendEnrollment(s, 'physics'));
   }
-  s.turn = 36;
+  s.turn = 38;
   s.grades = [{ year: 2, semester: 2, credits: 10, earnedCredits: 10, subjects: [{ credits: 10, point: 4 }] }];
   for (const key of ['research', 'discipline', 'leadership', 'social', 'luck']) s.stats[key] = 60;
   s.applicationSnapshot = { gpa: 4, percentile, research: 70 };
@@ -80,7 +80,7 @@ for (const u of active) for (const roll of [0, 0.999999]) {
   E.applyUniversities(s, [{ universityId: u.id, majorId: 'general' }]);
   settle(s);
   assert.equal(s.universityInterviews[0].id, u.id);
-  s.turn = 39;
+  s.turn = 40;
   s.admissionRolls[u.id] = roll;
   s.pendingEvent = { id: 'university_results', choices: [{ resolveAdmissions: true }] };
   E.chooseEvent(s, 0);
@@ -107,7 +107,8 @@ for (const fixture of oldFixtures) {
   for (const u of E.universities) assert.ok(Number.isFinite(migrated.admissionRolls[u.id]));
   assert.deepEqual(migrated.admissions, before.admissions);
   assert.deepEqual(migrated.grades, before.grades);
-  assert.deepEqual(migrated.applicationSnapshot, before.applicationSnapshot);
+  const expectedSnapshot = copy(before.applicationSnapshot); (function walk(o) { if (!o || typeof o !== 'object') return; for (const k of Object.keys(o)) { if ((k === 'turn' || /Turn$/.test(k)) && Number.isInteger(o[k]) && o[k] <= 48) o[k] = E.legacyWeekToNew(o[k]); else walk(o[k]); } })(expectedSnapshot);
+  assert.deepEqual(migrated.applicationSnapshot, expectedSnapshot, 'v0.13.2: only the week number moves to the 7-week calendar');
   assert.deepEqual(E.migrate(copy(migrated)), migrated);
 }
 const original = E.create('이전 추첨 유지', 42, { gender: 'male' }), withoutNewRolls = copy(original);

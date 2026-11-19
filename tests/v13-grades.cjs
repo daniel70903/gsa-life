@@ -69,7 +69,7 @@ module.exports = function verifyV13Grades() {
   const legacy = fresh(7); delete legacy.courseTable; legacy.turn = 2; legacy.semesterLearning = { math: 5 };
   E.migrate(legacy);
   ok(legacy.courseTable !== 2 && E.getSubjects(legacy).some((x) => x.id === 'math'), 'An unfinished old semester keeps its subjects');
-  const nextTerm = fresh(7); delete nextTerm.courseTable; nextTerm.turn = 8; nextTerm.semesterLearning = {};
+  const nextTerm = fresh(7); delete nextTerm.courseTable; nextTerm.turn = 7; nextTerm.semesterLearning = {};
   E.migrate(nextTerm);
   assert.equal(nextTerm.courseTable, 2, 'The next semester switches to the new course table');
   return { checks };

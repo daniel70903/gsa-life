@@ -23,14 +23,14 @@
   }
   function turnLabel(turn, atEnd = false) {
     if (turn <= 0) return '입학 첫 주';
-    if (turn >= 48) return '3학년 2학기 말';
-    const value = Math.max(0, Math.min(47, atEnd ? turn - 1 : turn));
-    return `${Math.floor(value / 16) + 1}학년 ${Math.floor(value / 8) % 2 + 1}학기`;
+    if (turn >= 42) return '3학년 2학기 말';
+    const value = Math.max(0, Math.min(41, atEnd ? turn - 1 : turn));
+    return `${Math.floor(value / 14) + 1}학년 ${Math.floor(value / 7) % 2 + 1}학기`;
   }
   function build(source, engine) {
     const s = source && typeof source === 'object' ? source : {};
-    const turn = Math.max(0, Math.min(48, num(s.turn))), dead = s.alive === false || s.ending === 'death';
-    const completed = turn >= 48, eligible = dead || completed;
+    const turn = Math.max(0, Math.min(42, num(s.turn))), dead = s.alive === false || s.ending === 'death';
+    const completed = turn >= 42, eligible = dead || completed;
     const grades = list(s.grades).filter(g => g && num(g.year) >= 1 && num(g.year) <= 3);
     const terms = grades.map(g => ({ year: num(g.year), semester: num(g.semester, 1), gpa: round(num(g.gpa)), credits: num(g.earnedCredits, num(g.credits)) })).sort((a, b) => a.year - b.year || a.semester - b.semester);
     const attempted = sum(grades, g => num(g.credits, sum(list(g.subjects), c => c.credits)));
@@ -65,7 +65,7 @@
     if (s.activityClub && s.activityClub !== 'none') clubs.push({ name: lookup('activityClubs', s.activityClub), type: '상설동아리' });
     for (const id of unique(list(s.sportsClubs))) clubs.push({ name: lookup('sportsClubs', id), type: '운동부' });
     const roles = [];
-    for (const h of list(s.captainHistory).filter(h => h.passed)) roles.push({ name: `${h.club || s.captainClub || '동아리'} 기장`, period: `1학년 말 선출 · ${h.endedTurn != null || turn >= 32 ? '2학년 말 임기 종료' : dead ? '이야기가 끝날 때까지 활동' : '활동 중'}` });
+    for (const h of list(s.captainHistory).filter(h => h.passed)) roles.push({ name: `${h.club || s.captainClub || '동아리'} 기장`, period: `1학년 말 선출 · ${h.endedTurn != null || turn >= 28 ? '2학년 말 임기 종료' : dead ? '이야기가 끝날 때까지 활동' : '활동 중'}` });
     if (!roles.length && s.captain) roles.push({ name: `${s.captainClub || '동아리'} 기장`, period: '학교생활 기록' });
     for (const h of list(s.councilHistory).filter(h => h.passed)) roles.push({ name: h.role || '학생회 임원', period: `${num(h.year, 1)}학년 2학기 선출 · ${h.endedTurn != null || turn >= num(h.expiresTurn, h.year === 1 ? 24 : 40) ? `${num(h.year, 1) + 1}학년 1학기 말 임기 종료` : dead ? '이야기가 끝날 때까지 활동' : '활동 중'}` });
     for (const h of list(s.school?.officerHistory).filter(h => h.playerRole)) roles.push({ name: h.playerRole, period: semesterLabel(num(h.year, Math.floor(num(h.term) / 2) + 1), num(h.semester, num(h.term) % 2 + 1)) });
@@ -111,12 +111,12 @@
       return Math.min(3, Math.floor(Math.max(0, num(l.turn) - (isYearEnd ? 1 : 0)) / 16) + 1);
     };
     const noteworthy = l => /입학|합격|당선|선출|기장|수상|메달|국가대표|올림피아드|탐사|연구 주제|원서를|전공|기숙사를 떠|퇴사|연인이|교제|고백|실험|발표/.test(l.message) && !/수상 선정 완료/.test(l.message);
-    const journalLabel = l => /미국|글로벌 사이언스/.test(l.message) && num(l.turn) === 24 ? '2학년 여름방학' : turnLabel(num(l.turn), /학기를 마|임기를 마|기장으로 선출/.test(l.message));
+    const journalLabel = l => /미국|글로벌 사이언스/.test(l.message) && num(l.turn) === 21 ? '2학년 여름방학' : turnLabel(num(l.turn), /학기를 마|임기를 마|기장으로 선출/.test(l.message));
     const slides = [];
     const slide = (id, kicker, title, body, highlights = [], moments = [], characterIds = [], mood = 'idle') => slides.push({ id, kicker, title, body, highlights, moments, characterIds, mood });
     const archetype = list(engine?.archetypes).find(a => a.id === s.archetype)?.name;
     slide('opening', 'MY SCHOOL STORY', dead ? '기억에 남은 순간들을 돌아보며.' : completed ? '입학부터 여기까지, 나의 3년.' : '입학부터 지금까지, 나의 이야기.', `${name}의 학교생활을 한 장씩 돌아보자. ${completed ? '여섯 학기 동안 쌓은 성적과 활동, 사람들의 기억을 모았어.' : '실제로 보낸 시간과 남아 있는 기록을 모았어.'}`, [{ label: '기록 기간', value: period }, { label: '시작 유형', value: archetype || '이전 학교생활 기록' }]);
-    const experiencedYears = completed ? 3 : Math.max(1, Math.min(3, Math.ceil(turn / 16)));
+    const experiencedYears = completed ? 3 : Math.max(1, Math.min(3, Math.ceil(turn / 14)));
     for (let year = 1; year <= experiencedYears; year++) {
       const yearTerms = terms.filter(g => g.year === year), yearGrades = grades.filter(g => num(g.year) === year);
       const yearAttempted = sum(yearGrades, g => g.credits), yearPoints = sum(yearGrades, g => sum(list(g.subjects), c => num(c.point) * num(c.credits)));

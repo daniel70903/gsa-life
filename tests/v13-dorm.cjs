@@ -7,7 +7,7 @@ module.exports = function verifyV13Dorm() {
   const ok = (v, m) => { checks++; assert.ok(v, m); };
   const s = E.create('d', 17, { gender: 'male' }); E.setClubs(s, 'math', 'none');
   const settle = () => { let n = 0; while (s.pendingEvent && n++ < 40) E.chooseEvent(s, 0); };
-  const week = () => { settle(); if (E.needsEnrollment(s)) E.enrollSemester(s, E.recommendEnrollment(s, 'math')); settle(); s.stats.fatigue = 20; s.stats.stress = 20; s.studyPlanner = null; E.simulateWeek(s, 'balanced'); settle(); };
+  const week = () => { settle(); if (E.needsEnrollment(s)) E.enrollSemester(s, E.recommendEnrollment(s, 'math')); settle(); if (E.getPhase(s).needsApplications) E.applyUniversities(s, ['kaist']); settle(); s.stats.fatigue = 20; s.stats.stress = 20; s.studyPlanner = null; E.simulateWeek(s, 'balanced'); settle(); };
   settle();
   const outFor = [];
   for (const expected of [1, 2, 4, 12]) {
@@ -28,7 +28,7 @@ module.exports = function verifyV13Dorm() {
   // Old saves already expelled are treated as the first expulsion.
   const old = E.create('o', 3, { gender: 'female' }); old.turn = 10; old.dorm = { status: 'expelled', deliveryCaught: 2, electronicsCaught: 0, expelledTurn: 9 };
   const m = E.migrate(old);
-  ok(m.dorm.expulsions === 1 && Number.isFinite(m.dorm.returnTurn) && m.dorm.returnTurn >= 11, 'legacy expulsion becomes a 1st, temporary one');
+  ok(m.dorm.expulsions === 1 && Number.isFinite(m.dorm.returnTurn) && m.dorm.returnTurn >= 10, 'legacy expulsion becomes a 1st, temporary one');
   return { checks };
 };
 if (require.main === module) console.log(JSON.stringify({ result: 'pass', v13Dorm: module.exports() }));
