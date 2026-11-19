@@ -557,11 +557,23 @@
     };
     if(milestones[s.turn]) events.push(milestones[s.turn]);
     events.push(...school.scheduleEvents(s));
+    if (s.turn < 48 && s.turn % 8 !== 0 && (s.turn % 8 === 1 || s.turn % 8 === 5)) { const w = plannerWindow(s); if (!s.studyPlanner || s.studyPlanner.key !== w.key) events.push(plannerEvent(s)); }
+    if (s.turn >= 8 && s.turn < 48 && (s.toeic.best || 0) < 730 && (s.toeic.practice || 0) >= 5 && !s.toeicBooked && s.turn - (s.toeicOfferTurn ?? -99) >= 4 && ![3, 7].includes(s.turn % 8)) { s.toeicOfferTurn = s.turn; events.push(toeicOfferEvent(s)); }
+    // v0.13 일상 사건: 대부분 선택지 없이 지나가고 주간 보고서에 남습니다. 가끔 하나만 직접 고릅니다.
     if (!events.some(e => !e.contestId) && s.turn < 48 && s.turn !== 32 && rng(s) < 0.74 && dailyEvents.length) {
-      let pool = dailyEvents.filter(e => (e.context !== 'sports' || s.sportsClubs.length) && (e.context !== 'research' || s.turn >= 8) && !s.dailySeen.slice(-12).includes(e.id));
-      if (s.dormHarmony < 40 && rng(s) < 0.55) { const dorm = pool.filter(e => e.context === 'dorm'); if(dorm.length)pool=dorm; }
-      if (!pool.length) pool = dailyEvents;
-      const event = JSON.parse(JSON.stringify(pool[Math.floor(rng(s) * pool.length)])); s.dailySeen.push(event.id); events.push(event);
+      const count = 1 + (rng(s) < 0.45 ? 1 : 0) + (rng(s) < 0.15 ? 1 : 0), interactive = rng(s) < 0.3;
+      for (let n = 0; n < count; n++) {
+        let pool = dailyEvents.filter(e => (e.context !== 'sports' || s.sportsClubs.length) && (e.context !== 'research' || s.turn >= 8) && !s.dailySeen.slice(-12).includes(e.id));
+        if (s.dormHarmony < 40 && rng(s) < 0.55) { const dorm = pool.filter(e => e.context === 'dorm'); if(dorm.length)pool=dorm; }
+        if (!pool.length) pool = dailyEvents;
+        const event = JSON.parse(JSON.stringify(pool[Math.floor(rng(s) * pool.length)])); s.dailySeen.push(event.id);
+        if (n === 0 && interactive) { events.push(event); continue; }
+        const c = event.choices[Math.floor(rng(s) * event.choices.length)];
+        if (c.effects) shift(s, c.effects); if (c.bond) s.relationships = clamp(s.relationships + c.bond); if (c.harmony) s.dormHarmony = round(clamp(s.dormHarmony + c.harmony)); if (c.learning) addLearning(s, c.learning);
+        if (!Array.isArray(s.weekDaily)) s.weekDaily = [];
+        s.weekDaily.push({ id: event.id, title: event.title, label: c.label });
+        note(s, `${event.title}: ${c.label}.`, 'life');
+      }
     }
     s.eventQueue.push(...events); nextEvent(s);
   }
@@ -627,8 +639,28 @@
     if (!['toeic', 'fieldresearch'].includes(id)) return '예약할 주요 일정을 다시 골라 주세요.';
     return getActionDisabledReason(s, id);
   }
+  // v0.13 주간 시간 배분: 방과 후 시간 10칸을 활동별로 나눕니다. 한 곳에 10칸을 몰면 예전 '성장 방향'과 같습니다.
+  const PLAN_BLOCKS = 10;
+  function normalizePlan(input) {
+    if (typeof input === 'string') { if (!focuses.some(f => f.id === input)) throw new Error('이번 주의 성장 방향을 골라 주세요.'); return { [input]: PLAN_BLOCKS }; }
+    if (!input || typeof input !== 'object' || Array.isArray(input)) throw new Error('이번 주 시간 배분을 확인해 주세요.');
+    const plan = {}; let total = 0;
+    for (const [k, v] of Object.entries(input)) {
+      if (!focuses.some(f => f.id === k)) throw new Error('알 수 없는 활동이 시간표에 들어 있어요.');
+      const n = Number(v); if (!Number.isInteger(n) || n < 0 || n > PLAN_BLOCKS) throw new Error('활동별 시간은 0~10칸 사이로 정해 주세요.');
+      if (n) { plan[k] = n; total += n; }
+    }
+    if (total !== PLAN_BLOCKS) throw new Error(`방과 후 시간 ${PLAN_BLOCKS}칸을 모두 배분해 주세요. (지금 ${total}칸)`);
+    return plan;
+  }
+  function planLabel(plan) {
+    const entries = Object.entries(plan).sort((a, b) => b[1] - a[1]);
+    if (entries.length === 1) return focuses.find(f => f.id === entries[0][0]).name;
+    return entries.map(([k, n]) => `${focuses.find(f => f.id === k).name} ${n}`).join(' · ');
+  }
   function simulateRoutine(s, routine, efficiency, learn, wasSick, messages) {
-    const id = routine.focus.id, strength = routine.commitment ? 0.65 : 1, light = id === 'recovery';
+    const mix = routine.mix || { [routine.focus.id]: 1 }, share = k => mix[k] || 0;
+    const id = routine.focus.id, strength = routine.commitment ? 0.65 : 1, light = share('recovery') >= 0.6;
     const rolls = { academic: rng(s), sports: rng(s), activity: rng(s), social: rng(s), duties: rng(s) };
     routine.activities.push('정규 수업과 자습에서 배운 개념을 복습했다.');
     learn(light ? 0.35 : 1.15);
@@ -639,7 +671,7 @@
       shift(s, { research: 0.9 * efficiency, creativity: 0.3, social: 0.2, fatigue: 1.2 });
       routine.activities.push('학술동아리에서 친구들과 탐구 주제를 나누었다.');
     }
-    if (!light && s.sportsClubs.length && rolls.sports < (id === 'athletics' ? 0.9 : 0.72)) {
+    if (!light && s.sportsClubs.length && rolls.sports < 0.72 + 0.18 * share('athletics')) {
       s.sportsWeeks++; s.clubWeeks++; s.relationships = round(clamp(s.relationships + 1.2));
       shift(s, { athletics: 1.7 * efficiency, social: 0.5, leadership: 0.2, fatigue: 2.8, stress: -1 });
       routine.activities.push(`${s.sportsClubs.map(club => sportsClubs.find(c => c.id === club)?.name || '운동부').join('·')} 훈련에서 기본기와 팀워크를 맞췄다.`);
@@ -650,7 +682,7 @@
       routine.activities.push('상설동아리 활동을 친구들과 함께 준비했다.');
     }
     if (rolls.social < 0.84) {
-      s.relationships = round(clamp(s.relationships + (id === 'social' ? 3 : 1.3)));
+      s.relationships = round(clamp(s.relationships + 1.3 + 1.7 * share('social')));
       s.dormHarmony = round(clamp(s.dormHarmony + (s.stats.social < 35 ? 1 : 2)));
       shift(s, { social: 0.4, stress: -2 });
       routine.activities.push('식사와 쉬는 시간에 친구들의 이야기를 들었다.');
@@ -662,7 +694,7 @@
     // Regular sleep and breaks are part of every simulated routine; extra exam study still adds strain afterward.
     shift(s, { fatigue: -(7 + s.stats.resilience * 0.035), stress: -4.5 });
     routine.activities.push(light ? '필수 일과를 줄이고 충분히 잠을 자며 쉬었다.' : '정해진 시간에 잠들고 짧은 휴식으로 생활 리듬을 지켰다.');
-    const growth = {
+    const growthTable = {
       balanced: { intelligence: 0.5, social: 0.5, athletics: 0.5, discipline: 0.6, creativity: 0.3, research: 0.5, leadership: 0.3, fatigue: 1.8, stress: -1 },
       intelligence: { intelligence: 2.6, discipline: 0.5, creativity: 0.4, fatigue: 3.8, stress: 2 },
       social: { social: 3.2, leadership: 0.5, fatigue: 0.5, stress: -4 },
@@ -672,27 +704,80 @@
       leadership: { leadership: 3.3, social: 0.8, discipline: 0.3, fatigue: 2, stress: 0.5 },
       english: { discipline: 0.8, intelligence: 0.4, fatigue: 2.5, stress: 1 },
       recovery: { fatigue: -(17 + s.stats.resilience * 0.07), stress: -17, resilience: 0.8, discipline: 0.3 }
-    }[id];
+    };
+    const growth = {};
+    for (const [k, w] of Object.entries(mix)) for (const [key, value] of Object.entries(growthTable[k])) growth[key] = (growth[key] || 0) + value * w;
     shift(s, Object.fromEntries(Object.entries(growth).map(([key, value]) => [key, ['fatigue', 'stress'].includes(key) ? value : value * strength * efficiency])));
-    if (id === 'intelligence') learn(2.5 * strength);
-    if (id === 'discipline') learn(0.9 * strength);
-    if (id === 'research') { s.researchWeeks++; learn(0.4 * strength); }
-    if (id === 'leadership') s.councilWeeks++;
-    if (id === 'social') { s.dormHarmony = round(clamp(s.dormHarmony + 10 * strength)); s.relationships = round(clamp(s.relationships + 4 * strength)); }
-    if (id === 'english') { s.toeic.practice = round(s.toeic.practice + 1.4 * strength * efficiency); learn(2.4 * strength, 'language'); }
+    if (share('intelligence')) learn(2.5 * strength * share('intelligence'));
+    if (share('discipline')) learn(0.9 * strength * share('discipline'));
+    if (share('research')) { if (share('research') >= 0.3) s.researchWeeks++; learn(0.4 * strength * share('research')); }
+    if (share('leadership') >= 0.3) s.councilWeeks++;
+    if (share('social')) { s.dormHarmony = round(clamp(s.dormHarmony + 10 * strength * share('social'))); s.relationships = round(clamp(s.relationships + 4 * strength * share('social'))); }
+    if (share('english')) { s.toeic.practice = round(s.toeic.practice + 1.4 * strength * efficiency * share('english')); learn(2.4 * strength * share('english'), 'language'); }
     if (light && wasSick) { s.illnessWeeks = 0; messages.push('회복에 집중하며 아픈 몸을 충분히 쉬게 했다.'); }
-    routine.activities.push(`${routine.focus.name}에 시간을 더 배분했다.`);
+    routine.activities.push(Object.keys(mix).length > 1 ? `방과 후 시간을 ${routine.label} 비율로 나눠 썼다.` : `${routine.focus.name}에 시간을 더 배분했다.`);
+  }
+  // v0.13 자습 플래너: 시험 2주 전에 사건으로 열리고, 시험 주까지 3주 × 5일을 날짜별로 정합니다.
+  const PLANNER_DAYS = ['월', '화', '수', '목', '금'];
+  function plannerWindow(s, turn = s.turn) {
+    const t = Math.min(turn, 47), term = Math.floor(t / 8), week = t % 8 + 1, examTurn = term * 8 + (week <= 4 ? 3 : 7);
+    return { examTurn, start: examTurn - 2, key: `${term}:${week <= 4 ? 'mid' : 'final'}`, examName: week <= 4 ? '중간고사' : '기말고사' };
+  }
+  function makePlanner(s, preset) {
+    const w = plannerWindow(s), days = [];
+    for (let turn = w.start; turn <= w.examTurn; turn++) for (let d = 0; d < 5; d++) {
+      const dawnOk = w.examTurn - turn <= 1;
+      const night = preset === 'steady' || preset === 'intense' || (preset === 'light' && turn === w.examTurn - 1);
+      days.push({ turn, day: d, night, dawn: dawnOk && preset === 'intense' });
+    }
+    s.studyPlanner = { key: w.key, examTurn: w.examTurn, examName: w.examName, preset, days };
+    return s.studyPlanner;
+  }
+  function plannerFractions(s, turn) {
+    const p = s.studyPlanner; if (!p || !Array.isArray(p.days)) return null;
+    const days = p.days.filter(d => d.turn === turn); if (!days.length) return null;
+    const nights = days.filter(d => d.night).length, dawns = days.filter(d => d.dawn).length;
+    return { nights, dawns, night: nights / 5, dawn: dawns / 5 };
+  }
+  function setStudyPlannerDay(s, turn, day, kind, value) {
+    assertAlive(s); const p = s.studyPlanner;
+    if (!p) throw new Error('아직 자습 플래너가 열리지 않았어요.');
+    if (!['night', 'dawn'].includes(kind)) throw new Error('심야 또는 새벽을 골라 주세요.');
+    const d = p.days.find(x => x.turn === turn && x.day === day); if (!d) throw new Error('플래너에 없는 날짜예요.');
+    if (turn < s.turn) throw new Error('이미 지난 날짜는 바꿀 수 없어요.');
+    if (kind === 'dawn' && p.examTurn - turn > 1) throw new Error('새벽자습은 시험 1주 전부터 할 수 있어요.');
+    d[kind] = !!value; p.preset = 'custom'; return p;
+  }
+  function plannerEvent(s) {
+    const w = plannerWindow(s);
+    return { id: 'study_planner', title: `자습 플래너 · ${w.examName} 2주 전`, description: `${w.examName}까지 3주 남았다(시험 주 포함). 날짜별로 심야자습(밤)과 새벽자습(시험 1주 전부터)을 정할 수 있다. 고른 계획은 홈 화면의 달력에서 하루씩 바꿀 수 있다. 연달아 무리하면 효과가 줄고, 시험 날 너무 피곤하면 점수가 깎인다.`, choices: [
+      { label: '막판에: 시험 전 주에만 심야자습', description: '준비도 ↑ · 피로 ↑', plannerPreset: 'light' },
+      { label: '꾸준히: 3주 동안 매일 심야자습', description: '준비도 ↑↑ · 피로 ↑↑', plannerPreset: 'steady' },
+      { label: '전력으로: 매일 심야 + 마지막 2주 새벽까지', description: '준비도 최대 · 피로·응급실 위험 큼', plannerPreset: 'intense' },
+      { label: '추가 자습 없이 직접 달력에서 정한다', description: '처음엔 비워 두고 날짜별로 고른다', plannerPreset: 'custom' }
+    ] };
+  }
+  function toeicOfferEvent(s) {
+    return { id: 'toeic_offer', title: 'TOEIC, 이번에 볼까?', description: `영어 준비가 꽤 쌓였다(준비도 ${round(s.toeic.practice)}). 다음 주에 TOEIC을 보러 갈까? 졸업에는 730점이 필요하다.${s.toeic.best ? ` 지금 최고점은 ${s.toeic.best}점.` : ''}`, choices: [
+      { label: '다음 주에 응시한다', description: '시험 당일 피로 +8 · 스트레스 +5', toeicBook: true },
+      { label: '조금 더 준비하고 본다', description: '몇 주 뒤에 다시 물어본다', toeicLater: true }
+    ] };
   }
   function advance(s, actionId, studyMode = 'normal') { return runWeek(s, actionId, studyMode, null); }
   function simulateWeek(s, focusId, studyMode = 'normal', commitment = null) {
-    assertAlive(s); const focus = focuses.find(f => f.id === focusId);
-    if (!focus) throw new Error('이번 주의 성장 방향을 골라 주세요.');
+    assertAlive(s);
+    const plan = normalizePlan(focusId), dominant = Object.entries(plan).sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : 1))[0][0];
+    const focus = focuses.find(f => f.id === dominant), label = planLabel(plan);
+    const mix = Object.fromEntries(Object.entries(plan).map(([k, n]) => [k, n / PLAN_BLOCKS]));
     if (commitment === '') commitment = null;
+    if (!commitment && s.toeicBooked) { commitment = getCommitmentDisabledReason(s, 'toeic') ? null : 'toeic'; }
+    s.toeicBooked = false;
     const disabled = getCommitmentDisabledReason(s, commitment); if (disabled) throw new Error(disabled);
-    const before = { ...s.stats }, beforeMoney = s.money.balance, routine = { focus, commitment, activities: [] };
+    const before = { ...s.stats }, beforeMoney = s.money.balance, routine = { focus, mix, label, commitment, activities: [] };
+    if (typeof focusId === 'object') s.plan = { ...plan };
     const result = runWeek(s, 'routine', studyMode, routine), deltas = {};
     for (const key of Object.keys(s.stats)) { const delta = round(s.stats[key] - (before[key] || 0)); if (delta) deltas[key] = delta; }
-    s.lastWeekReport = { turn: s.turn, focusId, focusName: focus.name, activities: routine.activities, deltas, moneyDelta: s.money.balance - beforeMoney, eventCount: (s.pendingEvent ? 1 : 0) + s.eventQueue.length, eventsResolved: 0, commitment };
+    s.lastWeekReport = { turn: s.turn, focusId: dominant, plan, focusName: label, dailyEvents: s.weekDaily.slice(), activities: routine.activities, deltas, moneyDelta: s.money.balance - beforeMoney, eventCount: (s.pendingEvent ? 1 : 0) + s.eventQueue.length, eventsResolved: 0, commitment };
     return { ...result, report: s.lastWeekReport };
   }
   function runWeek(s, actionId, studyMode = 'normal', routine = null) {
@@ -706,8 +791,10 @@
     const disabledReason = routine ? getCommitmentDisabledReason(s, routine.commitment) : getActionDisabledReason(s, actionId); if (disabledReason) throw new Error(disabledReason);
     if (actionId === 'toeic' && s.turn < 8) throw new Error('TOEIC 응시는 1학년 2학기부터 선택할 수 있어요. 준비는 1학년부터 가능해요.');
     if (!p.availableStudyModes.includes(studyMode)) throw new Error('심야자습은 시험 2주 전부터, 새벽자습은 1주 전부터 선택할 수 있어요.');
-    const messages = [], action = routine ? { name: `${routine.focus.name}에 집중한 한 주` } : actions.find(a => a.id === actionId), wasSick = s.illnessWeeks > 0, recovering = actionId === 'rest' || !!(routine && routine.focus.id === 'recovery');
+    const messages = [], action = routine ? { name: `${routine.focus.name}에 집중한 한 주` } : actions.find(a => a.id === actionId), wasSick = s.illnessWeeks > 0, recovering = actionId === 'rest' || !!(routine && (routine.mix ? (routine.mix.recovery || 0) >= 0.6 : routine.focus.id === 'recovery'));
+    s.weekDaily = [];
     if (routine) s.focus = routine.focus.id;
+    const plannerWeek = studyMode === 'normal' ? plannerFractions(s, s.turn) : null;
     s.dormHarmony = round(clamp(s.dormHarmony + (s.stats.social < 35 ? -4 : s.stats.social < 50 ? -1.5 : 1)));
     if (s.stats.social < 35) s.relationships = round(clamp(s.relationships - (s.dormHarmony < 45 ? 2 : 0.5)));
     const dorm = getDormStatus(s);
@@ -741,9 +828,11 @@
     const campusWeek = campus.weekly(s, routine ? 'routine' : actionId, { efficiency, wasSick, focusId: routine && routine.focus.id, commitment: routine && routine.commitment });
     if (campusWeek) { messages.push(...(campusWeek.messages || [])); s.eventQueue.push(...(campusWeek.events || [])); }
     const studyFade = s.courseTable === 2 ? 1 / (1 + 0.35 * (s.studyStreak || 0)) : 1;
-    if (s.courseTable === 2) s.studyStreak = studyMode && studyMode !== 'normal' ? (s.studyStreak || 0) + 1 : 0;
-    if (studyMode === 'night' || studyMode === 'both') { learn((s.courseTable === 2 ? 3.0 : 3.8) * studyFade); shift(s, { fatigue: 11, stress: 6 }); messages.push('심야자습으로 시험 준비도를 충분히 쌓았다. 피로도 +11.'); }
-    if (studyMode === 'dawn' || studyMode === 'both') { learn((s.courseTable === 2 ? 2.1 : 2.7) * studyFade); shift(s, { fatigue: 7, stress: 4, discipline: 0.5 }); messages.push('새벽자습으로 시험의 핵심 내용을 다시 정리했다. 피로도 +7.'); }
+    const nightFrac = plannerWeek ? plannerWeek.night : (studyMode === 'night' || studyMode === 'both') ? 1 : 0;
+    const dawnFrac = plannerWeek ? plannerWeek.dawn : (studyMode === 'dawn' || studyMode === 'both') ? 1 : 0;
+    if (s.courseTable === 2) s.studyStreak = nightFrac + dawnFrac > 0 ? (s.studyStreak || 0) + 1 : 0;
+    if (nightFrac > 0) { learn((s.courseTable === 2 ? 3.0 : 3.8) * studyFade * nightFrac); shift(s, { fatigue: 11 * nightFrac, stress: 6 * nightFrac }); messages.push(plannerWeek ? `플래너대로 심야자습 ${plannerWeek.nights}일. 피로도 +${round(11 * nightFrac)}.` : '심야자습으로 시험 준비도를 충분히 쌓았다. 피로도 +11.'); }
+    if (dawnFrac > 0) { learn((s.courseTable === 2 ? 2.1 : 2.7) * studyFade * dawnFrac); shift(s, { fatigue: 7 * dawnFrac, stress: 4 * dawnFrac, discipline: 0.5 * dawnFrac }); messages.push(plannerWeek ? `플래너대로 새벽자습 ${plannerWeek.dawns}일. 피로도 +${round(7 * dawnFrac)}.` : '새벽자습으로 시험의 핵심 내용을 다시 정리했다. 피로도 +7.'); }
     const crossedLimit = crisisLimit(s), crisisSnapshot = { fatigue: s.stats.fatigue, stress: s.stats.stress };
     // Fatigue risk is evaluated after the week's choices; new illness affects this week's exam and the next week.
     if (!wasSick && !recovering && rng(s) < getIllnessRisk(s)) { s.illnessWeeks = 2; s.illnessCount++; messages.push('몸살 기운으로 아프기 시작했다. 이번 주와 다음 주 집중력이 떨어진다. 휴식하면 빨리 회복한다.'); }
@@ -772,7 +861,7 @@
     s.turn++;
     if (s.stats.fatigue > 70) messages.push('피로도가 높아 아플 위험이 커졌다. 수면과 휴식이 필요하다.');
     if (s.stats.stress > 75) messages.push('스트레스가 높다. 친구와의 시간이나 휴식이 필요하다.');
-    const studyLabel = { normal: '기본 자습', night: '심야자습', dawn: '새벽자습', both: '심야·새벽자습' }[studyMode];
+    const studyLabel = plannerWeek && (plannerWeek.nights || plannerWeek.dawns) ? `자습 플래너(심야 ${plannerWeek.nights}일·새벽 ${plannerWeek.dawns}일)` : { normal: '기본 자습', night: '심야자습', dawn: '새벽자습', both: '심야·새벽자습' }[studyMode];
     note(s, `${p.label}: ${action.name} + ${studyLabel}.`, 'activity');
     for (const m of messages) note(s, m, p.exam ? 'grade' : 'life');
     scheduleEvents(s);
@@ -835,6 +924,9 @@
       if(i.answers.length<(i.total||3))s.pendingEvent=universityQuestionEvent(s);
       else{const u=universities.find(x=>x.id===i.universityId);s.universityInterviews.push({id:i.universityId,name:u.name,majorId:s.applicationMajors[i.universityId]||'general',majorName:unitName(i.universityId,s.applicationMajors[i.universityId]||'general'),answers:[...i.answers],score:Math.round(i.points*3/(i.total||3))});messages.push(`${u.name} · ${unitName(i.universityId,s.applicationMajors[i.universityId]||'general')} 면접을 마쳤다. 답변과 연구 경험이 전형 기록에 남았다.`);s.universityInterview=null;s.pendingEvent=beginUniversityInterviews(s);if(!s.pendingEvent&&s.turn>=39&&!s.admissions)s.pendingEvent=resultsEvent();}
     }else if(c.resolveAdmissions){if(s.universityInterviews.length!==s.applications.length)throw new Error('면접을 먼저 마쳐야 해요.');resolveAdmissions(s);messages.push('대학 전형 결과를 확인했다. 최종 진학을 위해 졸업 요건도 확인하자.');}
+    else if(c.plannerPreset){makePlanner(s,c.plannerPreset);messages.push(c.plannerPreset==='custom'?'자습 플래너를 비워 두고 날짜별로 직접 정하기로 했다.':`자습 플래너를 정했다: ${c.label}.`);}
+    else if(c.toeicBook){s.toeicBooked=true;messages.push('다음 주 TOEIC 응시를 예약했다.');}
+    else if(c.toeicLater){messages.push('TOEIC은 조금 더 준비한 뒤에 보기로 했다.');}
     // Generic choice effects also apply to informational and skip choices.
     if(!externallyHandled){if(c.effects)shift(s,c.effects);if(c.bond)s.relationships=clamp(s.relationships+c.bond);if(c.harmony)s.dormHarmony=round(clamp(s.dormHarmony+c.harmony));if(c.learning)addLearning(s,c.learning);if(c.project)s.researchProject=c.project;if(c.badge)s.badges.push(c.badge);}
     if(c.skipOlympiad)s.olympiadHistory.push({turn:s.turn,year:getPhase(s).year,participated:false,won:false});
@@ -846,6 +938,7 @@
     if (reportStats) {
       for (const key of Object.keys(s.stats)) { const delta = round(s.stats[key] - (reportStats[key] || 0)); if (delta) s.lastWeekReport.deltas[key] = round((s.lastWeekReport.deltas[key] || 0) + delta); }
       s.lastWeekReport.moneyDelta += (s.money.balance - reportMoney); s.lastWeekReport.eventsResolved++;
+      if (String(e.id || '').startsWith('daily_')) { if (!Array.isArray(s.lastWeekReport.dailyEvents)) s.lastWeekReport.dailyEvents = []; s.lastWeekReport.dailyEvents.push({ id: e.id, title: e.title, label: c.label, chosen: true }); }
       s.lastWeekReport.eventCount = Math.max(s.lastWeekReport.eventCount, s.lastWeekReport.eventsResolved + (s.pendingEvent ? 1 : 0) + s.eventQueue.length);
     }
     return{messages,event:s.pendingEvent,resolvedEventId:e.id};
@@ -970,7 +1063,7 @@
     if (crisisLimit(s)) triggerEmergency(s); nextEvent(s); updateEnding(s);
     return { ...result, event: s.pendingEvent };
   }
-  const API = { getOverall, ensurePotential, OVR_SHAPE, OVR_WEIGHTS, getClassRank, courseKind, EXAM_CALIBRATION, EXAM_SHAPE, coreTables, create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, getAdmissionStatus, unitName, APPLICATION_LIMIT, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
+  const API = { getOverall, ensurePotential, OVR_SHAPE, OVR_WEIGHTS, getClassRank, courseKind, EXAM_CALIBRATION, EXAM_SHAPE, coreTables, create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, getAdmissionStatus, unitName, APPLICATION_LIMIT, PLAN_BLOCKS, normalizePlan, planLabel, setStudyPlannerDay, plannerWindow, plannerFractions, PLANNER_DAYS, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
   root.GSAEngine = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);

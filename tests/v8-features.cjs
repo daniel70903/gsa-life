@@ -79,7 +79,7 @@ module.exports = function verifyV8(ctx) {
   for(const old of oldGrades.cases) {
     const s=E.create('학점 난도 검증',old.seed,{gender:'male'});E.setClubs(s,'physics','none');
     s.stats.intelligence=oldGrades.intelligence;s.stats.discipline=oldGrades.discipline;
-    function settle(){resolve(s,event=>event.id.startsWith('campus_opportunity_')?event.choices.findIndex(c=>c.campusChoice==='skip'):0);}
+    function settle(){resolve(s,event=>event.id==='study_planner'?event.choices.findIndex(c=>c.plannerPreset==='custom'):event.id.startsWith('campus_opportunity_')?event.choices.findIndex(c=>c.campusChoice==='skip'):0);}
     for(let t=0;t<8;t++){settle();E.simulateWeek(s,s.stats.fatigue>55||s.stats.stress>65||s.illnessWeeks?'recovery':old.focus,'normal');}
     settle(); assert.ok(s.alive);assert.equal(s.grades.length,1);
     const row=difficulty[old.focus]||={samples:0,oldMean:0,newMean:0,oldGPA:0,newGPA:0};
@@ -87,7 +87,7 @@ module.exports = function verifyV8(ctx) {
   }
   for(const row of Object.values(difficulty))for(const key of ['oldMean','newMean','oldGPA','newGPA'])row[key]/=row.samples;
   const balanced=difficulty.balanced,studied=difficulty.intelligence;
-  check(balanced.newMean<balanced.oldMean-5,'A typical balanced life no longer receives near-automatic A+ marks');
+  check(balanced.newMean<balanced.oldMean-4&&balanced.newGPA<balanced.oldGPA-.2,'A typical balanced life no longer receives near-automatic A+ marks');
   check(balanced.newMean>balanced.oldMean-20&&balanced.newMean>=65,'The revision increases challenge without turning a prepared ordinary semester into failure');
   check(studied.newMean>balanced.newMean+5&&studied.newGPA>=3.5,'Sustained study still produces materially better grades');
   assert.deepEqual(E.getGrade(90),['A+',4.3]);assert.deepEqual(E.getGrade(89.9),['A0',4]);assert.deepEqual(E.getGrade(40),['D0',1]);assert.deepEqual(E.getGrade(39.9),['F',0]);
