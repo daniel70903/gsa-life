@@ -175,6 +175,8 @@ module.exports = function verifyV4(ctx) {
       const actualEnrollment = enrollmentAPI.getEnrollment(graduating,gradeSubject,result.term).length;
       assert.equal(subject.enrollment, actualEnrollment, 'Award denominator counts the actual course cohort');
       assert.equal(subject.quota, Math.ceil(subject.enrollment*.05));
+      // v0.13: 음악·미술·체육은 수행만으로 매겨 능력치를 반영한 추첨으로 교과우수상을 정합니다.
+      if (subject.lottery) { assert.ok(subject.chance > 0 && subject.chance <= 50 && subject.rank === null); continue; }
       assert.equal(subject.recipients.length, subject.quota, 'Exactly the highest five percent receive the subject award');
       assert.equal(new Set(subject.recipients.map(x=>typeof x==='string'?x:x.id)).size, subject.quota);
       assert.equal(subject.awarded, subject.rank<=subject.quota, 'Player award matches the finite cohort rank');
