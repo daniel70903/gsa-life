@@ -38,6 +38,14 @@
       const m = metric(re);
       return m ? { label: m.label, value: String(m.value), detail: String(m.detail || '') } : null;
     };
+    let cmp = d.comparison || null;
+    if (!cmp && root.GSAComparison && engine) {
+      try {
+        cmp = root.GSAComparison.compare(state, engine);
+      } catch (_) {
+        cmp = null;
+      }
+    }
     const archetype = arr(engine?.archetypes).find((t) => t.id === state?.archetype)?.name || '';
     return {
       name: String(d.name || '나의 학교생활'),
@@ -55,6 +63,7 @@
       roles,
       admissions,
       topStats: stats.slice(0, 5).map((s) => ({ label: String(s.label), value: Math.round(num(s.value)) })),
+      comparison: cmp ? { name: cmp.best.name, similarity: cmp.best.similarity, tag: cmp.best.tag, field: cmp.type.field, typeLabel: cmp.type.label } : null,
       site: SITE,
     };
   }
@@ -244,29 +253,80 @@
       if (m.detail) text(ctx, m.detail, cx, my + 121, { size: 17, color: C.dim, align: 'center', max: colW - 20 });
     });
 
-    // 학기별 평점
-    const gy = 798;
-    text(ctx, '학기마다 남긴 발자국', P, gy + 4, { size: 24, weight: 700 });
-    const terms = model.terms.slice(0, 6);
-    const barArea = W - P * 2, slot = barArea / 6, barTop = gy + 30, barH = 96, barW = 34;
-    for (let i = 0; i < 6; i++) {
-      const t = terms[i], cx = P + slot * i + slot / 2;
-      roundRect(ctx, cx - barW / 2, barTop, barW, barH, 9);
-      ctx.fillStyle = '#ffffff0f';
+    // 컴패리즌: 나와 닮은 과학자
+    const cmp = model.comparison;
+    let y = 774;
+    if (cmp) {
+      const bh = 128;
+      roundRect(ctx, P, y, W - P * 2, bh, 22);
+      const band = ctx.createLinearGradient(P, y, W - P, y + bh);
+      band.addColorStop(0, '#e9c76e2b');
+      band.addColorStop(1, '#e9c76e0a');
+      ctx.fillStyle = band;
       ctx.fill();
-      if (t) {
-        // 2.0~4.3 구간을 막대 높이로 써서 학기마다의 차이가 잘 보이게 합니다.
-        const h = Math.max(10, Math.min(1, Math.max(0, (t.gpa - 2) / 2.3)) * barH);
-        roundRect(ctx, cx - barW / 2, barTop + barH - h, barW, h, 9);
-        ctx.fillStyle = C.gold;
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#e9c76e66';
+      ctx.stroke();
+      const rcx = P + 72, rcy = y + bh / 2, rr = 46;
+      ctx.lineWidth = 10;
+      ctx.strokeStyle = '#ffffff1f';
+      ctx.beginPath();
+      ctx.arc(rcx, rcy, rr, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = C.gold;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(rcx, rcy, rr, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * Math.min(100, cmp.similarity)) / 100);
+      ctx.stroke();
+      ctx.lineCap = 'butt';
+      text(ctx, `${cmp.similarity}%`, rcx, rcy + 2, { size: 28, weight: 800, color: C.gold, align: 'center', baseline: 'middle' });
+      const tx0 = P + 146, mid = P + (W - P * 2) * 0.6;
+      text(ctx, '나와 닮은 과학자', tx0, y + 40, { size: 18, weight: 700, color: C.gold });
+      text(ctx, cmp.name, tx0, y + 84, { size: 38, weight: 800, max: mid - tx0 - 16 });
+      text(ctx, cmp.tag, tx0, y + 114, { size: 18, color: C.muted, max: mid - tx0 - 16 });
+      ctx.fillStyle = '#ffffff1f';
+      ctx.fillRect(mid, y + 24, 1.5, bh - 48);
+      text(ctx, '졸업 후 연구자 유형', mid + 24, y + 44, { size: 17, color: C.muted });
+      text(ctx, cmp.field, mid + 24, y + 78, { size: 22, weight: 700, color: C.gold, max: W - P - mid - 44 });
+      text(ctx, cmp.typeLabel, mid + 24, y + 110, { size: 24, weight: 800, max: W - P - mid - 44 });
+      y += bh + 34;
+    } else y += 24;
+
+    // 학기별 평점 (닮은 과학자가 있으면 한 줄로 줄입니다)
+    const gy = y;
+    const compact = !!cmp;
+    const terms = model.terms.slice(0, 6);
+    let afterTerms;
+    if (compact) {
+      text(ctx, '학기별 평점', P, gy + 8, { size: 20, weight: 700, color: C.gold });
+      ctx.font = font(20, 700);
+      const labelW = ctx.measureText('학기별 평점').width + 22;
+      const trail = terms.length ? terms.map((t) => t.gpa.toFixed(2)).join('  →  ') : '첫 학기 성적을 기다리는 중';
+      text(ctx, trail, P + labelW, gy + 8, { size: 22, weight: 700, color: terms.length ? C.white : C.dim, max: W - P * 2 - labelW });
+      afterTerms = gy + 8;
+    } else {
+      text(ctx, '학기마다 남긴 발자국', P, gy + 4, { size: 24, weight: 700 });
+      const barArea = W - P * 2, slot = barArea / 6, barTop = gy + 30, barH = 96, barW = 34;
+      for (let i = 0; i < 6; i++) {
+        const t = terms[i], cx = P + slot * i + slot / 2;
+        roundRect(ctx, cx - barW / 2, barTop, barW, barH, 9);
+        ctx.fillStyle = '#ffffff0f';
         ctx.fill();
+        if (t) {
+          // 2.0~4.3 구간을 막대 높이로 써서 학기마다의 차이가 잘 보이게 합니다.
+          const h = Math.max(10, Math.min(1, Math.max(0, (t.gpa - 2) / 2.3)) * barH);
+          roundRect(ctx, cx - barW / 2, barTop + barH - h, barW, h, 9);
+          ctx.fillStyle = C.gold;
+          ctx.fill();
+        }
+        text(ctx, t ? t.gpa.toFixed(2) : '—', cx, barTop + barH + 32, { size: 24, weight: 800, color: t ? C.white : C.dim, align: 'center' });
+        text(ctx, `${Math.floor(i / 2) + 1}학년 ${(i % 2) + 1}학기`, cx, barTop + barH + 58, { size: 17, color: C.muted, align: 'center' });
       }
-      text(ctx, t ? t.gpa.toFixed(2) : '—', cx, barTop + barH + 32, { size: 24, weight: 800, color: t ? C.white : C.dim, align: 'center' });
-      text(ctx, `${Math.floor(i / 2) + 1}학년 ${(i % 2) + 1}학기`, cx, barTop + barH + 58, { size: 17, color: C.muted, align: 'center' });
+      afterTerms = barTop + barH + 58;
     }
 
     // 활동과 진로
-    const cy = 1048, colGap = 40, half = (W - P * 2 - colGap) / 2, rx = P + half + colGap;
+    const cy = afterTerms + (compact ? 74 : 66), colGap = 40, half = (W - P * 2 - colGap) / 2, rx = P + half + colGap;
     ctx.fillStyle = '#ffffff1a';
     ctx.fillRect(P, cy - 30, W - P * 2, 1.5);
     text(ctx, '내가 속했던 곳', P, cy + 8, { size: 24, weight: 700 });
@@ -274,13 +334,13 @@
     const clubItems = model.clubs.length ? model.clubs : ['동아리 기록 없음'];
     leftBottom = chips(ctx, clubItems, P, cy + 26, half, { size: 21, h: 42, maxRows: 2 });
     model.roles.slice(0, leftBottom > cy + 80 ? 2 : 3).forEach((r, i) => {
-      text(ctx, `★ ${r}`, P, leftBottom + 34 + i * 31, { size: 21, weight: 600, color: C.gold, max: half });
+      text(ctx, `★ ${r}`, P, leftBottom + 32 + i * 30, { size: 21, weight: 600, color: C.gold, max: half });
     });
 
     if (model.admissions.length) {
       text(ctx, '대학 전형 결과', rx, cy + 8, { size: 24, weight: 700 });
       model.admissions.slice(0, 3).forEach((a, i) => {
-        const y = cy + 24 + i * 50;
+        const y = cy + 22 + i * 50;
         const tag = a.accepted ? '합격' : '불합격', color = a.accepted ? C.gold : C.dim;
         ctx.font = font(18, 700);
         const tw = ctx.measureText(tag).width + 22;
