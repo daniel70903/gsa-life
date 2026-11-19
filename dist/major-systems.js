@@ -78,11 +78,14 @@
     function validateApplications(s, entries) {
       if (s.alive === false) throw new Error('끝난 이야기에서는 지원할 수 없어요.');
       if (s.turn < 32) throw new Error('2학년 2학기를 마친 뒤 희망 전공을 정해 지원할 수 있어요.');
-      if (!Array.isArray(entries) || entries.length < 1 || entries.length > 3) throw new Error('지원할 대학과 희망 전공을 1~3곳 골라 주세요.');
+      if (!Array.isArray(entries) || entries.length < 1) throw new Error('지원할 대학과 희망 전공을 1곳 이상 골라 주세요.');
       const normalized = entries.map(entry => typeof entry === 'string' ? { universityId: entry, majorId: 'general' } : entry && typeof entry === 'object' ? { universityId: entry.universityId, majorId: entry.majorId } : null);
       if (normalized.some(entry => !entry || !universityIds().includes(entry.universityId))) throw new Error('지원할 대학을 다시 확인해 주세요.');
       if (normalized.some(entry => typeof entry.majorId !== 'string' || !entry.majorId.trim())) throw new Error('각 대학의 희망 전공을 직접 선택해 주세요.');
       if (new Set(normalized.map(entry => entry.universityId)).size !== normalized.length) throw new Error('한 대학에는 하나의 희망 전공만 정해 주세요.');
+      const meta = id => { const source = typeof hooks.universities === 'function' ? hooks.universities() : hooks.universities; return Array.isArray(source) ? source.find(u => u && u.id === id) || {} : {}; };
+      if (normalized.some(entry => meta(entry.universityId).legacy)) throw new Error('이번 버전에서는 지원할 수 없는 대학이에요.');
+      if (normalized.filter(entry => !meta(entry.universityId).exempt).length > 6) throw new Error('수시 원서는 6장까지예요. 과학기술원(KAIST·GIST·DGIST·UNIST)은 따로 지원할 수 있어요.');
       const evidence = normalizeEvidence(getEvidence(s));
       const options = majors.map(major => describeMajor(major, evidence));
       const applications = normalized.map(entry => {
