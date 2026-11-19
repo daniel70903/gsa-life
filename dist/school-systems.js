@@ -120,7 +120,7 @@
       // Preserve old saves' elective choices; common required courses use the full cohort.
       return cohort.filter(m => m.id === 'player' || !ELECTIVES.includes(subject.id) || m.electives.includes(subject.id));
     }
-    function dormExcluded(s, member) { return member.id === 'player' ? s.dorm?.status === 'expelled' || s.dormExpelled === true : !!member.dormExpelled; }
+    function dormExcluded(s, member) { return member.id === 'player' ? s.dorm?.status === 'expelled' || s.dormExpelled === true || (Array.isArray(s.dorm?.history) && s.dorm.history.some(h => !h.legacy && Number(h.turn) > (Number(s.turn) || 0) - 9)) : !!member.dormExpelled; }
     function modelScore(s, member, term, dorm) {
       const isPlayer = member.id === 'player', st = isPlayer ? s.stats : member.stats;
       const harmony = isPlayer ? (Number.isFinite(s.dormHarmony) ? s.dormHarmony : 65) : st.dormHarmony;

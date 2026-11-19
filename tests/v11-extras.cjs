@@ -82,7 +82,7 @@ module.exports = async function verifyExtras() {
 
   // 도움말은 실제 졸업·자습 기준과 맞고, 숨겨진 운동부·메달 효과를 드러내지 않습니다.
   const helpText = X.tabs.map((t) => t.render()).join('\n').replace(/<[^>]+>/g, ' ');
-  for (const fact of ['730점', '현장연구 6학점', '28학점', '4주차에 중간고사', '8주차에 기말고사', '중간 30 + 기말 30', '기말 40 (중간고사 없음)', '이수/미이수', '시험 2주 전에', '1주 전부터', '10칸', '일상 사건', '14개 대학', '6장', '5,000원', '4번']) ok(helpText.includes(fact), `Guide states ${fact}`);
+  for (const fact of ['730점', '현장연구 6학점', '28학점', '4주차에 중간고사', '8주차에 기말고사', '중간 30 + 기말 30', '기말 40 (중간고사 없음)', '이수/미이수', '시험 2주 전에', '1주 전부터', '7 : 3', '5일(1주)', '영구 퇴사', '일상 사건', '14개 대학', '6장', '5,000원', '4번']) ok(helpText.includes(fact), `Guide states ${fact}`);
   ok(!/(운동부|메달|교육감배)[^\n]{0,80}(가산점|보너스|선발 확률|선출 가능성)|(가산점|보너스)[^\n]{0,60}(운동부|메달|교육감배)/.test(helpText), 'Guide hides sports and medal modifiers');
   const grad = E.getGraduationStatus(played);
   assert.equal(grad.toeicRequired, 730);
