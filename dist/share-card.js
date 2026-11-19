@@ -57,6 +57,7 @@
       archetype,
       gpa: gpaMetric ? String(gpaMetric.value) : '—',
       awards: awardCount,
+      ovr: engine && typeof engine.getOverall === 'function' && state && state.stats ? engine.getOverall(state) : null,
       metrics: [pick(/TOEIC/), pick(/이수 학점/), pick(/현장연구/), pick(/만남/)].filter(Boolean),
       terms: arr(d.terms).map((t) => ({ label: `${num(t.year)}-${num(t.semester)}`, gpa: num(t.gpa) })),
       clubs: arr(d.clubs).map((c) => String(c.name)),
@@ -224,7 +225,8 @@
       text(ctx, detail, cx, 350, { size: 21, color: C.muted, align: 'center' });
     };
     hero(model.gpa, '누적 평점', '/ 4.3', 222);
-    hero(String(model.awards), '수상 기록', '함께 쌓은 성취', W - 222);
+    if (model.ovr != null) hero(String(model.ovr), model.endingKind === 'graduated' ? '졸업 OVR' : 'OVR', `수상 ${model.awards}회${model.stars != null ? ` · ★ ${model.stars}` : ''}`, W - 222);
+    else hero(String(model.awards), '수상 기록', '함께 쌓은 성취', W - 222);
     const statusFill = { death: '#f19a8a1a' }[model.endingKind] || '#e9c76e1a', statusColor = model.endingKind === 'death' ? C.red : C.gold;
     pill(ctx, model.status, W / 2, ty + tile + 22, { color: statusColor, fill: statusFill, size: 21, h: 42 });
 
@@ -409,7 +411,7 @@
       const url = URL.createObjectURL(blob);
       const preview = dialog.querySelector('.gx-card-preview');
       preview.removeAttribute('aria-busy');
-      preview.innerHTML = `<img src="${url}" alt="${model.name}의 학교생활 결과 카드: ${model.status}, 누적 평점 ${model.gpa}, 수상 ${model.awards}회">`;
+      preview.innerHTML = `<img src="${url}" alt="${model.name}의 학교생활 결과 카드: ${model.status}, 누적 평점 ${model.gpa}${model.ovr != null ? `, OVR ${model.ovr}` : ''}, 수상 ${model.awards}회">`;
       const file = typeof File === 'function' ? new File([blob], fileName(model), { type: 'image/png' }) : null;
       const save = dialog.querySelector('[data-card="save"]'), share = dialog.querySelector('[data-card="share"]');
       save.disabled = false;

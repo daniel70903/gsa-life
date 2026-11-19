@@ -115,7 +115,7 @@
   const EXAM_CALIBRATION = { 0: { ms: 0, gen: 0 }, 1: { ms: 0, gen: 0 }, 2: { ms: 0, gen: 0 }, 3: { ms: 0, gen: 0 }, 4: { ms: 0, gen: 0 }, 5: { ms: 0, gen: 0 } };
   // 학기·유형별 [반 평균 목표, 실력 차이 폭]. EXAM_PIVOT은 보정 전 평균적인 학생의 점수입니다.
   const EXAM_PIVOT = 84;
-  const EXAM_SHAPE = { 0: { ms: [68, 2.65], gen: [74, 2.0] }, 1: { ms: [67, 2.15], gen: [73, 1.7] }, 2: { ms: [59.5, 2.5], gen: [69.5, 1.9] }, 3: { ms: [58.7, 3.0], gen: [66.9, 2.3] }, 4: { ms: [52.9, 3.0], gen: [63.8, 2.3] }, 5: { ms: [58.1, 3.0], gen: [61.3, 2.3] } };
+  const EXAM_SHAPE = { 0:{ms:[68,2.65],gen:[74,2.0]}, 1:{ms:[67.6,2.15],gen:[73,1.7]}, 2:{ms:[62,2.5],gen:[71.5,1.9]}, 3:{ms:[62.8,3.0],gen:[69.5,2.3]}, 4:{ms:[57,3.0],gen:[66.5,2.3]}, 5:{ms:[62.5,3.0],gen:[64.5,2.3]} };
   const MATH_SCIENCE = ['math', 'physics', 'chemistry', 'biology', 'earth', 'ai'];
   function courseKind(sub) {
     if (sub.kind) return sub.kind;
@@ -170,9 +170,49 @@
   const round = n => Math.round(n * 10) / 10;
   function rng(s) { let t = s.rng += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); s.rng >>>= 0; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
   function seedNumber(value) { if (typeof value === 'number' && Number.isFinite(value)) return value >>> 0; let h = 2166136261; for (const c of String(value)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+  // v0.13 오버롤: 능력치마다 숨은 잠재력(상한)이 있어, 상한에 가까울수록 덜 오르고 상한을 넘기 어렵습니다.
+  const POTENTIAL_STATS = ['intelligence', 'social', 'athletics', 'discipline', 'creativity', 'resilience', 'leadership', 'research'];
+  const OVR_WEIGHTS = { intelligence: 0.2, research: 0.16, creativity: 0.14, discipline: 0.14, leadership: 0.1, social: 0.1, resilience: 0.08, athletics: 0.08 };
+  const OVR_SHAPE = { base: 4, scale: 1.05, potLow: 66, potSpan: 33, potCurve: 0.45, bonus: 6, floor: 0.3, power: 7, talent: 20, knee: 88, boost: 0.6, ceil: 96, ceilRate: 0.3 };
+  function potentialFor(seed, archetypeId, k) {
+    let h = 2166136261;
+    for (const c of `${seed}|potential|${k}`) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
+    h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995); h ^= h >>> 15;
+    const u = ((h >>> 0) + 0.5) / 4294967296;
+    const bonus = archetypes.find(a => a.id === archetypeId)?.bonuses?.[k] ? OVR_SHAPE.bonus : 0;
+    // 학생마다 전체 잠재력의 높낮이(재능)가 있어 일부는 여러 능력치가 함께 높게 자랍니다.
+    let t = 2166136261;
+    for (const c of `${seed}|talent`) { t ^= c.charCodeAt(0); t = Math.imul(t, 16777619); }
+    t ^= t >>> 13; t = Math.imul(t, 0x5bd1e995); t ^= t >>> 15;
+    const talent = ((t >>> 0) + 0.5) / 4294967296 - 0.5;
+    return Math.max(50, Math.min(99, Math.round(OVR_SHAPE.potLow + OVR_SHAPE.potSpan * Math.pow(u, OVR_SHAPE.potCurve) + bonus + talent * OVR_SHAPE.talent)));
+  }
+  function ensurePotential(s) {
+    if (s.potential && typeof s.potential === 'object') return s.potential;
+    s.potential = {};
+    for (const k of POTENTIAL_STATS) s.potential[k] = Math.max(potentialFor(s.seed, s.archetype, k), Math.min(99, Math.round(s.stats?.[k] || 0)));
+    return s.potential;
+  }
+  function getOverall(s) {
+    let w = 0;
+    for (const [k, weight] of Object.entries(OVR_WEIGHTS)) w += (Number(s.stats?.[k]) || 0) * weight;
+    const raw = OVR_SHAPE.base + w * OVR_SHAPE.scale;
+    // 최상위 구간은 조금 넓혀 95 이상이 의미 있는 목표가 되게 합니다.
+    let v = raw + Math.max(0, raw - OVR_SHAPE.knee) * OVR_SHAPE.boost;
+    // 99는 아주 드물게: 상단은 다시 완만하게 눌러 줍니다.
+    if (v > OVR_SHAPE.ceil) v = OVR_SHAPE.ceil + (v - OVR_SHAPE.ceil) * OVR_SHAPE.ceilRate;
+    return Math.max(1, Math.min(99, Math.round(v)));
+  }
   function shift(s, changes) {
     for (const [key, value] of Object.entries(changes)) {
-      const k = key === 'health' ? 'fatigue' : key, delta = key === 'health' ? -value : value;
+      const k = key === 'health' ? 'fatigue' : key;
+      let delta = key === 'health' ? -value : value;
+      const pot = s.potential && s.potential[k];
+      if (pot && delta > 0) {
+        const cur = s.stats[k] || 0;
+        delta *= cur >= pot ? 0.05 : Math.max(OVR_SHAPE.floor, 1 - Math.pow(cur / pot, OVR_SHAPE.power));
+        if (cur < pot && cur + delta > pot) delta = pot - cur + (cur + delta - pot) * 0.1;
+      }
       s.stats[k] = round(clamp((s.stats[k] || 0) + delta, 0, ['fatigue','stress'].includes(k) ? 120 : 100));
     }
     s.stats.health = round(Math.max(0, 100 - s.stats.fatigue));
@@ -190,6 +230,7 @@
     const type = archetypes[Math.floor(rng(s) * archetypes.length)]; s.archetype = type.id;
     for (const k of ['intelligence', 'social', 'athletics', 'discipline', 'luck', 'creativity', 'resilience', 'leadership']) s.stats[k] = clamp(32 + Math.floor(rng(s) * 25) + (type.bonuses[k] || 0));
     Object.assign(s.stats, { health: 85, fatigue: 15, stress: 15, research: 8 });
+    ensurePotential(s);
     campus.init(s, { legacy: false, gender: options.gender || null }); school.init(s); tournaments.init(s);
     s.focus = 'balanced'; s.lastWeekReport = null;
     curriculum.init(s); s.applicationMajors = {}; s.majorSnapshot = null;
@@ -429,6 +470,7 @@
     if (s.courseTable !== 2 && s.turn % 8 === 0 && !s.midterm && !Object.keys(s.semesterLearning || {}).length) s.courseTable = 2;
     if (!s.performanceDeductions || typeof s.performanceDeductions !== 'object') s.performanceDeductions = {};
     if (typeof s.studyStreak !== 'number') s.studyStreak = 0;
+    ensurePotential(s);
     ensureAdmissionRolls(s);
     campus.migrate(s);
     syncRoleTerms(s);
@@ -891,7 +933,7 @@
     if (crisisLimit(s)) triggerEmergency(s); nextEvent(s); updateEnding(s);
     return { ...result, event: s.pendingEvent };
   }
-  const API = { getClassRank, courseKind, EXAM_CALIBRATION, EXAM_SHAPE, coreTables, create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, getAdmissionStatus, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
+  const API = { getOverall, ensurePotential, OVR_SHAPE, OVR_WEIGHTS, getClassRank, courseKind, EXAM_CALIBRATION, EXAM_SHAPE, coreTables, create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, getAdmissionStatus, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
   root.GSAEngine = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);

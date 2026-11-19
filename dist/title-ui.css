@@ -163,3 +163,7 @@ html.tt-open,html.tt-open body{overflow:hidden}
 @media(max-width:1100px),(max-height:820px){.tt-notes{position:static;width:auto;max-width:400px;margin:0 auto 6px;max-height:none}}
 @media(max-width:860px){.tt-notes{margin:4px 20px 8px;max-width:none}}
 @media(min-width:1101px) and (min-height:821px){.tt-cast--4{display:none}}
+.profile-head{position:relative}
+.ovr-badge{margin-left:auto;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:46px;padding:4px 6px;border-radius:10px;background:#16233f;color:#ffd977;line-height:1}
+.ovr-badge b{font-size:20px;font-weight:800}
+.ovr-badge small{font-size:9px;letter-spacing:.08em;color:#c9d3ea;margin-top:2px}
