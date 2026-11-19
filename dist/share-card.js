@@ -58,6 +58,8 @@
       gpa: gpaMetric ? String(gpaMetric.value) : '—',
       awards: awardCount,
       ovr: engine && typeof engine.getOverall === 'function' && state && state.stats ? engine.getOverall(state) : null,
+      stars: d.evaluation ? d.evaluation.stars : null,
+      career: d.evaluation && d.evaluation.career ? { prize: d.evaluation.career.prize, prizes: d.evaluation.career.prizes, title: d.evaluation.career.title } : null,
       metrics: [pick(/TOEIC/), pick(/이수 학점/), pick(/현장연구/), pick(/만남/)].filter(Boolean),
       terms: arr(d.terms).map((t) => ({ label: `${num(t.year)}-${num(t.semester)}`, gpa: num(t.gpa) })),
       clubs: arr(d.clubs).map((c) => String(c.name)),
@@ -233,7 +235,8 @@
     // 이름과 한 줄 제목
     text(ctx, model.name, W / 2, 492, { size: 66, weight: 800, align: 'center', max: W - P * 2 });
     text(ctx, model.title, W / 2, 546, { size: 32, weight: 700, color: C.white, align: 'center', max: W - P * 2 });
-    if (model.archetype) text(ctx, `${model.archetype}${withRo(model.archetype)} 입학`, W / 2, 586, { size: 21, color: C.muted, align: 'center' });
+    if (model.career) text(ctx, `그 뒤의 이야기 · ${model.career.title}${model.career.prizes ? ` · ${model.career.prize} ${model.career.prizes}회` : ''}`, W / 2, 586, { size: 21, color: model.career.prizes ? C.gold : C.muted, align: 'center', max: W - P * 2 });
+    else if (model.archetype) text(ctx, `${model.archetype}${withRo(model.archetype)} 입학`, W / 2, 586, { size: 21, color: C.muted, align: 'center' });
 
     // 지표 줄
     const my = 616, mh = 136;
@@ -411,7 +414,7 @@
       const url = URL.createObjectURL(blob);
       const preview = dialog.querySelector('.gx-card-preview');
       preview.removeAttribute('aria-busy');
-      preview.innerHTML = `<img src="${url}" alt="${model.name}의 학교생활 결과 카드: ${model.status}, 누적 평점 ${model.gpa}${model.ovr != null ? `, OVR ${model.ovr}` : ''}, 수상 ${model.awards}회">`;
+      preview.innerHTML = `<img src="${url}" alt="${model.name}의 학교생활 결과 카드: ${model.status}, 누적 평점 ${model.gpa}${model.ovr != null ? `, OVR ${model.ovr}` : ''}, 수상 ${model.awards}회${model.stars != null ? `, 업적 ${model.stars}개` : ''}${model.career && model.career.prizes ? `, ${model.career.prize} ${model.career.prizes}회` : ''}">`;
       const file = typeof File === 'function' ? new File([blob], fileName(model), { type: 'image/png' }) : null;
       const save = dialog.querySelector('[data-card="save"]'), share = dialog.querySelector('[data-card="share"]');
       save.disabled = false;
