@@ -9,6 +9,23 @@
   ];
   const ELECTIVES = ['advanced_physics', 'advanced_math', 'advanced_chemistry', 'advanced_biology', 'advanced_ai', 'advanced_earth'];
   const ACTIONS = [{ id: 'fieldresearch', name: '개별 현장탐사', icon: 'flask', description: '학교 탐사 외에 스스로 관찰하고 기록하는 현장탐사를 수행해요. 1학년부터 한 번 이수할 수 있어요.', effectsText: '현장탐사 +1학점 · 연구 역량 ↑ · 피로도 ↑' }];
+  // v0.13 교내 대회: 지원자 상위 20%가 수상(금·은·동). 대부분 한 학년만, 발명품 대회는 전학년.
+  const CONTESTS = [
+    { id: 'writing', mean: 52, name: '교내 글쓰기 대회', turn: 1, weights: { creativity: 0.45, intelligence: 0.25, discipline: 0.2, social: 0.1 }, pitch: '주제를 받고 한 편의 글을 완성하는 대회다.' },
+    { id: 'math', mean: 45, name: '교내 수학 경시대회', turn: 2, weights: { intelligence: 0.6, research: 0.2, discipline: 0.2 }, pitch: '서술형 증명 문제가 나오는 수학 경시대회다.' },
+    { id: 'physics', mean: 45, name: '교내 물리 경시대회', turn: 5, weights: { intelligence: 0.55, research: 0.25, creativity: 0.2 }, pitch: '역학과 전자기를 넘나드는 물리 경시대회다.' },
+    { id: 'invention1', mean: 50, name: '교내 발명품 대회', turn: 6, open: true, weights: { creativity: 0.5, research: 0.3, intelligence: 0.2 }, pitch: '전학년이 참가하는 발명품 대회다. 아이디어와 시제품을 함께 낸다.' },
+    { id: 'chemistry', mean: 50, name: '교내 화학 경시대회', turn: 9, weights: { intelligence: 0.55, research: 0.25, discipline: 0.2 }, pitch: '반응과 평형, 실험 해석 문제가 나오는 화학 경시대회다.' },
+    { id: 'clubfair', mean: 47, name: '동아리 발표대회', turn: 10, weights: { research: 0.35, social: 0.25, leadership: 0.2, creativity: 0.2 }, pitch: '학술동아리가 한 학기 동안 탐구한 내용을 발표한다.' },
+    { id: 'biology', mean: 51, name: '교내 생명과학 경시대회', turn: 13, weights: { intelligence: 0.5, research: 0.3, discipline: 0.2 }, pitch: '생명과학 개념과 실험 설계를 묻는 경시대회다.' },
+    { id: 'english', mean: 68, name: '영어 말하기 대회', turn: 17, weights: { social: 0.35, intelligence: 0.3, resilience: 0.2, creativity: 0.15 }, pitch: '자기 주제로 영어 스피치를 하고 질의응답을 받는다.' },
+    { id: 'earth', mean: 56, name: '교내 지구과학 경시대회', turn: 18, weights: { intelligence: 0.5, research: 0.3, creativity: 0.2 }, pitch: '지구·천문 자료를 해석하는 경시대회다.' },
+    { id: 'informatics', mean: 61, name: '교내 정보과학 경시대회', turn: 21, weights: { intelligence: 0.5, creativity: 0.3, research: 0.2 }, pitch: '알고리즘 문제를 제한 시간 안에 풀어 제출한다.' },
+    { id: 'invention2', mean: 58, name: '교내 발명품 대회', turn: 22, open: true, weights: { creativity: 0.5, research: 0.3, intelligence: 0.2 }, pitch: '전학년이 참가하는 발명품 대회다. 작년보다 경쟁작이 많아 보인다.' },
+    { id: 'rne', mean: 64, name: 'R&E 발표 시상', turn: 29, weights: { research: 0.6, intelligence: 0.2, discipline: 0.2 }, pitch: '1년 동안 진행한 R&E 결과를 발표하고 심사를 받는다.' },
+    { id: 'invention3', mean: 67, name: '교내 발명품 대회', turn: 34, open: true, weights: { creativity: 0.5, research: 0.3, intelligence: 0.2 }, pitch: '전학년이 참가하는 발명품 대회다. 마지막 출품 기회다.' }
+  ];
+  const CONTEST_PREP = { hard: { bonus: 6, effects: { fatigue: 8, stress: 5 } }, light: { bonus: 2, effects: { fatigue: 3, stress: 2 } } };
   function hash01(seed, text) {
     let h = (Number(seed) >>> 0) ^ 2166136261;
     for (const c of String(text)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
@@ -38,7 +55,7 @@
       const q = s.school;
       q.cohortSize = COHORT_SIZE; q.classSize = CLASS_SIZE; q.classId = 1;
       if (!Array.isArray(q.cohort) || q.cohort.length !== COHORT_SIZE) q.cohort = makeCohort(s);
-      for (const key of ['scheduledKeys', 'awardedTerms', 'officerHistory', 'termResults', 'fieldCredits', 'nationalTeam']) if (!Array.isArray(q[key])) q[key] = [];
+      for (const key of ['scheduledKeys', 'awardedTerms', 'officerHistory', 'termResults', 'fieldCredits', 'nationalTeam', 'contests']) if (!Array.isArray(q[key])) q[key] = [];
       if (!q.journeys || typeof q.journeys !== 'object') q.journeys = {};
       if (!Array.isArray(s.awards)) s.awards = [];
       if (!Array.isArray(s.badges)) s.badges = [];
@@ -235,9 +252,10 @@
       if (c.project) s.researchProject = c.project;
     }
     function resolve(s, event, choice) {
-      const mine = choice.schoolElection || choice.schoolTripStart || choice.schoolTripSkip || event.schoolJourney || choice.nationalCamp || choice.nationalSelection;
+      const mine = choice.contestPrep || choice.schoolElection || choice.schoolTripStart || choice.schoolTripSkip || event.schoolJourney || choice.nationalCamp || choice.nationalSelection;
       if (!mine) return { handled: false, messages: [], events: [] };
       live(s); init(s);
+      if (choice.contestPrep) return resolveContest(s, event, choice);
       if (choice.schoolElection) return resolveElection(s, event, choice);
       if (choice.schoolTripStart || choice.schoolTripSkip) {
         const id = choice.schoolTripStart || choice.schoolTripSkip, trip = TRIPS.find(t => t.id === id);
@@ -275,6 +293,50 @@
       }
       return { handled: false, messages: [], events: [] };
     }
+    function contestScore(s, c) {
+      let v = 0;
+      for (const [k, w] of Object.entries(c.weights)) v += num(s, k) * w;
+      if (c.id === 'english' && s.toeic && s.toeic.best) v += Math.max(0, Math.min(6, (s.toeic.best - 650) / 40));
+      return v;
+    }
+    function contestEvent(c) {
+      const scope = c.open ? '전학년 지원자' : '학년 지원자';
+      return { id: `school_contest_${c.id}`, contestId: c.id, title: c.name, description: `${c.pitch} ${scope} 중 상위 20%가 금·은·동상을 받는다. 준비할수록 유리하지만 그만큼 지친다.`, choices: [
+        { label: '제대로 준비해서 나간다', description: '수상 가능성 ↑ · 피로도·스트레스 ↑', contestPrep: 'hard' },
+        { label: '부담 없이 참가만 한다', description: '수상 가능성 보통 · 피로도 조금 ↑', contestPrep: 'light' },
+        { label: '이번 대회는 건너뛴다', description: '이번 주 체력을 아낀다', contestPrep: 'skip' }
+      ] };
+    }
+    function resolveContest(s, event, choice) {
+      const c = CONTESTS.find(x => x.id === event.contestId);
+      if (!c) throw new Error('대회 정보를 찾을 수 없어요.');
+      const q = s.school; if (!Array.isArray(q.contests)) q.contests = [];
+      if (q.contests.some(r => r.id === c.id)) throw new Error('이미 참가 여부를 정한 대회예요.');
+      if (choice.contestPrep === 'skip') { q.contests.push({ id: c.id, turn: s.turn, entered: false }); return { handled: true, messages: [`${c.name}에는 나가지 않았다.`], events: [] }; }
+      const prep = CONTEST_PREP[choice.contestPrep] || CONTEST_PREP.light;
+      const applicants = c.open ? 45 + Math.floor(hash01(s.seed, `contest:${c.id}:n`) * 30) : 18 + Math.floor(hash01(s.seed, `contest:${c.id}:n`) * 22);
+      const quota = Math.ceil(applicants * 0.2 - 1e-9);
+      // 지원자 평균(mean)은 그 시기 보통 학생의 대회 점수에 맞췄습니다. 발명품 대회는 학년이 섞여 폭이 넓습니다.
+      const mean = c.mean, sd = c.open ? 10 : 8;
+      const mine = contestScore(s, c) + prep.bonus + (rng(s) - 0.5) * 12;
+      let ahead = 0;
+      for (let i = 1; i < applicants; i++) {
+        const u1 = Math.max(1e-6, hash01(s.seed, `contest:${c.id}:${i}:a`)), u2 = hash01(s.seed, `contest:${c.id}:${i}:b`);
+        const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+        if (mean + z * sd > mine) ahead++;
+      }
+      const rank = ahead + 1;
+      shift(s, prep.effects);
+      const record = { id: c.id, turn: s.turn, entered: true, prep: choice.contestPrep, applicants, quota, rank, mine: Math.round(mine * 10) / 10 };
+      q.contests.push(record);
+      if (rank > quota) return { handled: true, messages: [`${c.name}에 지원자 ${applicants}명이 참가했다. 이번에는 상위 ${quota}명(20%) 안에 들지 못했다. (${rank}위)`], events: [] };
+      const gold = Math.max(1, Math.round(quota * 0.2)), silver = Math.max(gold + 1, Math.round(quota * 0.5));
+      const tier = rank <= gold ? '금상' : rank <= silver ? '은상' : '동상';
+      record.tier = tier;
+      shift(s, { stress: -3, resilience: 1 });
+      award(s, { id: `contest:${c.id}`, kind: 'contest', contestId: c.id, tier, name: `${c.name} ${tier}`, year: currentYear(s), turn: s.turn, rank, applicants, quota });
+      return { handled: true, messages: [`${c.name} ${tier}! 지원자 ${applicants}명 중 ${rank}위로 수상했다.`], events: [] };
+    }
     function scheduleEvents(s) {
       init(s);
       if (s.alive === false || s.turn >= 48) return [];
@@ -284,15 +346,16 @@
         if (!q.scheduledKeys.includes(key) && !q.officerHistory.some(h => h.term === term)) { q.currentRole = null; s.classRole = '일반 학생'; q.scheduledKeys.push(key); events.push(classElection(s, term)); }
       }
       for (const trip of TRIPS) if (trip.turn === s.turn && !q.scheduledKeys.includes(`trip:${trip.id}`) && !q.fieldCredits.some(r => r.id === trip.id)) { q.scheduledKeys.push(`trip:${trip.id}`); events.push(tripEvent(trip)); }
+      for (const c of CONTESTS) if (c.turn === s.turn && !q.scheduledKeys.includes(`contest:${c.id}`)) { q.scheduledKeys.push(`contest:${c.id}`); events.push(contestEvent(c)); }
       return events;
     }
     function cohortSummary(s) {
       const q = s.school;
       return { cohortSize: COHORT_SIZE, classSize: CLASS_SIZE, classCount: CLASS_COUNT, classId: 1, assumption: '게임용 가상 학생 96명, 16명씩 6개 반. 실제 학교 학생 수가 아닙니다.', officers: q?.officerHistory?.at(-1) || null, latestAwards: q?.termResults?.at(-1) || null };
     }
-    return { init, migrate, actions: ACTIONS, validateAction, performAction, scheduleEvents, onSemesterEnd, resolve, getEnrollment, getFieldStatus, makeupFieldTrip, nationalTeamEvents, cohortSummary, getClassRoleBonus, rankCandidates, trips: TRIPS };
+    return { init, migrate, actions: ACTIONS, validateAction, performAction, scheduleEvents, onSemesterEnd, resolve, getEnrollment, getFieldStatus, makeupFieldTrip, nationalTeamEvents, cohortSummary, getClassRoleBonus, rankCandidates, trips: TRIPS, contests: CONTESTS };
   }
-  const API = { createAPI, rankCandidates, trips: TRIPS, cohortSize: COHORT_SIZE, classSize: CLASS_SIZE };
+  const API = { createAPI, rankCandidates, trips: TRIPS, contests: CONTESTS, cohortSize: COHORT_SIZE, classSize: CLASS_SIZE };
   root.GSASchoolSystems = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -537,7 +537,7 @@
     };
     if(milestones[s.turn]) events.push(milestones[s.turn]);
     events.push(...school.scheduleEvents(s));
-    if (!events.length && s.turn < 48 && s.turn !== 32 && rng(s) < 0.74 && dailyEvents.length) {
+    if (!events.some(e => !e.contestId) && s.turn < 48 && s.turn !== 32 && rng(s) < 0.74 && dailyEvents.length) {
       let pool = dailyEvents.filter(e => (e.context !== 'sports' || s.sportsClubs.length) && (e.context !== 'research' || s.turn >= 8) && !s.dailySeen.slice(-12).includes(e.id));
       if (s.dormHarmony < 40 && rng(s) < 0.55) { const dorm = pool.filter(e => e.context === 'dorm'); if(dorm.length)pool=dorm; }
       if (!pool.length) pool = dailyEvents;
