@@ -748,13 +748,25 @@
     if (kind === 'dawn' && p.examTurn - turn > 1) throw new Error('새벽자습은 시험 1주 전부터 할 수 있어요.');
     d[kind] = !!value; p.preset = 'custom'; return p;
   }
+  // v0.13.1: 날짜별 대신 주 단위로 정합니다. level = none | night | both(심야+새벽, 시험 1주 전부터)
+  function setStudyPlannerWeek(s, turn, level) {
+    assertAlive(s); const p = s.studyPlanner;
+    if (!p) throw new Error('아직 자습 플래너가 열리지 않았어요.');
+    if (!['none', 'night', 'both'].includes(level)) throw new Error('없음·심야·심야+새벽 중에서 골라 주세요.');
+    const days = p.days.filter(x => x.turn === turn); if (!days.length) throw new Error('플래너에 없는 주예요.');
+    if (turn < s.turn) throw new Error('이미 지난 주는 바꿀 수 없어요.');
+    if (level === 'both' && p.examTurn - turn > 1) throw new Error('새벽자습은 시험 1주 전부터 할 수 있어요.');
+    for (const d of days) { d.night = level !== 'none'; d.dawn = level === 'both'; }
+    p.preset = 'custom'; return p;
+  }
+  function plannerWeekLevel(s, turn) { const f = plannerFractions(s, turn); if (!f) return null; return f.dawns ? 'both' : f.nights ? 'night' : 'none'; }
   function plannerEvent(s) {
     const w = plannerWindow(s);
-    return { id: 'study_planner', title: `자습 플래너 · ${w.examName} 2주 전`, description: `${w.examName}까지 3주 남았다(시험 주 포함). 날짜별로 심야자습(밤)과 새벽자습(시험 1주 전부터)을 정할 수 있다. 고른 계획은 홈 화면의 달력에서 하루씩 바꿀 수 있다. 연달아 무리하면 효과가 줄고, 시험 날 너무 피곤하면 점수가 깎인다.`, choices: [
+    return { id: 'study_planner', title: `자습 플래너 · ${w.examName} 2주 전`, description: `${w.examName}까지 3주 남았다(시험 주 포함). 주마다 심야자습, 또는 심야+새벽자습(시험 1주 전부터)을 정할 수 있다. 고른 계획은 홈 화면에서 주마다 바꿀 수 있다. 연달아 무리하면 효과가 줄고, 시험 날 너무 피곤하면 점수가 깎인다.`, choices: [
       { label: '막판에: 시험 전 주에만 심야자습', description: '준비도 ↑ · 피로 ↑', plannerPreset: 'light' },
       { label: '꾸준히: 3주 동안 매일 심야자습', description: '준비도 ↑↑ · 피로 ↑↑', plannerPreset: 'steady' },
       { label: '전력으로: 매일 심야 + 마지막 2주 새벽까지', description: '준비도 최대 · 피로·응급실 위험 큼', plannerPreset: 'intense' },
-      { label: '추가 자습 없이 직접 달력에서 정한다', description: '처음엔 비워 두고 날짜별로 고른다', plannerPreset: 'custom' }
+      { label: '일단 비워 두고 주마다 정한다', description: '홈 화면에서 주별로 고른다', plannerPreset: 'custom' }
     ] };
   }
   function toeicOfferEvent(s) {
@@ -1112,7 +1124,7 @@
     if (crisisLimit(s)) triggerEmergency(s); nextEvent(s); updateEnding(s);
     return { ...result, event: s.pendingEvent };
   }
-  const API = { getAchievements, getCareer, getOverall, ensurePotential, OVR_SHAPE, OVR_WEIGHTS, getClassRank, courseKind, EXAM_CALIBRATION, EXAM_SHAPE, coreTables, create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, getAdmissionStatus, unitName, APPLICATION_LIMIT, PLAN_BLOCKS, normalizePlan, planLabel, setStudyPlannerDay, plannerWindow, plannerFractions, PLANNER_DAYS, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
+  const API = { getAchievements, getCareer, getOverall, ensurePotential, OVR_SHAPE, OVR_WEIGHTS, getClassRank, courseKind, EXAM_CALIBRATION, EXAM_SHAPE, coreTables, create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, getAdmissionStatus, unitName, APPLICATION_LIMIT, PLAN_BLOCKS, normalizePlan, planLabel, setStudyPlannerDay, setStudyPlannerWeek, plannerWeekLevel, plannerWindow, plannerFractions, PLANNER_DAYS, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
   root.GSAEngine = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);

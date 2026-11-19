@@ -203,3 +203,19 @@ html.tt-open,html.tt-open body{overflow:hidden}
 @media (max-width:600px){.planner-head,.planner-row{grid-template-columns:62px repeat(5,1fr)}.planner-cell{flex-direction:column;align-items:center}.planner-cell button{width:26px;height:24px;font-size:12px}}
 .plan-stepper b{white-space:nowrap}
 .plan-card p{min-height:0}
+/* v0.13.1 주 단위 자습 플래너 */
+.planner-weeks{display:grid;gap:8px;margin:10px 0}
+.planner-week-row{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center}
+.planner-week-row.is-past{opacity:.45}
+.planner-week-row .seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.planner-week-row .seg button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:10px;border:1px solid #d9deea;background:#fff;cursor:pointer}
+.planner-week-row .seg button b{font-size:14px}
+.planner-week-row .seg button small{font-size:11px;color:var(--muted,#667)}
+.planner-week-row .seg button.on{background:#fff6d8;border-color:#e9b949;box-shadow:inset 0 0 0 1px #e9b949}
+.planner-week-row .seg button:disabled{opacity:.35;cursor:default}
+@media (max-width:600px){.planner-week-row{grid-template-columns:1fr}}
+/* v0.13.1 주력·보조 */
+button.plan-card{position:relative;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.plan-role{position:absolute;top:10px;right:10px;padding:2px 8px;border-radius:999px;font-style:normal;font-size:11px;font-weight:800;background:#1f6b4a;color:#fff}
+.plan-card--sub .plan-role{background:#e9b949;color:#3d2c00}
+.plan-card--sub{border-style:dashed}
