@@ -64,6 +64,7 @@ function verifyV10Grades(ctx = {}) {
         let commitment=null;
         if(s.turn>=32&&E.getFieldStatus(s).canIndependent)commitment='fieldresearch';
         else if(s.turn>=32&&s.toeic.best<730)commitment='toeic';
+        s.studyPlanner=null; // v0.13: 플래너 대신 정책이 정한 자습만 비교합니다.
         E.simulateWeek(s,focus,mode,commitment);
       }
       settle(s);assert.ok(s.alive&&s.turn===48,'Ordinary study plus recovery completes school safely');
