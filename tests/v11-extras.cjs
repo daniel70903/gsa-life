@@ -15,7 +15,7 @@ function play(seed) {
   E.setClubs(s, 'physics', 'none');
   const resolve = () => { let n = 0; while (s.pendingEvent && s.alive && n++ < 80) E.chooseEvent(s, 0); };
   let guard = 0;
-  while (s.turn < 48 && s.alive && guard++ < 80) {
+  while (s.turn < 42 && s.alive && guard++ < 80) {
     if (s.needsGender) E.setGender(s, 'female');
     resolve();
     if (!s.alive) break;
@@ -23,8 +23,8 @@ function play(seed) {
     if (E.getPhase(s).needsApplications) E.applyUniversities(s, ['kaist', 'gist', 'dgist']);
     resolve();
     if (!s.alive) break;
-    const focus = s.stats.fatigue > 55 || s.stats.stress > 65 || s.illnessWeeks ? 'recovery' : s.turn >= 8 && s.toeic.best < 730 ? 'english' : ['balanced', 'intelligence', 'social', 'research'][s.turn % 4];
-    E.simulateWeek(s, focus, 'normal', s.turn >= 32 && E.getFieldStatus(s).canIndependent ? 'fieldresearch' : null);
+    const focus = s.stats.fatigue > 55 || s.stats.stress > 65 || s.illnessWeeks ? 'recovery' : s.turn >= 7 && s.toeic.best < 730 ? 'english' : ['balanced', 'intelligence', 'social', 'research'][s.turn % 4];
+    E.simulateWeek(s, focus, 'normal', s.turn >= 28 && E.getFieldStatus(s).canIndependent ? 'fieldresearch' : null);
   }
   resolve();
   return s;
@@ -82,14 +82,14 @@ module.exports = async function verifyExtras() {
 
   // 도움말은 실제 졸업·자습 기준과 맞고, 숨겨진 운동부·메달 효과를 드러내지 않습니다.
   const helpText = X.tabs.map((t) => t.render()).join('\n').replace(/<[^>]+>/g, ' ');
-  for (const fact of ['730점', '현장연구 6학점', '28학점', '4주차에 중간고사', '8주차에 기말고사', '중간 30 + 기말 30', '기말 40 (중간고사 없음)', '이수/미이수', '시험 2주 전에', '1주 전부터', '7 : 3', '5일(1주)', '영구 퇴사', '일상 사건', '14개 대학', '6장', '5,000원', '4번']) ok(helpText.includes(fact), `Guide states ${fact}`);
+  for (const fact of ['730점', '현장연구 6학점', '28학점', '4주차에 중간고사', '7주차에 기말고사', '중간 30 + 기말 30', '기말 40 (중간고사 없음)', '이수/미이수', '시험 2주 전에', '1주 전부터', '7 : 3', '5일(1주)', '영구 퇴사', '일상 사건', '14개 대학', '6장', '5,000원', '4번']) ok(helpText.includes(fact), `Guide states ${fact}`);
   ok(!/(운동부|메달|교육감배)[^\n]{0,80}(가산점|보너스|선발 확률|선출 가능성)|(가산점|보너스)[^\n]{0,60}(운동부|메달|교육감배)/.test(helpText), 'Guide hides sports and medal modifiers');
   const grad = E.getGraduationStatus(played);
   assert.equal(grad.toeicRequired, 730);
   assert.equal(grad.fieldRequired, 6);
   const phaseAt = (turn) => E.getPhase({ ...copy(played), turn, alive: true });
   ok(phaseAt(1).nightAvailable && !phaseAt(1).dawnAvailable && phaseAt(2).dawnAvailable && !phaseAt(0).nightAvailable, 'Night study opens two weeks and dawn study one week before an exam');
-  ok(phaseAt(3).exam === 'midterm' && phaseAt(7).exam === 'final', 'Exams are in weeks 4 and 8');
+  ok(phaseAt(3).exam === 'midterm' && phaseAt(6).exam === 'final', 'Exams are in weeks 4 and 7');
 
   // 결과 카드는 회고 기록과 같은 숫자를 보여줍니다.
   const data = globalThis.GSARetrospectiveData.build(played, E);

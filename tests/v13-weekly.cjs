@@ -29,7 +29,7 @@ module.exports = function verifyV13Weekly() {
   // 자습 플래너: 시험 2주 전에 사건, 프리셋, 날짜 편집, 효과
   const p = fresh(11);
   let saw = null, g = 0;
-  while (p.turn < 8 && g++ < 20) {
+  while (p.turn < 7 && g++ < 20) {
     let n = 0;
     while (p.pendingEvent && n++ < 40) { const e = p.pendingEvent; if (e.id === 'study_planner') { saw = { turn: p.turn, e }; E.chooseEvent(p, e.choices.findIndex((c) => c.plannerPreset === 'custom')); } else E.chooseEvent(p, 0); }
     if (saw) break;
@@ -51,7 +51,7 @@ module.exports = function verifyV13Weekly() {
   assert.throws(() => E.setStudyPlannerDay(withStudy, 1, 2, 'night', true), /지난/); checks++;
 
   // TOEIC 선택 사건
-  const t = fresh(21); t.turn = 9; t.toeic.practice = 6; t.toeic.best = 0; t.pendingEvent = null; t.eventQueue = [];
+  const t = fresh(21); t.turn = 8; t.toeic.practice = 6; t.toeic.best = 0; t.pendingEvent = null; t.eventQueue = [];
   E.simulateWeek(t, 'balanced');
   let offer = null, n = 0;
   while (t.pendingEvent && n++ < 20) { if (t.pendingEvent.id === 'toeic_offer') { offer = t.pendingEvent; break; } E.chooseEvent(t, 0); }

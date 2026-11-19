@@ -37,7 +37,7 @@ function verifyEconomy() {
   const spend = E.create('매주 간식과 우유', 53, { gender: 'male' });
   spend.pendingEvent = null; spend.eventQueue = [];
   let purchases = 0, spent = 0;
-  for (let turn = 0; turn < 48; turn++) {
+  for (let turn = 0; turn < 42; turn++) {
     spend.turn = turn;
     campus.beginWeek(spend);
     const paidOnce = copy(spend.money);
@@ -50,21 +50,21 @@ function verifyEconomy() {
     }
     assert.ok(spend.money.balance >= 0);
   }
-  const normalBudget = spend.money.startingBalance + 47 * 5000;
+  const normalBudget = spend.money.startingBalance + 41 * 5000;
   assert.equal(spend.money.balance + spent, normalBudget);
-  assert.ok(purchases >= 88 && purchases < 96, 'Basic regular shopping is sustainable with occasional restraint or help work');
+  assert.ok(purchases >= 77 && purchases < 84, 'Basic regular shopping is sustainable with occasional restraint or help work');
   assert.ok(spend.money.balance < 5000, 'Regular consumption does not leave an oversized idle wallet');
 
   // Legacy savings are never confiscated or retroactively repriced. The next
   // allowance changes exactly once while all transaction/ownership data stays.
   const legacy = E.create('이전 생활비', 55, { gender: 'male' });
-  legacy.pendingEvent = null; legacy.turn = 18;
+  legacy.pendingEvent = null; legacy.turn = 16;
   legacy.money.balance = 184500;
   legacy.money.startingBalance = 57000;
   legacy.money.allowance = 10000;
   delete legacy.money.economyVersion;
   legacy.money.ownedItems = ['shoes'];
-  legacy.money.ledger = [{ turn: 17, amount: -3000, reason: '에너지 음료', balance: 184500 }];
+  legacy.money.ledger = [{ turn: 15, amount: -3000, reason: '에너지 음료', balance: 184500 }];
   const oldMoney = copy(legacy.money), oldRng = legacy.rng;
   const resumed = E.migrate(copy(legacy));
   assert.equal(resumed.money.balance, oldMoney.balance, 'Public save migration retains savings');

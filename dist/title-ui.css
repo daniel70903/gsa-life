@@ -160,7 +160,7 @@ html.tt-open,html.tt-open body{overflow:hidden}
 .tt-notes ul{margin:0;padding-left:16px;color:#4f6158}
 .tt-notes li{margin:3px 0}
 .tt-notes button{margin-top:8px;border:0;background:none;padding:0;font:inherit;font-size:12px;color:#2f6b52;font-weight:700;text-decoration:underline;cursor:pointer}
-@media(max-width:1100px),(max-height:820px){.tt-notes{position:static;width:auto;max-width:400px;margin:0 auto 6px;max-height:none}}
+@media(max-width:1100px){.tt-notes{position:static;width:auto;max-width:400px;margin:0 auto 6px;max-height:none}}
 @media(max-width:860px){.tt-notes{margin:4px 20px 8px;max-width:none}}
 @media(min-width:1101px) and (min-height:821px){.tt-cast--4{display:none}}
 .profile-head{position:relative}
@@ -219,3 +219,9 @@ button.plan-card{position:relative;text-align:left;font:inherit;color:inherit;cu
 .plan-role{position:absolute;top:10px;right:10px;padding:2px 8px;border-radius:999px;font-style:normal;font-size:11px;font-weight:800;background:#1f6b4a;color:#fff}
 .plan-card--sub .plan-role{background:#e9b949;color:#3d2c00}
 .plan-card--sub{border-style:dashed}
+/* v0.13.2: 노트북 화면에서 패치노트가 한 줄로 눌리지 않게 */
+.tt-notes{flex-shrink:0;font-size:13px}
+.tt-notes li{line-height:1.55}
+@media(max-width:1100px){.tt-notes{max-width:560px;width:calc(100% - 40px);overflow:visible;margin:10px auto 12px}}
+/* 노트북(넓지만 낮은 화면): 오른쪽 위 카드로 띄우고 그 자리의 캐릭터 둘은 숨깁니다. */
+@media(min-width:1101px) and (max-height:820px){.tt-notes{position:absolute;top:76px;right:28px;bottom:auto;width:320px;max-height:calc(100vh - 110px);overflow:auto;z-index:3}.tt-cast--1,.tt-cast--5{display:none}}

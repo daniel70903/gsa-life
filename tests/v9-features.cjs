@@ -85,7 +85,7 @@ module.exports = function verifyV9(ctx) {
   for (const fixture of fixtures) {
     const s = E.migrate(copy(fixture.state));
     const r = report(s);
-    assert.equal(r.eligible, s.alive === false || s.turn >= 48, `Old save ${fixture.label} keeps its real end state`);
+    assert.equal(r.eligible, s.alive === false || s.turn >= 42, `Old save ${fixture.label} keeps its real end state`);
   }
 
   // Render every chapter and its summary with untrusted saved text.

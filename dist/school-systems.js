@@ -3,27 +3,27 @@
   const COHORT_SIZE = 96, CLASS_SIZE = 16, CLASS_COUNT = 6;
   const ROLE_NAMES = ['반장', '부반장', '대의원'];
   const TRIPS = [
-    { id: 'jeju', name: '제주도 현장탐사', turn: 12, credits: 1 },
-    { id: 'usa', name: '미국 현장탐사', turn: 24, credits: 3 },
-    { id: 'byeonsan', name: '변산반도 현장탐사', turn: 28, credits: 1 }
+    { id: 'jeju', name: '제주도 현장탐사', turn: 11, credits: 1 },
+    { id: 'usa', name: '미국 현장탐사', turn: 21, credits: 3 },
+    { id: 'byeonsan', name: '변산반도 현장탐사', turn: 25, credits: 1 }
   ];
   const ELECTIVES = ['advanced_physics', 'advanced_math', 'advanced_chemistry', 'advanced_biology', 'advanced_ai', 'advanced_earth'];
   const ACTIONS = [{ id: 'fieldresearch', name: '개별 현장탐사', icon: 'flask', description: '학교 탐사 외에 스스로 관찰하고 기록하는 현장탐사를 수행해요. 1학년부터 한 번 이수할 수 있어요.', effectsText: '현장탐사 +1학점 · 연구 역량 ↑ · 피로도 ↑' }];
   // v0.13 교내 대회: 지원자 상위 20%가 수상(금·은·동). 대부분 한 학년만, 발명품 대회는 전학년.
   const CONTESTS = [
     { id: 'writing', mean: 52, name: '교내 글쓰기 대회', turn: 1, weights: { creativity: 0.45, intelligence: 0.25, discipline: 0.2, social: 0.1 }, pitch: '주제를 받고 한 편의 글을 완성하는 대회다.' },
-    { id: 'math', mean: 45, name: '교내 수학 경시대회', turn: 2, weights: { intelligence: 0.6, research: 0.2, discipline: 0.2 }, pitch: '서술형 증명 문제가 나오는 수학 경시대회다.' },
+    { id: 'math', mean: 48, name: '교내 수학 경시대회', turn: 2, weights: { intelligence: 0.6, research: 0.2, discipline: 0.2 }, pitch: '서술형 증명 문제가 나오는 수학 경시대회다.' },
     { id: 'physics', mean: 45, name: '교내 물리 경시대회', turn: 5, weights: { intelligence: 0.55, research: 0.25, creativity: 0.2 }, pitch: '역학과 전자기를 넘나드는 물리 경시대회다.' },
-    { id: 'invention1', mean: 50, name: '교내 발명품 대회', turn: 6, open: true, weights: { creativity: 0.5, research: 0.3, intelligence: 0.2 }, pitch: '전학년이 참가하는 발명품 대회다. 아이디어와 시제품을 함께 낸다.' },
-    { id: 'chemistry', mean: 50, name: '교내 화학 경시대회', turn: 9, weights: { intelligence: 0.55, research: 0.25, discipline: 0.2 }, pitch: '반응과 평형, 실험 해석 문제가 나오는 화학 경시대회다.' },
-    { id: 'clubfair', mean: 47, name: '동아리 발표대회', turn: 10, weights: { research: 0.35, social: 0.25, leadership: 0.2, creativity: 0.2 }, pitch: '학술동아리가 한 학기 동안 탐구한 내용을 발표한다.' },
-    { id: 'biology', mean: 51, name: '교내 생명과학 경시대회', turn: 13, weights: { intelligence: 0.5, research: 0.3, discipline: 0.2 }, pitch: '생명과학 개념과 실험 설계를 묻는 경시대회다.' },
-    { id: 'english', mean: 68, name: '영어 말하기 대회', turn: 17, weights: { social: 0.35, intelligence: 0.3, resilience: 0.2, creativity: 0.15 }, pitch: '자기 주제로 영어 스피치를 하고 질의응답을 받는다.' },
-    { id: 'earth', mean: 56, name: '교내 지구과학 경시대회', turn: 18, weights: { intelligence: 0.5, research: 0.3, creativity: 0.2 }, pitch: '지구·천문 자료를 해석하는 경시대회다.' },
-    { id: 'informatics', mean: 61, name: '교내 정보과학 경시대회', turn: 21, weights: { intelligence: 0.5, creativity: 0.3, research: 0.2 }, pitch: '알고리즘 문제를 제한 시간 안에 풀어 제출한다.' },
-    { id: 'invention2', mean: 58, name: '교내 발명품 대회', turn: 22, open: true, weights: { creativity: 0.5, research: 0.3, intelligence: 0.2 }, pitch: '전학년이 참가하는 발명품 대회다. 작년보다 경쟁작이 많아 보인다.' },
-    { id: 'rne', mean: 64, name: 'R&E 발표 시상', turn: 29, weights: { research: 0.6, intelligence: 0.2, discipline: 0.2 }, pitch: '1년 동안 진행한 R&E 결과를 발표하고 심사를 받는다.' },
-    { id: 'invention3', mean: 67, name: '교내 발명품 대회', turn: 34, open: true, weights: { creativity: 0.5, research: 0.3, intelligence: 0.2 }, pitch: '전학년이 참가하는 발명품 대회다. 마지막 출품 기회다.' }
+    { id: 'invention1', mean: 50, name: '교내 발명품 대회', turn: 5, open: true, weights: { creativity: 0.5, research: 0.3, intelligence: 0.2 }, pitch: '전학년이 참가하는 발명품 대회다. 아이디어와 시제품을 함께 낸다.' },
+    { id: 'chemistry', mean: 50, name: '교내 화학 경시대회', turn: 8, weights: { intelligence: 0.55, research: 0.25, discipline: 0.2 }, pitch: '반응과 평형, 실험 해석 문제가 나오는 화학 경시대회다.' },
+    { id: 'clubfair', mean: 53, name: '동아리 발표대회', turn: 13, weights: { research: 0.35, social: 0.25, leadership: 0.2, creativity: 0.2 }, pitch: '학술동아리가 한 학기 동안 탐구한 내용을 발표한다.' },
+    { id: 'biology', mean: 53, name: '교내 생명과학 경시대회', turn: 12, weights: { intelligence: 0.5, research: 0.3, discipline: 0.2 }, pitch: '생명과학 개념과 실험 설계를 묻는 경시대회다.' },
+    { id: 'english', mean: 68, name: '영어 말하기 대회', turn: 15, weights: { social: 0.35, intelligence: 0.3, resilience: 0.2, creativity: 0.15 }, pitch: '자기 주제로 영어 스피치를 하고 질의응답을 받는다.' },
+    { id: 'earth', mean: 54, name: '교내 지구과학 경시대회', turn: 16, weights: { intelligence: 0.5, research: 0.3, creativity: 0.2 }, pitch: '지구·천문 자료를 해석하는 경시대회다.' },
+    { id: 'informatics', mean: 61, name: '교내 정보과학 경시대회', turn: 18, weights: { intelligence: 0.5, creativity: 0.3, research: 0.2 }, pitch: '알고리즘 문제를 제한 시간 안에 풀어 제출한다.' },
+    { id: 'invention2', mean: 56, name: '교내 발명품 대회', turn: 19, open: true, weights: { creativity: 0.5, research: 0.3, intelligence: 0.2 }, pitch: '전학년이 참가하는 발명품 대회다. 작년보다 경쟁작이 많아 보인다.' },
+    { id: 'rne', mean: 64, name: 'R&E 발표 시상', turn: 26, weights: { research: 0.6, intelligence: 0.2, discipline: 0.2 }, pitch: '1년 동안 진행한 R&E 결과를 발표하고 심사를 받는다.' },
+    { id: 'invention3', mean: 67, name: '교내 발명품 대회', turn: 30, open: true, weights: { creativity: 0.5, research: 0.3, intelligence: 0.2 }, pitch: '전학년이 참가하는 발명품 대회다. 마지막 출품 기회다.' }
   ];
   const CONTEST_PREP = { hard: { bonus: 6, effects: { fatigue: 8, stress: 5 } }, light: { bonus: 2, effects: { fatigue: 3, stress: 2 } } };
   function hash01(seed, text) {
@@ -37,7 +37,7 @@
   }
   function createAPI(hooks) {
     const { rng, shift, note, clamp, round, addLearning, assertAlive } = hooks;
-    const currentYear = s => Math.floor(Math.min(s.turn, 47) / 16) + 1;
+    const currentYear = s => Math.floor(Math.min(s.turn, 41) / 14) + 1;
     const live = s => { if (assertAlive) assertAlive(s); else if (s.alive === false) throw new Error('이야기가 끝난 뒤에는 활동을 진행할 수 없어요.'); };
     const num = (s, key, fallback = 50) => Number.isFinite(s.stats && s.stats[key]) ? s.stats[key] : fallback;
     function makeCohort(s) {
@@ -50,6 +50,11 @@
       }
       return out;
     }
+    const NATURE_SLOTS = [11, 25];
+    function tripsFor(s) {
+      const order = s.school && s.school.tripOrder === 'byeonsan' ? ['byeonsan', 'jeju'] : ['jeju', 'byeonsan'];
+      return TRIPS.map(t => { const i = order.indexOf(t.id); return i < 0 ? { ...t } : { ...t, turn: NATURE_SLOTS[i] }; });
+    }
     function init(s) {
       if (!s.school) s.school = { version: 1, cohortSize: COHORT_SIZE, classSize: CLASS_SIZE, classId: 1, cohort: makeCohort(s), scheduledKeys: [], awardedTerms: [], officerHistory: [], currentRole: null, termResults: [], fieldCredits: [], journeys: {}, nationalTeam: [] };
       const q = s.school;
@@ -57,6 +62,9 @@
       if (!Array.isArray(q.cohort) || q.cohort.length !== COHORT_SIZE) q.cohort = makeCohort(s);
       for (const key of ['scheduledKeys', 'awardedTerms', 'officerHistory', 'termResults', 'fieldCredits', 'nationalTeam', 'contests']) if (!Array.isArray(q[key])) q[key] = [];
       if (!q.journeys || typeof q.journeys !== 'object') q.journeys = {};
+      // v0.13.2 자연탐사는 격년: 1학년 제주도 → 2학년 변산, 또는 1학년 변산 → 2학년 제주도. 3학년은 없음.
+      // 이미 진행 중인 저장은 예전 순서(제주도 먼저)를 유지합니다.
+      if (!['jeju', 'byeonsan'].includes(q.tripOrder)) q.tripOrder = (s.turn > 0 || q.fieldCredits.length) ? 'jeju' : (hash01(s.seed, 'trip-order') < 0.5 ? 'jeju' : 'byeonsan');
       if (!Array.isArray(s.awards)) s.awards = [];
       if (!Array.isArray(s.badges)) s.badges = [];
       if (!s.classRole) s.classRole = q.currentRole || '일반 학생';
@@ -207,9 +215,9 @@
       const q = s.school, records = Array.isArray(q?.fieldCredits) ? q.fieldCredits : [];
       const schoolCredits = records.filter(r => r.type === 'school').reduce((n, r) => n + r.credits, 0);
       const independentCredits = records.filter(r => r.type === 'independent').reduce((n, r) => n + r.credits, 0);
-      const missingTrips = TRIPS.filter(t => t.turn <= s.turn && !records.some(r => r.id === t.id) && q?.journeys?.[t.id]?.status !== 'active').map(t => ({ ...t }));
+      const missingTrips = tripsFor(s).filter(t => t.turn <= s.turn && !records.some(r => r.id === t.id) && q?.journeys?.[t.id]?.status !== 'active').map(t => ({ ...t }));
       const canIndependent = s.alive !== false && !records.some(r => r.id === 'independent');
-      return { total: schoolCredits + independentCredits, required: 6, schoolCredits, independentCredits, records: records.map(r => ({ ...r })), canIndependent, missingTrips, canMakeup: s.alive !== false && s.turn >= 48 && (missingTrips.length > 0 || canIndependent) };
+      return { total: schoolCredits + independentCredits, required: 6, schoolCredits, independentCredits, records: records.map(r => ({ ...r })), canIndependent, missingTrips, canMakeup: s.alive !== false && s.turn >= 42 && (missingTrips.length > 0 || canIndependent) };
     }
     function validateAction(s, id) {
       if (id !== 'fieldresearch') return;
@@ -225,7 +233,7 @@
     }
     function makeupFieldTrip(s) {
       live(s); init(s);
-      if (s.turn < 48) throw new Error('보충 현장탐사는 정규 학교생활을 마친 뒤 진행할 수 있어요. 지금은 개별 현장탐사 활동이나 학교 탐사에 참여해 주세요.');
+      if (s.turn < 42) throw new Error('보충 현장탐사는 정규 학교생활을 마친 뒤 진행할 수 있어요. 지금은 개별 현장탐사 활동이나 학교 탐사에 참여해 주세요.');
       const status = getFieldStatus(s);
       if (!status.canMakeup) throw new Error('현장탐사 학점은 이미 모두 이수했어요.');
       const trip = status.missingTrips[0];
@@ -258,14 +266,14 @@
       if (choice.contestPrep) return resolveContest(s, event, choice);
       if (choice.schoolElection) return resolveElection(s, event, choice);
       if (choice.schoolTripStart || choice.schoolTripSkip) {
-        const id = choice.schoolTripStart || choice.schoolTripSkip, trip = TRIPS.find(t => t.id === id);
+        const id = choice.schoolTripStart || choice.schoolTripSkip, trip = tripsFor(s).find(t => t.id === id);
         if (!trip || s.school.fieldCredits.some(r => r.id === id)) throw new Error('이미 이수했거나 존재하지 않는 현장탐사예요.');
         if (choice.schoolTripSkip) { s.school.journeys[id] = { status: 'skipped', turn: s.turn }; return { handled: true, messages: [`${trip.name}에는 참가하지 않았다. 학점은 지급되지 않으며 나중에 보충 이수할 수 있다.`], events: [] }; }
         s.school.journeys[id] = { status: 'active', startedAt: s.turn, step: 0 };
         return { handled: true, messages: [`${trip.name}에 참가했다. 모든 탐구와 기록 활동을 마친 뒤 학점을 인정받는다.`], events: [journeyStage(id, 0)] };
       }
       if (event.schoolJourney) {
-        const id = event.journey, progress = s.school.journeys[id], trip = TRIPS.find(t => t.id === id);
+        const id = event.journey, progress = s.school.journeys[id], trip = tripsFor(s).find(t => t.id === id);
         if (!trip || !progress || progress.status !== 'active' || progress.step !== event.step) throw new Error('현장탐사의 진행 단계를 확인해 주세요.');
         applyChoiceEffects(s, choice); progress.step++;
         const next = journeyStage(id, progress.step);
@@ -339,13 +347,13 @@
     }
     function scheduleEvents(s) {
       init(s);
-      if (s.alive === false || s.turn >= 48) return [];
+      if (s.alive === false || s.turn >= 42) return [];
       const events = [], q = s.school;
-      if (s.turn % 8 === 0) {
-        const term = s.turn / 8, key = `class:${term}`;
+      if (s.turn % 7 === 0) {
+        const term = s.turn / 7, key = `class:${term}`;
         if (!q.scheduledKeys.includes(key) && !q.officerHistory.some(h => h.term === term)) { q.currentRole = null; s.classRole = '일반 학생'; q.scheduledKeys.push(key); events.push(classElection(s, term)); }
       }
-      for (const trip of TRIPS) if (trip.turn === s.turn && !q.scheduledKeys.includes(`trip:${trip.id}`) && !q.fieldCredits.some(r => r.id === trip.id)) { q.scheduledKeys.push(`trip:${trip.id}`); events.push(tripEvent(trip)); }
+      for (const trip of tripsFor(s)) if (trip.turn === s.turn && !q.scheduledKeys.includes(`trip:${trip.id}`) && !q.fieldCredits.some(r => r.id === trip.id)) { q.scheduledKeys.push(`trip:${trip.id}`); events.push(tripEvent(trip)); }
       for (const c of CONTESTS) if (c.turn === s.turn && !q.scheduledKeys.includes(`contest:${c.id}`)) { q.scheduledKeys.push(`contest:${c.id}`); events.push(contestEvent(c)); }
       return events;
     }

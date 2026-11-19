@@ -15,9 +15,9 @@ module.exports = function verifyRecapFlow() {
     return line;
   }).join('\n');
   const copy = value => JSON.parse(JSON.stringify(value));
-  const basic = () => ({turn:48, alive:true, ending:'graduated', rng:41902,
+  const basic = () => ({turn:42, alive:true, ending:'graduated', rng:41902,
     pendingEvent:null, emergency:null, stats:{intelligence:75},
-    grades:[{year:3,semester:2,gpa:3.48}], log:[{turn:48,message:'마지막 학기 기록'}]});
+    grades:[{year:3,semester:2,gpa:3.48}], log:[{turn:42,message:'마지막 학기 기록'}]});
   function harness(state = basic(), extra = {}) {
     const calls = {views:[], persists:0, refreshes:0, focuses:0, scrolls:0, modals:0};
     const context = {

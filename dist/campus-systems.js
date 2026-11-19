@@ -136,7 +136,7 @@
       return r;
     }
     function romanceSelectionReason(s) {
-      if (isTerminal(s) || s.turn >= 48) return '정규 학교생활이 마무리되었어요';
+      if (isTerminal(s) || s.turn >= 42) return '정규 학교생활이 마무리되었어요';
       if (s.pendingEvent || s.emergency) return '진행 중인 사건을 먼저 마무리해 주세요';
       return '';
     }
@@ -149,7 +149,7 @@
     }
     function selectRomanceTarget(s, id) {
       assertSideAction(s);
-      if (s.turn >= 48) throw new Error('정규 학교생활이 마무리되었어요.');
+      if (s.turn >= 42) throw new Error('정규 학교생활이 마무리되었어요.');
       const person = romanceCandidates.find(candidate => candidate.id === id);
       if (!person) throw new Error('학교에서 만날 친구를 다시 골라 주세요.');
       const r = initRomance(s);
@@ -379,7 +379,7 @@
     }
     function automaticEvents(s, context = {}) {
       if (typeof context === 'string') context = { focusId: context };
-      if (isTerminal(s) || s.emergency || !s.gender || s.turn >= 48) return [];
+      if (isTerminal(s) || s.emergency || !s.gender || s.turn >= 42) return [];
       const history = s.campusOpportunities, now = weekClock(s);
       if (history.lastGeneratedTurn === now) return [];
       history.lastGeneratedTurn = now;
@@ -390,7 +390,7 @@
         if (s.money.balance >= 12000) candidates.push({ id: 'delivery', weight: 0.8 });
       }
       const r = initRomance(s);
-      if (s.turn >= 3 && s.turn - r.globalLastEventTurn >= 3) {
+      if (s.turn >= 3 && s.turn - r.globalLastEventTurn >= 2) {
         const available = romanceCandidates.filter(person => {
           const record = r.records[person.id];
           return s.turn >= record.cooldownUntil && s.turn - record.lastEventTurn >= 3;

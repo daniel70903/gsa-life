@@ -47,9 +47,9 @@ module.exports = function verifyV5(ctx) {
     const s=fresh(2100+seed); resolve(s); s.sportsClubs=['basketball'];
     for(const key of ['intelligence','social','athletics','discipline','luck','creativity','resilience','leadership','research'])s.stats[key]=50;
     let invited=false;
-    while(s.turn<48 && s.alive) {
+    while(s.turn<42 && s.alive) {
       settle(s,e=>{if(e.id==='campus_romance_invite')invited=true;}); if(!s.alive)break;
-      const commitment=s.turn>=32&&E.getFieldStatus(s).canIndependent?'fieldresearch':null;
+      const commitment=s.turn>=28&&E.getFieldStatus(s).canIndependent?'fieldresearch':null;
       E.simulateWeek(s,'balanced','normal',commitment);
     }
     resolve(s,declineRisks);
@@ -66,10 +66,10 @@ module.exports = function verifyV5(ctx) {
   let socialInvited=0;
   for(let seed=0;seed<12;seed++) {
     const s=fresh(2100+seed); resolve(s); let invited=false;
-    while(s.turn<48&&s.alive) {
+    while(s.turn<42&&s.alive) {
       settle(s,e=>{if(e.id==='campus_romance_invite')invited=true;});
       if(!s.alive)break;
-      E.simulateWeek(s,'social','normal',s.turn>=32&&E.getFieldStatus(s).canIndependent?'fieldresearch':null);
+      E.simulateWeek(s,'social','normal',s.turn>=28&&E.getFieldStatus(s).canIndependent?'fieldresearch':null);
     }
     resolve(s,declineRisks); socialInvited+=invited;
   }
@@ -77,7 +77,7 @@ module.exports = function verifyV5(ctx) {
   counters.naturalRomance={balancedInvited,socialInvited,perFocus:12};
 
   // Follow-up choices are included in the displayed weekly change totals.
-  const reporting=toTurn(fresh(1984),7); ready(reporting);
+  const reporting=toTurn(fresh(1984),6); ready(reporting);
   const reportBefore=copy(reporting); E.simulateWeek(reporting,'balanced','normal');
   resolve(reporting);
   for(const key of Object.keys(reporting.stats)) {
@@ -88,7 +88,8 @@ module.exports = function verifyV5(ctx) {
 
   // v4 migration keeps completed experiences, money, relationships and in-progress journeys.
   for(const fixture of fixtures.filter(f=>f.state.version===4)) {
-    const before=fixture.state, after=E.migrate(copy(before));
+    // v0.13.2: 예전 8주 학기의 주차 기록(turn, …Turn, …Until)은 7주 학기로 옮겨집니다.
+    const before=(function walk(o){if(!o||typeof o!=='object')return o;for(const k of Object.keys(o)){if((k==='turn'||/Turn$/.test(k)||/Until$/.test(k))&&Number.isInteger(o[k])&&o[k]>=0&&o[k]<=48)o[k]=E.legacyWeekToNew(o[k]);else walk(o[k]);}return o;})(copy(fixture.state)), after=E.migrate(copy(fixture.state));
     assert.deepEqual(after.grades,before.grades);
     assert.equal(after.money.balance,before.money.balance);
     assert.deepEqual(after.school.fieldCredits,before.school.fieldCredits);
@@ -135,8 +136,8 @@ module.exports = function verifyV5(ctx) {
   });
   const opportunities=new Map();
   for(let seed=0;seed<300 && opportunities.size<3;seed++) {
-    const s=fresh(2700+seed); resolve(s); s.turn=6; s.rng=seed;
-    s.romance.stage='dating'; s.romance.lastEventTurn=6;
+    const s=fresh(2700+seed); resolve(s); s.turn=5; s.rng=seed;
+    s.romance.stage='dating'; s.romance.lastEventTurn=5;
     nextRandom=(seed%100)/100; drawIndex=0;
     const balance=s.money.balance, violations=copy(s.dorm);
     const offers=campus.automaticEvents(s,{focusId:'balanced',fromTurn:5,commitment:null});
