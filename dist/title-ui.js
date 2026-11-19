@@ -189,7 +189,13 @@
       s
         ? `<button type="button" class="tt-btn tt-btn--primary" data-tt="continue" data-tt-autofocus><span class="tt-btn-avatar">${player}</span><span class="tt-btn-text"><b>이어하기</b><small>${esc(s.name)} · ${esc(progressLabel(s))}</small></span></button><button type="button" class="tt-btn" data-tt="new"><b>새 게임</b><small>처음부터 다시 입학하기</small></button>`
         : `<button type="button" class="tt-btn tt-btn--primary" data-tt="start" data-tt-autofocus><span class="tt-btn-text"><b>게임 시작</b><small>바로 입학 카드 만들기</small></span></button>`
-    }<button type="button" class="tt-btn" data-tt="tutorial"><b>튜토리얼</b><small>${s ? '지금 화면에서 하나씩 안내받기' : '안내를 받으며 입학하기'}</small></button><button type="button" class="tt-btn tt-btn--ghost" data-tt="archive"><b>기록실</b><small>지난 이야기 ${list.length} · 과학자 도감 ${unlockedScientists(list).size}/${C?.scientists.length || 0}</small></button></div></main><footer class="tt-foot"><button type="button" data-tt="updates">${esc(version)} 업데이트 소식${isNew ? ' <span class="tt-new">NEW</span>' : ''}</button><span aria-hidden="true">·</span><button type="button" data-tt="backup">저장 백업</button><span aria-hidden="true">·</span><span>학교 공식 프로그램이 아니에요</span></footer></div>`;
+    }<button type="button" class="tt-btn" data-tt="tutorial"><b>튜토리얼</b><small>${s ? '지금 화면에서 하나씩 안내받기' : '안내를 받으며 입학하기'}</small></button><button type="button" class="tt-btn tt-btn--ghost" data-tt="archive"><b>기록실</b><small>지난 이야기 ${list.length} · 과학자 도감 ${unlockedScientists(list).size}/${C?.scientists.length || 0}</small></button></div></main>${notesHTML()}<footer class="tt-foot"><button type="button" data-tt="updates">${esc(version)} 업데이트 소식${isNew ? ' <span class="tt-new">NEW</span>' : ''}</button><span aria-hidden="true">·</span><button type="button" data-tt="backup">저장 백업</button><span aria-hidden="true">·</span><span>학교 공식 프로그램이 아니에요</span></footer></div>`;
+  }
+  // 시작 화면 한쪽의 패치노트: 최신 버전의 변경 사항을 보여 주고 전체 기록은 도움말로 연결합니다.
+  function notesHTML() {
+    const latest = root.GSAExtras?.changelog?.[0];
+    if (!latest) return '';
+    return `<aside class="tt-notes" aria-label="패치노트"><h2>PATCH NOTES</h2><h3>${esc(latest.version)}<small>${esc(latest.date)}</small></h3><ul>${latest.items.slice(0, 4).map((x) => `<li>${esc(x)}</li>`).join('')}</ul><button type="button" data-tt="updates">${latest.items.length > 4 ? `${latest.items.length - 4}개 더 · ` : ''}패치노트 전체 보기</button></aside>`;
   }
   function render() {
     if (!layer) return;

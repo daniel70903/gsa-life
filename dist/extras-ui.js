@@ -6,7 +6,7 @@
 })(typeof window === 'undefined' ? globalThis : window, function (root) {
   'use strict';
 
-  const VERSION = 'v0.12';
+  const VERSION = 'v0.13';
   const SAVE_KEY = 'gsa-life-v1';
   const SEEN_VERSION_KEY = 'gsa-life-seen-version';
   const GUIDE_KEY = 'gsa-life-guide-seen';
@@ -83,6 +83,19 @@
   /* ───────────── 도움말 내용 ───────────── */
 
   const changelog = [
+    {
+      version: 'v0.13',
+      date: '2026.11',
+      items: [
+        '1학년 1학기~2학년 1학기 과목을 실제 편성대로 바꿨어요. 지구과학·실험·국어·영어·사회·음미체까지 학기당 30~32학점이에요.',
+        '점수 구성: 수학·과학 수행 40 + 중간 30 + 기말 30, 실험 수행 60 + 기말 40, 인문 수행 60 + 지필 40, 음미체는 수행만. 수행평가는 감점 사건이 없으면 만점이에요.',
+        '연구활동(기초·심화자율연구 등)은 이수/미이수로 평점에서 빠져요.',
+        '시험이 실제처럼 반 평균 70점 안팎으로 나와요. 1학년은 쉬워지고 2학년 1학기는 조금 어려워졌어요.',
+        '심야·새벽자습을 조금 너프했어요. 며칠 연달아 하면 효과가 줄고, 시험 날 너무 피곤하면 점수가 깎여요.',
+        '학기 성적이 나오면 학년 동기 90명 중 석차와 누적 석차를 보여 줘요.',
+        '시작 화면에 패치노트가 생겼어요.',
+      ],
+    },
     {
       version: 'v0.12',
       date: '2026.11',
@@ -161,7 +174,7 @@
     {
       id: 'grades',
       label: '시험·성적',
-      render: () => `<h3>시험 일정</h3><p>매 학기 <b>4주차에 중간고사</b>, <b>8주차에 기말고사</b>를 봐요. 학기 성적은 중간고사 40%와 기말고사 60%를 합쳐 정해져요.</p><h3>학점 기준</h3><div class="gx-table-wrap"><table class="gx-table"><thead><tr><th>점수</th><th>학점</th><th>평점</th></tr></thead><tbody><tr><td>90점 이상</td><td>A+</td><td>4.3</td></tr><tr><td>85점 이상</td><td>A0</td><td>4.0</td></tr><tr><td>80점 이상</td><td>A−</td><td>3.7</td></tr><tr><td>75점 이상</td><td>B+</td><td>3.3</td></tr><tr><td>70점 이상</td><td>B0</td><td>3.0</td></tr><tr><td colspan="3">이후 5점마다 한 단계씩 내려가요. 40점 미만은 F예요.</td></tr></tbody></table></div><h3>성적에 영향을 주는 것</h3>${list([
+      render: () => `<h3>시험 일정</h3><p>매 학기 <b>4주차에 중간고사</b>, <b>8주차에 기말고사</b>를 봐요. 반 평균은 보통 70점 안팎이고, 인문 과목은 조금 더 높게 나와요.</p><h3>과목 점수 구성</h3><div class="gx-table-wrap"><table class="gx-table"><thead><tr><th>과목</th><th>수행평가</th><th>지필</th></tr></thead><tbody><tr><td>수학·과학 이론</td><td>40</td><td>중간 30 + 기말 30</td></tr><tr><td>실험</td><td>60</td><td>기말 40 (중간고사 없음)</td></tr><tr><td>국어·영어·사회 등</td><td>60</td><td>중간·기말 40</td></tr><tr><td>음악·미술·체육</td><td>100</td><td>시험 없음</td></tr><tr><td>연구활동</td><td colspan="2">이수/미이수 (평점 제외)</td></tr></tbody></table></div><p>수행평가는 감점 사건이 없으면 만점이에요. 학기 성적이 나오면 학년 동기 90명 중 석차와 누적 석차도 보여 줘요.</p><h3>학점 기준</h3><div class="gx-table-wrap"><table class="gx-table"><thead><tr><th>점수</th><th>학점</th><th>평점</th></tr></thead><tbody><tr><td>90점 이상</td><td>A+</td><td>4.3</td></tr><tr><td>85점 이상</td><td>A0</td><td>4.0</td></tr><tr><td>80점 이상</td><td>A−</td><td>3.7</td></tr><tr><td>75점 이상</td><td>B+</td><td>3.3</td></tr><tr><td>70점 이상</td><td>B0</td><td>3.0</td></tr><tr><td colspan="3">이후 5점마다 한 단계씩 내려가요. 40점 미만은 F예요.</td></tr></tbody></table></div><h3>성적에 영향을 주는 것</h3>${list([
         '지능과 자기관리 능력치',
         '평소 공부와 추가 자습으로 쌓은 교과 준비',
         '과목의 난도',

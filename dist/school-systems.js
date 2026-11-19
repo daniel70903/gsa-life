@@ -124,6 +124,8 @@
       if (q.awardedTerms.includes(term)) return [];
       const subjects = [];
       for (const subject of g.subjects) {
+        // 음악·미술·체육은 수행평가만으로 매겨 교과우수상 대상에서 뺍니다.
+        if (subject.kind === 'art') continue;
         const eligible = getEnrollment(s, subject, term);
         const ranked = rankCandidates(eligible.map(m => ({ id: m.id, name: m.id === 'player' ? s.name : m.name, score: subjectScore(s, m, subject, term) })));
         const quota = Math.ceil(eligible.length * 0.05), recipients = ranked.slice(0, quota), player = ranked.find(m => m.id === 'player');

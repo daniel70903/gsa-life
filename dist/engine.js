@@ -103,6 +103,69 @@
     { id: 'korean', name: '국어', field: 'language', credits: 2 },
     { id: 'ai', name: '정보', field: 'ai', credits: 3 }
   ];
+  // v0.13: 실제 공통과목 편성(1학년 1학기~2학년 1학기). kind: ms = 수학·과학 이론(수행 40 · 중간 30 · 기말 30),
+  // lab = 실험(중간고사 없음, 수행 60 · 기말 40), gen = 국어·영어·사회 등(수행 60 · 지필 40),
+  // art = 음악·미술·체육(시험 없음, 수행만), pf = 연구활동(시험 없음, 이수/미이수, 평점 제외).
+  const coreTables = {
+    0: [['korean1', '국어Ⅰ', 3, 'language', 'gen'], ['english1', '영어Ⅰ', 3, 'language', 'gen'], ['pe1', '체육Ⅰ', 1, 'arts', 'art'], ['music1', '음악과 생활', 1, 'arts', 'art'], ['art1', '미술 창작', 1, 'arts', 'art'], ['math1', '수학Ⅰ', 3, 'math', 'ms'], ['math2', '수학Ⅱ', 3, 'math', 'ms'], ['physics1', '물리학Ⅰ', 3, 'physics', 'ms'], ['physicslab1', '물리학실험Ⅰ', 1, 'physics', 'lab'], ['chemistry1', '화학Ⅰ', 3, 'chemistry', 'ms'], ['chemistrylab1', '화학실험Ⅰ', 1, 'chemistry', 'lab'], ['biology1', '생명과학Ⅰ', 3, 'biology', 'ms'], ['biologylab1', '생명과학실험Ⅰ', 1, 'biology', 'lab'], ['earth1', '지구과학Ⅰ', 3, 'earth', 'ms'], ['info1', '정보과학Ⅰ', 2, 'ai', 'ms'], ['basicresearch1', '기초자율연구Ⅰ', 3, 'research', 'pf']],
+    1: [['korean2', '국어Ⅱ', 3, 'language', 'gen'], ['english2', '영어Ⅱ', 3, 'language', 'gen'], ['pe2', '체육Ⅱ', 1, 'arts', 'art'], ['music2', '음악의 이해', 1, 'arts', 'art'], ['art2', '미술 감상', 1, 'arts', 'art'], ['math3', '수학Ⅲ', 3, 'math', 'ms'], ['math4', '수학Ⅳ', 3, 'math', 'ms'], ['physics2', '물리학Ⅱ', 3, 'physics', 'ms'], ['physicslab2', '물리학실험Ⅱ', 1, 'physics', 'lab'], ['chemistry2', '화학Ⅱ', 3, 'chemistry', 'ms'], ['chemistrylab2', '화학실험Ⅱ', 1, 'chemistry', 'lab'], ['biology2', '생명과학Ⅱ', 3, 'biology', 'ms'], ['biologylab2', '생명과학실험Ⅱ', 1, 'biology', 'lab'], ['earth2', '지구과학Ⅱ', 3, 'earth', 'ms'], ['info2', '정보과학Ⅱ', 2, 'ai', 'ms'], ['basicresearch2', '기초자율연구Ⅱ', 3, 'research', 'pf']],
+    2: [['literature1', '문학Ⅰ', 3, 'language', 'gen'], ['economics', '경제', 3, 'society', 'gen'], ['grammar', '고급영문법', 2, 'language', 'gen'], ['conversation1', '영어회화Ⅰ', 1, 'language', 'gen'], ['pe3', '체육Ⅲ', 1, 'arts', 'art'], ['math5', '고급수학', 4, 'math', 'ms'], ['statistics', '확률과 통계', 2, 'math', 'ms'], ['physics3', '물리학Ⅲ', 3, 'physics', 'ms'], ['chemistry3', '화학Ⅲ', 3, 'chemistry', 'ms'], ['biology3', '생명과학Ⅲ', 3, 'biology', 'ms'], ['earth3', '지구과학Ⅲ', 3, 'earth', 'ms'], ['aiprog', '인공지능 프로그래밍', 2, 'ai', 'ms'], ['advresearch1', '심화자율연구Ⅰ', 5, 'research', 'pf']]
+  };
+  // 학기·과목 유형별 지필 난이도 보정(시뮬레이션으로 맞춘 값). 수행평가는 사건이 없으면 만점이라 지필을 더 어렵게 둡니다.
+  const EXAM_CALIBRATION = { 0: { ms: 0, gen: 0 }, 1: { ms: 0, gen: 0 }, 2: { ms: 0, gen: 0 }, 3: { ms: 0, gen: 0 }, 4: { ms: 0, gen: 0 }, 5: { ms: 0, gen: 0 } };
+  // 학기·유형별 [반 평균 목표, 실력 차이 폭]. EXAM_PIVOT은 보정 전 평균적인 학생의 점수입니다.
+  const EXAM_PIVOT = 84;
+  const EXAM_SHAPE = { 0: { ms: [68, 2.65], gen: [74, 2.0] }, 1: { ms: [67, 2.15], gen: [73, 1.7] }, 2: { ms: [59.5, 2.5], gen: [69.5, 1.9] }, 3: { ms: [58.7, 3.0], gen: [66.9, 2.3] }, 4: { ms: [52.9, 3.0], gen: [63.8, 2.3] }, 5: { ms: [58.1, 3.0], gen: [61.3, 2.3] } };
+  const MATH_SCIENCE = ['math', 'physics', 'chemistry', 'biology', 'earth', 'ai'];
+  function courseKind(sub) {
+    if (sub.kind) return sub.kind;
+    if (sub.field === 'research' || sub.category === 'research') return 'pf';
+    if (sub.field === 'athletics' || sub.field === 'arts' || /체육|운동과 건강|스포츠|음악|미술/.test(sub.name || '')) return 'art';
+    if (MATH_SCIENCE.includes(sub.field) && /실험|실습/.test(sub.name || '')) return 'lab';
+    return MATH_SCIENCE.includes(sub.field) ? 'ms' : 'gen';
+  }
+  function termIndex(s) { return Math.floor(Math.min(s.turn, 47) / 8); }
+  // 석차: 저장 시드로 고정된 가상 동기 89명. 학기별 분포는 4.3·4.27 이상 비율과 중앙값으로 정합니다.
+  const COHORT_SIZE = 90;
+  const COHORT_SHAPE = { 0: [0.02, 0.03, 3.85], 1: [0.02, 0.03, 3.86], 2: [0.03, 0.05, 3.88], 3: [0.07, 0.09, 3.95], 4: [0.1, 0.13, 3.98], 5: [0.09, 0.11, 3.98] };
+  function hashUnit(text) {
+    let h = 2166136261;
+    for (let i = 0; i < text.length; i++) { h ^= text.charCodeAt(i); h = Math.imul(h, 16777619); }
+    h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995); h ^= h >>> 15;
+    return ((h >>> 0) + 0.5) / 4294967296;
+  }
+  function hashNormal(text) { return Math.sqrt(-2 * Math.log(hashUnit(text + 'u'))) * Math.cos(2 * Math.PI * hashUnit(text + 'v')); }
+  function normalCdf(z) { const t = 1 / (1 + 0.2316419 * Math.abs(z)); const d = 0.3989423 * Math.exp(-z * z / 2); const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274)))); return z > 0 ? 1 - p : p; }
+  function classmateGpa(key, i, term) {
+    const [s43, s427, median] = COHORT_SHAPE[Math.max(0, Math.min(5, term))];
+    const z = 0.8 * hashNormal(`${key}|a|${i}`) + 0.6 * hashNormal(`${key}|t${term}|${i}`), q = 1 - normalCdf(z);
+    const lerp = (a, b, x) => a + (b - a) * Math.max(0, Math.min(1, x));
+    let g;
+    if (q <= s43) g = 4.3;
+    else if (q <= s427) g = lerp(4.29, 4.27, (q - s43) / (s427 - s43));
+    else if (q <= 0.12) g = lerp(4.26, 4.16, (q - s427) / (0.12 - s427));
+    else if (q <= 0.25) g = lerp(4.16, 4.05, (q - 0.12) / 0.13);
+    else if (q <= 0.5) g = lerp(4.05, median, (q - 0.25) / 0.25);
+    else if (q <= 0.75) g = lerp(median, median - 0.25, (q - 0.5) / 0.25);
+    else if (q <= 0.92) g = lerp(median - 0.25, median - 0.6, (q - 0.75) / 0.17);
+    else g = lerp(median - 0.6, median - 1.2, (q - 0.92) / 0.08);
+    return Math.round(g * 100) / 100;
+  }
+  function gradeTermIndex(g) { return (Number(g.year) - 1) * 2 + (Number(g.semester) - 1); }
+  function getClassRank(s, upto) {
+    const grades = (s.grades || []).filter(g => g && g.year >= 1 && g.year <= 3);
+    const index = upto === undefined ? grades.length - 1 : grades.indexOf(upto) >= 0 ? grades.indexOf(upto) : Number(upto);
+    const g = grades[index];
+    if (!g) return null;
+    const key = String(s.seed ?? s.name ?? 'gsa');
+    const rankOf = (mine, others) => mine >= 4.3 ? 1 : 1 + others.filter(v => v > mine + 1e-9).length;
+    const term = gradeTermIndex(g);
+    const mates = Array.from({ length: COHORT_SIZE - 1 }, (_, i) => classmateGpa(key, i, term));
+    const used = grades.slice(0, index + 1), weights = used.map(x => x.credits || 1), total = weights.reduce((a, b) => a + b, 0);
+    const mine = Math.round(used.reduce((a, x, k) => a + x.gpa * weights[k], 0) / total * 100) / 100;
+    const cumMates = Array.from({ length: COHORT_SIZE - 1 }, (_, i) => Math.round(used.reduce((a, x, k) => a + classmateGpa(key, i, gradeTermIndex(x)) * weights[k], 0) / total * 100) / 100);
+    return { semester: rankOf(g.gpa, mates), cumulative: rankOf(mine, cumMates), cumulativeGpa: mine, total: COHORT_SIZE, tie: mates.some(v => Math.abs(v - g.gpa) < 0.005), cumulativeTie: cumMates.some(v => Math.abs(v - mine) < 0.005) };
+  }
   const clamp = (n, low = 0, high = 100) => Math.max(low, Math.min(high, n));
   const round = n => Math.round(n * 10) / 10;
   function rng(s) { let t = s.rng += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); s.rng >>>= 0; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
@@ -122,7 +185,7 @@
   actions.push(...campus.actions, ...school.actions);
   function create(name = '새로운 학생', seed, options = {}) {
     const randomSeed = seed === undefined ? (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0 : seedNumber(seed);
-    const s = { version: 6, name: String(name).trim().slice(0, 16) || '새로운 학생', seed: randomSeed, rng: randomSeed, turn: 0, stats: {}, archetype: null, academicClub: null, activityClub: null, sportsClubs: [], sportsTryouts: [], electives: [], grades: [], semesterLearning: {}, midterm: null, pendingEvent: null, councilRole: '일반 학생', councilHistory: [], interview: null, captain: false, captainClub: null, relationships: 10, clubWeeks: 0, councilWeeks: 0, researchWeeks: 0, sportsWeeks: 0, illnessWeeks: 0, illnessCount: 0, researchProject: '아직 연구 주제를 찾는 중', badges: [], log: [], admissions: null, admissionRolls: {}, enrolledUniversity: null };
+    const s = { version: 6, name: String(name).trim().slice(0, 16) || '새로운 학생', seed: randomSeed, rng: randomSeed, turn: 0, stats: {}, archetype: null, academicClub: null, activityClub: null, sportsClubs: [], sportsTryouts: [], electives: [], grades: [], semesterLearning: {}, midterm: null, pendingEvent: null, councilRole: '일반 학생', councilHistory: [], interview: null, captain: false, captainClub: null, relationships: 10, clubWeeks: 0, councilWeeks: 0, researchWeeks: 0, sportsWeeks: 0, illnessWeeks: 0, illnessCount: 0, researchProject: '아직 연구 주제를 찾는 중', courseTable: 2, studyStreak: 0, performanceDeductions: {}, badges: [], log: [], admissions: null, admissionRolls: {}, enrolledUniversity: null };
     Object.assign(s, { alive: true, ending: null, emergency: null, hospitalizations: [], eventQueue: [], dormHarmony: 65, awards: [], tournamentHistory: [], olympiadHistory: [], toeic: { best: 0, attempts: [], practice: 0 }, extraWeeks: 0, applications: [], applicationSnapshot: null, universityInterview: null, universityInterviews: [], admissionStage: 'not_started', dailySeen: [], captainSelectionDone: false, captainHistory: [] });
     const type = archetypes[Math.floor(rng(s) * archetypes.length)]; s.archetype = type.id;
     for (const k of ['intelligence', 'social', 'athletics', 'discipline', 'luck', 'creativity', 'resilience', 'leadership']) s.stats[k] = clamp(32 + Math.floor(rng(s) * 25) + (type.bonuses[k] || 0));
@@ -363,6 +426,9 @@
       if (!s.majorSnapshot) s.majorSnapshot = (s.applications || []).length ? { version: 1, submittedTurn: s.applicationSnapshot?.turn ?? s.turn, legacy: true, evidence: { courses: [], byField: {} }, applicationMajors: { ...s.applicationMajors }, applications: s.applications.map(id => ({ universityId: id, majorId: s.applicationMajors[id], majorName: majors.getMajor(s.applicationMajors[id])?.name || '자유 탐색', fitScore: 0 })) } : null;
       s.version = 6;
     }
+    if (s.courseTable !== 2 && s.turn % 8 === 0 && !s.midterm && !Object.keys(s.semesterLearning || {}).length) s.courseTable = 2;
+    if (!s.performanceDeductions || typeof s.performanceDeductions !== 'object') s.performanceDeductions = {};
+    if (typeof s.studyStreak !== 'number') s.studyStreak = 0;
     ensureAdmissionRolls(s);
     campus.migrate(s);
     syncRoleTerms(s);
@@ -370,7 +436,7 @@
     nextEvent(s); updateEnding(s); return s;
   }
   function getLegacySubjects(s) {
-    if (s.turn < 24) return core.map(x => ({ ...x }));
+    if (s.turn < 24) return s.courseTable === 2 ? coreTables[termIndex(s)].map(([id, name, credits, field, kind]) => ({ id, name, credits, field, kind, difficulty: 2 })) : core.map(x => ({ ...x }));
     return [core[0], core[4], core[5], ...(s.electives || []).map(id => electives.find(e => e.id === id)).filter(Boolean), { id: 'research', name: '융합 탐구', field: 'research', credits: 4 }].map(x => ({ ...x }));
   }
   function getSubjects(s) { return curriculum.getSubjects(s) || getLegacySubjects(s); }
@@ -439,6 +505,29 @@
   }
   function addLearning(s, n, field) { for (const sub of getSubjects(s)) if (!field || field === sub.field) s.semesterLearning[sub.id] = round((s.semesterLearning[sub.id] || 0) + n); }
   function letter(score) { if (score >= 90) return ['A+', 4.3]; if (score >= 85) return ['A0', 4]; if (score >= 80) return ['A−', 3.7]; if (score >= 75) return ['B+', 3.3]; if (score >= 70) return ['B0', 3]; if (score >= 65) return ['B−', 2.7]; if (score >= 60) return ['C+', 2.3]; if (score >= 55) return ['C0', 2]; if (score >= 50) return ['C−', 1.7]; if (score >= 45) return ['D+', 1.3]; if (score >= 40) return ['D0', 1]; return ['F', 0]; }
+  // 과목 점수: 수학·과학은 수행 40 + 중간 30 + 기말 30, 그 외 과목은 수행 60 + 지필 40.
+  // 수행평가는 감점 사건이 없으면 만점이고, 연구활동은 이수/미이수로 평점에서 빠집니다.
+  function composeSemester(s, scores) {
+    const midOf = sub => { const mid = s.midterm && s.midterm.find(m => m.id === sub.id); return mid ? mid.score : sub.score; };
+    if (s.courseTable !== 2) return { subjects: scores.map(sub => { const score = round(midOf(sub) * 0.4 + sub.score * 0.6); const [grade, point] = letter(score); return { ...sub, score, grade, point }; }), passFail: [] };
+    const cut = s.performanceDeductions || {};
+    const subjects = [], passFail = [];
+    for (const sub of scores) {
+      const kind = courseKind(sub), mid = midOf(sub), fin = sub.score;
+      const performance = clamp(100 - (cut['*'] || 0) - (cut[sub.id] || 0));
+      // 연구활동은 시험 없이 활동(수행)으로 이수 여부만 정합니다.
+      if (kind === 'pf') { passFail.push({ ...sub, kind, performance, score: performance, grade: performance >= 40 ? 'P' : 'F', point: null, passed: performance >= 40 }); continue; }
+      let score;
+      if (kind === 'art') score = performance;
+      else if (kind === 'lab') score = round(performance * 0.6 + fin * 0.4);
+      else if (kind === 'ms') score = round(performance * 0.4 + mid * 0.3 + fin * 0.3);
+      else score = round(performance * 0.6 + (mid + fin) / 2 * 0.4);
+      const [grade, point] = letter(score);
+      const exams = kind === 'art' ? {} : kind === 'lab' ? { finalScore: fin } : { midtermScore: mid, finalScore: fin };
+      subjects.push({ ...sub, kind, performance, ...exams, score, grade, point });
+    }
+    return { subjects, passFail };
+  }
   function examScores(s, bonus, phase) {
     const healthPenalty = Math.max(0, 55 - s.stats.health) * 0.3;
     const stressPenalty = Math.max(0, s.stats.stress - 40) * 0.14;
@@ -453,7 +542,14 @@
       const academicAffinity = sub.field === s.academicClub ? 2 : 0;
       const researchBoost = sub.field === 'research' ? s.stats.research * 0.08 + s.stats.creativity * 0.02 : 0;
       const courseDifficulty = Math.max(0, (sub.difficulty || 2) - 2) * 2.2;
-      const score = round(clamp(46 + ability(s.stats.intelligence) * 0.17 + ability(s.stats.discipline) * 0.1 + preparation + midtermAdjustment + academicAffinity + researchBoost + bonus - courseDifficulty - healthPenalty - stressPenalty - (s.illnessWeeks > 0 ? 7 : 0) + (s.stats.luck - 50) * 0.04 + (rng(s) - 0.5) * 10));
+      const kindKey = { lab: 'ms', art: 'gen', pf: 'gen' }[courseKind(sub)] || courseKind(sub);
+      const calibration = s.courseTable === 2 ? (EXAM_CALIBRATION[termIndex(s)] || EXAM_CALIBRATION[5])[kindKey] || 0 : 0;
+      const examFatigue = s.courseTable === 2 ? Math.max(0, s.stats.fatigue - 65) * 0.2 : 0;
+      const noise = (rng(s) - 0.5) * 10;
+      const raw = 46 - examFatigue + ability(s.stats.intelligence) * 0.17 + ability(s.stats.discipline) * 0.1 + preparation + midtermAdjustment + academicAffinity + researchBoost + bonus - courseDifficulty - healthPenalty - stressPenalty - (s.illnessWeeks > 0 ? 7 : 0) + (s.stats.luck - 50) * 0.04;
+      // v0.13 과목표: 반 평균이 실제 시험(어려우면 65점, 쉬우면 70점대 후반, 인문은 조금 높게)처럼 나오도록 평균과 폭을 맞춥니다.
+      const shape = s.courseTable === 2 ? (EXAM_SHAPE[termIndex(s)] || EXAM_SHAPE[5])[kindKey] : null;
+      const score = round(clamp(shape ? shape[0] + (raw + calibration - EXAM_PIVOT) * shape[1] + noise * 0.8 : raw + calibration + noise));
       return { ...sub, score };
     });
   }
@@ -582,8 +678,10 @@
     if (schoolAction && schoolAction.handled) { messages.push(...(schoolAction.messages || [])); s.eventQueue.push(...(schoolAction.events || [])); if (routine) routine.activities.push('예약한 개별 현장탐사를 마치고 관찰 기록을 완성했다.'); }
     const campusWeek = campus.weekly(s, routine ? 'routine' : actionId, { efficiency, wasSick, focusId: routine && routine.focus.id, commitment: routine && routine.commitment });
     if (campusWeek) { messages.push(...(campusWeek.messages || [])); s.eventQueue.push(...(campusWeek.events || [])); }
-    if (studyMode === 'night' || studyMode === 'both') { learn(3.8); shift(s, { fatigue: 11, stress: 6 }); messages.push('심야자습으로 시험 준비도를 충분히 쌓았다. 피로도 +11.'); }
-    if (studyMode === 'dawn' || studyMode === 'both') { learn(2.7); shift(s, { fatigue: 7, stress: 4, discipline: 0.5 }); messages.push('새벽자습으로 시험의 핵심 내용을 다시 정리했다. 피로도 +7.'); }
+    const studyFade = s.courseTable === 2 ? 1 / (1 + 0.35 * (s.studyStreak || 0)) : 1;
+    if (s.courseTable === 2) s.studyStreak = studyMode && studyMode !== 'normal' ? (s.studyStreak || 0) + 1 : 0;
+    if (studyMode === 'night' || studyMode === 'both') { learn((s.courseTable === 2 ? 3.0 : 3.8) * studyFade); shift(s, { fatigue: 11, stress: 6 }); messages.push('심야자습으로 시험 준비도를 충분히 쌓았다. 피로도 +11.'); }
+    if (studyMode === 'dawn' || studyMode === 'both') { learn((s.courseTable === 2 ? 2.1 : 2.7) * studyFade); shift(s, { fatigue: 7, stress: 4, discipline: 0.5 }); messages.push('새벽자습으로 시험의 핵심 내용을 다시 정리했다. 피로도 +7.'); }
     const crossedLimit = crisisLimit(s), crisisSnapshot = { fatigue: s.stats.fatigue, stress: s.stats.stress };
     // Fatigue risk is evaluated after the week's choices; new illness affects this week's exam and the next week.
     if (!wasSick && !recovering && rng(s) < getIllnessRisk(s)) { s.illnessWeeks = 2; s.illnessCount++; messages.push('몸살 기운으로 아프기 시작했다. 이번 주와 다음 주 집중력이 떨어진다. 휴식하면 빨리 회복한다.'); }
@@ -591,12 +689,17 @@
     let semesterResult = null;
     if (p.exam) {
       const scores = examScores(s, 0, p);
-      if (p.exam === 'midterm') { s.midterm = scores; messages.push(`중간고사 평균 ${round(scores.reduce((a, x) => a + x.score, 0) / scores.length)}점. 기말까지 다시 준비할 수 있다.`); }
+      if (p.exam === 'midterm') { s.midterm = scores; const tested = s.courseTable === 2 ? scores.filter(x => ['ms', 'gen'].includes(courseKind(x))) : scores; messages.push(`중간고사 평균 ${round(tested.reduce((a, x) => a + x.score, 0) / Math.max(1, tested.length))}점. 기말까지 다시 준비할 수 있다.`); }
       else {
-        const subjects = scores.map(sub => { const mid = s.midterm && s.midterm.find(m => m.id === sub.id); const score = round((mid ? mid.score : sub.score) * 0.4 + sub.score * 0.6); const [grade, point] = letter(score); return { ...sub, score, grade, point }; });
-        const credits = subjects.reduce((a, x) => a + x.credits, 0), earnedCredits = subjects.filter(x => x.point > 0).reduce((a, x) => a + x.credits, 0);
+        const composed = composeSemester(s, scores);
+        const subjects = composed.subjects, passFail = composed.passFail;
+        const credits = subjects.reduce((a, x) => a + x.credits, 0), earnedCredits = subjects.filter(x => x.point > 0).reduce((a, x) => a + x.credits, 0) + passFail.filter(x => x.passed).reduce((a, x) => a + x.credits, 0);
         const gpa = Math.round(subjects.reduce((a, x) => a + x.point * x.credits, 0) / credits * 100) / 100;
-        semesterResult = { year: p.year, semester: p.semester, gpa, credits, earnedCredits, subjects, gradeScaleVersion: 4 }; s.grades.push(semesterResult);
+        semesterResult = { year: p.year, semester: p.semester, gpa, credits, earnedCredits, subjects, gradeScaleVersion: s.courseTable === 2 ? 5 : 4 };
+        if (passFail.length) semesterResult.passFail = passFail;
+        s.grades.push(semesterResult);
+        semesterResult.rank = getClassRank(s);
+        s.courseTable = 2; s.studyStreak = 0; s.performanceDeductions = {};
         curriculum.onSemesterEnd(s, semesterResult);
         s.eventQueue.push(...school.onSemesterEnd(s, semesterResult));
         messages.push(`${p.year}학년 ${p.semester}학기 성적 확정: ${gpa.toFixed(2)} / 4.30.`);
@@ -631,6 +734,7 @@
       if (!s.emergency) throw new Error('진행 중인 치료가 없어요.');
       const survived = rng(s) < getEmergencySurvivalChance(s);
       s.hospitalizations.push({ ...s.emergency, survived }); s.emergency = null;
+      if (s.courseTable === 2 && survived) { s.performanceDeductions = s.performanceDeductions || {}; s.performanceDeductions['*'] = (s.performanceDeductions['*'] || 0) + 5; }
       if (!survived) { s.alive = false; s.ending = 'death'; s.eventQueue = []; s.interview = null; s.universityInterview = null; s.enrolledUniversity = null; messages.push('치료를 받았지만 끝내 회복하지 못했다. 이 학생의 이야기는 여기서 마무리되었다.'); }
       else { s.stats.fatigue = 35; s.stats.stress = 30; s.stats.health = 65; s.illnessWeeks = 1; messages.push('치료를 받고 의식을 되찾았다. 회복을 위해 쉬며 다시 일상으로 돌아갈 시간을 갖는다.'); }
     } else if (c.sportsId) {
@@ -787,7 +891,7 @@
     if (crisisLimit(s)) triggerEmergency(s); nextEvent(s); updateEnding(s);
     return { ...result, event: s.pendingEvent };
   }
-  const API = { create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, getAdmissionStatus, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
+  const API = { getClassRank, courseKind, EXAM_CALIBRATION, EXAM_SHAPE, coreTables, create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, getAdmissionStatus, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
   root.GSAEngine = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);

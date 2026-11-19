@@ -71,12 +71,15 @@ function verifyV10Grades(ctx = {}) {
     }
     results[policy]={median:median(runs.map(r=>r.gpa)),applicationMedian:median(runs.map(r=>r.application)),mean:runs.reduce((sum,r)=>sum+r.gpa,0)/runs.length};
   }
-  assert.ok(results.moderate.median>=3.85&&results.moderate.median<=4.15,'One focused study week out of four targets about4.0');
-  assert.ok(results.moderate.applicationMedian>=3.75,'Moderate preparation is also reflected before college applications');
-  for(const mode of ['night','dawn','both'])assert.ok(results[mode].mean>results.moderate.mean+.05,`${mode} improves complete-run grades with sensible recovery`);
+  if(process.env.SHOW_GRADES)console.log(JSON.stringify(results));
+  // v0.13: 반 평균 70점 안팎의 실제 시험 난도와 수행평가를 반영해 중간 정도 성적의 목표를 3.85 안팎으로 낮췄습니다.
+  assert.ok(results.moderate.median>=3.7&&results.moderate.median<=4.0,'One focused study week out of four targets about 3.85');
+  assert.ok(results.moderate.applicationMedian>=3.65,'Moderate preparation is also reflected before college applications');
+  // v0.13: 자습은 조금 너프했지만 여전히 이득이어야 합니다.
+  for(const mode of ['night','dawn','both'])assert.ok(results[mode].mean>results.moderate.mean+.02,`${mode} improves complete-run grades with sensible recovery`);
   assert.ok(results.intensive.median>results.moderate.median+.1&&results.intensive.median<4.3,'Intensive study is rewarded without a guaranteed perfect transcript');
-  assert.ok(results.recovery.median<results.moderate.median-.3,'Choosing rest throughout has an academic opportunity cost');
-  assert.ok(results.giftedLucky.median>=4&&results.giftedLucky.median<4.3,'High intelligence and favorable luck can support a4.0-level record');
+  assert.ok(results.recovery.median<results.moderate.median-.25,'Choosing rest throughout has an academic opportunity cost');
+  assert.ok(results.giftedLucky.median>=3.9&&results.giftedLucky.median<4.3,'High intelligence and favorable luck can support a4.0-level record');
   assert.deepEqual(E.getGrade(90),['A+',4.3]);assert.deepEqual(E.getGrade(85),['A0',4]);
   if(ctx.counters)ctx.counters.v10Grades={seeds:32,policies:7,marks,results};
   return {seeds:32,policies:7,marks,results};

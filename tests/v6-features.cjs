@@ -53,7 +53,8 @@ module.exports = function verifyV6(ctx) {
     const term=plan.turn/8;
     const grade=curriculum.grades.find(g=>(g.year-1)*2+g.semester-1===term);
     const expected=new Set([...plan.ids,...plan.options.requiredCourses.map(c=>c.id)]);
-    assert.deepEqual(new Set(grade.subjects.map(c=>c.id)),expected,'Semester grades never include an unselected elective');
+    assert.deepEqual(new Set([...grade.subjects,...(grade.passFail||[])].map(c=>c.id)),expected,'Semester grades never include an unselected elective');
+    assert.ok((grade.passFail||[]).every(c=>c.field==='research'&&['P','F'].includes(c.grade)),'Research courses are pass/fail and stay out of the GPA');
   }
 
   // Enrolling is not evidence of completing a course; failed courses never earn category credit.
@@ -64,6 +65,8 @@ module.exports = function verifyV6(ctx) {
   failing.semesterLearning={};
   failing.midterm=E.getSubjects(failing).map(c=>({...c,score:0}));
   failing.stats.intelligence=0; failing.stats.discipline=0; failing.stats.research=0;
+  // v0.13: 수행평가는 사건이 없으면 만점이라, 낙제를 재현하려면 수행평가도 모두 놓친 상황을 만듭니다.
+  failing.performanceDeductions={'*':100};
   const earnedBefore=copy(E.getCurriculumStatus(failing).earned);
   E.advance(failing,'rest'); resolve(failing);
   const failedSemester=failing.grades.at(-1);
