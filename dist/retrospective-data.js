@@ -151,7 +151,18 @@
     else if (endingKind === 'graduated') nextBody = accepted.length ? '졸업 요건을 모두 채웠어. 아래는 합격한 대학을 포함한 전형 결과야. 어느 길로 나아갈지 생각하며 다음 장을 열어 보자.' : '졸업 요건을 모두 채웠어. 이번 전형에서 합격 기록은 없지만, 학교생활의 끝에서 다음 진로와 도전을 준비하게 되었어.';
     else nextBody = '학교생활은 아직 진행 중이야. 앞으로의 선택이 이 기록에 더해질 거야.';
     slide('next-chapter', 'THE NEXT PAGE', statusName, nextBody, [{ label: '최종 상태', value: statusName }, { label: '대학 합격', value: `${accepted.length}곳` }], nextMoments.slice(0, 3));
-    return { eligible, endingKind, name, title: lifeTitle, subtitle: statusName, period, summary, metrics, slides, awards, roles, clubs, relationships, admissions, stats: statValues, terms, missingRequirements };
+    // 컴패리즌: 마지막 장에서 기록과 가장 닮은 과학자를 소개합니다. 모듈이 없으면 건너뜁니다.
+    let comparison = null;
+    try {
+      comparison = root.GSAComparison && engine ? root.GSAComparison.compare(s, engine) : null;
+    } catch (_) {
+      comparison = null;
+    }
+    if (comparison) {
+      const best = comparison.best;
+      slide('comparison', 'MY SCIENTIST MATCH', `나와 가장 닮은 과학자, ${best.name}.`, `${best.reason.text} ${best.story}`, [{ label: '닮은 정도', value: `${best.similarity}%` }, { label: '졸업 후 연구자 유형', value: comparison.type.title }], [{ label: best.tag, text: best.known }, ...comparison.others.map(o => ({ label: `${o.similarity}% · 또 다른 닮은 꼴`, text: `${o.name} · ${o.tag}` }))], [], endingKind === 'graduated' ? 'celebrate' : 'idle');
+    }
+    return { eligible, endingKind, name, title: lifeTitle, subtitle: statusName, period, summary, metrics, slides, awards, roles, clubs, relationships, admissions, stats: statValues, terms, missingRequirements, comparison };
   }
   const api = { build };
   root.GSARetrospectiveData = api;

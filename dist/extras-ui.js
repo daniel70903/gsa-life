@@ -6,7 +6,7 @@
 })(typeof window === 'undefined' ? globalThis : window, function (root) {
   'use strict';
 
-  const VERSION = 'v0.11';
+  const VERSION = 'v0.12';
   const SAVE_KEY = 'gsa-life-v1';
   const SEEN_VERSION_KEY = 'gsa-life-seen-version';
   const GUIDE_KEY = 'gsa-life-guide-seen';
@@ -84,6 +84,16 @@
 
   const changelog = [
     {
+      version: 'v0.12',
+      date: '2026.11',
+      items: [
+        '시작 화면을 만들었어요. 이어하기·새 게임·튜토리얼·기록실을 고를 수 있고, 왼쪽 위 로고나 「시작 화면」 버튼으로 언제든 돌아올 수 있어요.',
+        '튜토리얼을 원할 때만 고를 수 있어요. 실제 화면 위에서 입학부터 한 주 보내기까지 한 단계씩 안내해요.',
+        '컴패리즌: 3년을 마치면 기록과 가장 닮은 과학자·수학자 25명 중 한 명과 졸업 후 연구자 유형을 알려 줘요. 회고, 한 장 요약, 결과 카드에 함께 담겨요.',
+        '기록실: 마친 이야기를 모아 보고, 만난 과학자를 도감으로 모을 수 있어요.',
+      ],
+    },
+    {
       version: 'v0.11',
       date: '2026.11',
       items: [
@@ -129,7 +139,7 @@
     {
       id: 'start',
       label: '시작하기',
-      render: () => `<h3>입학부터 졸업까지, 48주</h3><p>광곽에서 살아남기는 1학년 1학기부터 3학년 2학기까지 6학기를 진행하는 학교생활 시뮬레이터예요. 한 학기는 8주이고, 한 번 진행할 때마다 1주가 지나가요.</p>${steps([
+      render: () => `<h3>입학부터 졸업까지, 48주</h3><p>광곽에서 살아남기는 1학년 1학기부터 3학년 2학기까지 6학기를 진행하는 학교생활 시뮬레이터예요. 한 학기는 8주이고, 한 번 진행할 때마다 1주가 지나가요.</p>${callout('시작 화면과 튜토리얼', '게임을 열면 시작 화면이 나와요. 처음이라면 「튜토리얼」을 골라 실제 화면 위에서 안내를 받을 수 있고, 필요 없으면 「게임 시작」으로 바로 입학하면 돼요. 왼쪽 위 로고나 「시작 화면」 버튼으로 언제든 돌아올 수 있어요.')}${steps([
         ['입학 카드 만들기', '이름과 캐릭터 성별, 학술동아리와 상설동아리를 골라요. 유형과 능력치는 무작위로 정해지고, 「유형과 능력치 다시 뽑기」로 다시 뽑을 수 있어요.'],
         ['한 주의 방향 정하기', '「학교생활」에서 이번 주에 키울 성장 방향을 고르고 「한 주 시뮬레이션」을 눌러요. 수업·동아리·운동·친구와의 시간은 자동으로 흘러가요.'],
         ['중요한 순간에 선택하기', '운동부 테스트, 학생회 선거, 친구와의 약속 같은 사건이 오면 직접 골라요. 선택에 따라 능력치와 관계가 달라져요.'],
@@ -188,6 +198,15 @@
       ])}<p>대학마다 합격 난도가 달라요. 서울대가 가장 어렵고, 누적 평점이 4.0을 넘어야 지원 조건을 채워요. 조건을 채워도 면접과 전형 결과에 따라 불합격할 수 있어요.</p>${callout('졸업과 합격은 따로 정해져요', '대학에 합격해도 졸업 요건을 채워야 진학할 수 있어요. 대학별 난도는 게임 설정이며, 실제 입시 기준이나 대학 순위가 아니에요.')}`,
     },
     {
+      id: 'compare',
+      label: '컴패리즌·기록실',
+      render: () => `<h3>나와 닮은 과학자</h3><p>이야기를 마치면 회고 마지막 장에서 3년의 기록과 가장 닮은 과학자·수학자를 알려 줘요. 한 장 요약과 결과 카드 이미지에도 함께 담겨요.</p>${list([
+        '<b>능력치와 실제로 보낸 시간</b> · 능력치뿐 아니라 운동부·학생회·연구에 쓴 주, 수상, 친구와의 만남, 아팠다가 회복한 경험을 함께 봐요.',
+        '<b>마음을 둔 분야</b> · 학술동아리, 이수한 선택과목, 대학에 지원한 전공으로 수학·물리·화학·생명과학·지구과학·정보 중 어디에 가까운지 봐요.',
+        '<b>연구자 유형</b> · 가장 두드러진 면을 바탕으로 대학 졸업 후 어떤 연구자가 될지 한 줄로 알려 줘요.',
+      ])}${callout('게임 속 재미 요소예요', '닮은 정도는 실제 인물에 대한 평가가 아니에요. 인물 소개는 노벨상·필즈상 공식 발표, 대학·언론 보도 같은 공개 자료를 바탕으로 짧게 정리했어요.')}<h3>기록실</h3><p>시작 화면이나 페이지 아래 「기록실」에서 마친 이야기들을 다시 볼 수 있어요. 만난 과학자는 <b>과학자 도감</b>에 모여요. 모두 25명이에요.</p>`,
+    },
+    {
       id: 'backup',
       label: '저장·백업',
       render: () => backupPanel(),
@@ -201,6 +220,7 @@
         ['「새 버전이 나왔어요」 안내가 떠요.', '새로고침하면 최신 버전으로 바뀌어요. 진행은 매주 자동 저장되어 있어서 그대로 이어져요.'],
         ['응급실에 갔다가 이야기가 끝났어요.', '피로나 스트레스가 한계를 넘으면 응급실 사건이 일어나고, 회복하지 못하면 이야기가 끝나요. 회고에서 지나온 기록을 볼 수 있고, 새로운 학교생활을 시작할 수 있어요.'],
         ['3학년 2학기가 끝났는데 졸업을 못 했어요.', '「진학·졸업」에서 부족한 요건을 확인하세요. 졸업 요건을 준비하는 기간에 TOEIC 준비·응시와 남은 학점 보완을 이어갈 수 있어요.'],
+        ['튜토리얼을 다시 보고 싶어요.', '시작 화면에서 「튜토리얼」을 누르면 돼요. 진행 중인 게임이 있으면 지우지 않고 지금 화면에서 안내해 줘요.'],
         ['결과 카드를 저장하고 싶어요.', '게임을 마치면 열리는 회고에서 「한 장 요약」으로 넘어간 뒤 「결과 카드 이미지」를 누르세요. 휴대폰에서는 공유 버튼으로 바로 보낼 수 있어요.'],
         ['캐릭터가 움직이는 게 신경 쓰여요.', '화면 위쪽의 「모션 끄기」를 누르면 캐릭터 움직임이 멈춰요.'],
         ['실제 학교와 똑같나요?', '아니에요. 학교 생활에서 착안한 비공식 팬 게임이에요. 시간 압축, 입시 일정, 수상·관계·건강 판정은 모두 게임 설정이에요.'],
@@ -543,7 +563,7 @@
     return `<button type="button" class="gx-help-btn" data-gx-help aria-label="도움말 열기"><span aria-hidden="true">?</span><b>도움말</b></button>`;
   }
   function footerLinks() {
-    return `<span class="gx-footer-links"><button type="button" data-gx-help="start">도움말</button> · <button type="button" data-gx-help="backup">저장 백업</button> · <button type="button" data-gx-help="updates">${VERSION} 업데이트 소식</button></span>`;
+    return `<span class="gx-footer-links"><button type="button" data-gx-title>시작 화면</button> · <button type="button" data-gx-archive>기록실</button> · <button type="button" data-gx-help="start">도움말</button> · <button type="button" data-gx-help="backup">저장 백업</button> · <button type="button" data-gx-help="updates">${VERSION} 업데이트 소식</button></span>`;
   }
   let started = false;
   function init() {
@@ -553,10 +573,13 @@
       const b = e.target.closest?.('[data-gx-help]');
       if (b) openHelp(b.dataset.gxHelp || 'start', b);
     });
-    const hasSave = !!readCurrentSave();
-    if (!hasSave && !getFlag(GUIDE_KEY)) setTimeout(openWelcome, 250);
-    else if (hasSave && getFlag(SEEN_VERSION_KEY) !== VERSION) setTimeout(showWhatsNew, 600);
-    else if (!getFlag(SEEN_VERSION_KEY)) markVersionSeen();
+    // 처음 방문 안내와 업데이트 알림은 시작 화면이 맡습니다. 시작 화면이 없을 때만 예전 방식으로 보여 줍니다.
+    if (!root.GSATitle) {
+      const hasSave = !!readCurrentSave();
+      if (!hasSave && !getFlag(GUIDE_KEY)) setTimeout(openWelcome, 250);
+      else if (hasSave && getFlag(SEEN_VERSION_KEY) !== VERSION) setTimeout(showWhatsNew, 600);
+    }
+    if (!readCurrentSave() && !getFlag(SEEN_VERSION_KEY)) markVersionSeen();
     checkForUpdate(true);
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) checkForUpdate();
