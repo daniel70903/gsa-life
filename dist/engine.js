@@ -943,6 +943,55 @@
     }
     return{messages,event:s.pendingEvent,resolvedEventId:e.id};
   }
+
+  // v0.13 평가 A: 업적 별(★). 졸업 OVR과 함께 한 판을 비교하는 기준입니다.
+  function getAchievements(s) {
+    const awards = s.awards || [], has = k => awards.some(a => a.kind === k);
+    let rank = null; try { rank = s.grades && s.grades.length ? getClassRank(s) : null; } catch (_) { rank = null; }
+    const subjectAwards = awards.filter(a => a.kind === 'subject').length;
+    const list = [
+      { id: 'valedictorian', label: '최우수 졸업 (누적 석차 3위 이내)', earned: !!(rank && rank.cumulative <= 3 && (s.grades || []).length >= 6) },
+      { id: 'president', label: '학생회장', earned: (s.councilHistory || []).some(h => h.passed && /회장/.test(h.role || '') && !/부회장/.test(h.role || '')) },
+      { id: 'captain', label: '운동부 기장', earned: !!s.captain || (s.captainHistory || []).some(h => h.passed) },
+      { id: 'olympiad', label: '과학 올림피아드 수상', earned: has('olympiad') },
+      { id: 'national', label: '올림피아드 국가대표', earned: has('nationalTeam') },
+      { id: 'contestGold', label: '교내 대회 금상', earned: awards.some(a => a.kind === 'contest' && a.tier === '금상') },
+      { id: 'subjects', label: '교과우수상 8개 이상', earned: subjectAwards >= 8 },
+      { id: 'snu', label: '서울대 합격', earned: (s.admissions || []).some(a => a.id === 'seoul' && a.accepted) },
+      { id: 'ovr95', label: '졸업 OVR 95 이상', earned: s.turn >= 48 && s.alive !== false && getOverall(s) >= 95 }
+    ];
+    return { stars: list.filter(x => x.earned).length, list };
+  }
+  // v0.13 평가 B: 커리어 에필로그. 졸업 뒤 이야기를 시드로 고정해 자동으로 씁니다(게임 속 상상입니다).
+  const CAREER_PRIZE = { physics: '노벨 물리학상', chemistry: '노벨 화학상', biology: '노벨 생리의학상', earth: '노벨 물리학상', math: '필즈상', ai: '튜링상' };
+  function careerRoll(s, key) { return seedNumber(`${s.seed}|career|${key}`) / 4294967296; }
+  function getCareer(s) {
+    if (s.alive === false || s.turn < 48) return null;
+    const ovr = getOverall(s), q = clamp((ovr - 78) / 21, 0, 1), research = (s.stats.research || 0) / 100;
+    const field = CAREER_PRIZE[s.academicClub] ? s.academicClub : 'physics', prize = CAREER_PRIZE[field];
+    const accepted = (s.admissions || []).filter(a => a.accepted), uni = accepted.find(a => a.id === 'seoul') || accepted.find(a => ['kaist', 'postech'].includes(a.id)) || accepted[0];
+    const stars = getAchievements(s).stars;
+    const timeline = [];
+    timeline.push({ age: 19, text: uni ? `${uni.name} ${uni.majorName || ''}에 입학했다.`.replace(' 에', '에') : '재수 끝에 이공계 대학에 입학했다.' });
+    const phd = careerRoll(s, 'phd') < 0.3 + 0.6 * q;
+    if (!phd) {
+      const job = careerRoll(s, 'job') < 0.5 ? '반도체 회사 연구소' : careerRoll(s, 'job2') < 0.5 ? '스타트업 공동창업' : '국책연구소 연구원';
+      timeline.push({ age: 27, text: `석사를 마치고 ${job}의 길을 걸었다.` });
+      return { field, prize, phd: false, title: '현장의 엔지니어', prizes: 0, youngScientist: false, timeline, ovr, stars };
+    }
+    timeline.push({ age: 29, text: `${careerRoll(s, 'abroad') < 0.55 ? '해외' : '국내'} 대학원에서 박사 학위를 받았다.` });
+    const professor = careerRoll(s, 'prof') < 0.2 + 0.6 * q;
+    timeline.push({ age: 34, text: professor ? '대학의 조교수로 임용되어 연구실을 열었다.' : '연구소의 선임연구원이 되어 큰 프로젝트를 이끌었다.' });
+    const young = careerRoll(s, 'young') < 0.04 + 0.5 * q * q + 0.03 * stars;
+    if (young) timeline.push({ age: 39, text: '젊은과학자상을 받았다.' });
+    // 노벨상·필즈상은 아주 드물게(OVR 95+ 최상위에서도 수 % 수준), 두 번째 수상은 더 드뭅니다.
+    const base = 0.002 + 0.09 * Math.pow(q, 5) * (0.6 + 0.4 * research) + (young ? 0.01 : 0);
+    let prizes = careerRoll(s, 'prize1') < base ? 1 : 0;
+    if (prizes && field !== 'math' && careerRoll(s, 'prize2') < 0.08) prizes = 2;
+    if (prizes) timeline.push({ age: field === 'math' ? 38 : 58, text: `${prize}을 받았다.${prizes > 1 ? ` 그리고 일흔이 넘어 두 번째 ${prize}까지 받았다.` : ''}` });
+    const title = prizes ? '세계가 기억하는 과학자' : young ? '분야를 이끄는 연구자' : professor ? '연구실을 이끄는 교수' : '꾸준한 연구자';
+    return { field, prize, phd: true, professor, youngScientist: young, prizes, title, timeline, ovr, stars };
+  }
   function getProfile(s) {
     const attempted = s.grades.reduce((a, g) => a + g.credits, 0);
     const earned = s.grades.reduce((a, g) => a + (g.earnedCredits === undefined ? g.credits : g.earnedCredits), 0);
@@ -1063,7 +1112,7 @@
     if (crisisLimit(s)) triggerEmergency(s); nextEvent(s); updateEnding(s);
     return { ...result, event: s.pendingEvent };
   }
-  const API = { getOverall, ensurePotential, OVR_SHAPE, OVR_WEIGHTS, getClassRank, courseKind, EXAM_CALIBRATION, EXAM_SHAPE, coreTables, create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, getAdmissionStatus, unitName, APPLICATION_LIMIT, PLAN_BLOCKS, normalizePlan, planLabel, setStudyPlannerDay, plannerWindow, plannerFractions, PLANNER_DAYS, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
+  const API = { getAchievements, getCareer, getOverall, ensurePotential, OVR_SHAPE, OVR_WEIGHTS, getClassRank, courseKind, EXAM_CALIBRATION, EXAM_SHAPE, coreTables, create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, getAdmissionStatus, unitName, APPLICATION_LIMIT, PLAN_BLOCKS, normalizePlan, planLabel, setStudyPlannerDay, plannerWindow, plannerFractions, PLANNER_DAYS, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
   root.GSAEngine = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);
