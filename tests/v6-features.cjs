@@ -97,7 +97,8 @@ module.exports = function verifyV6(ctx) {
     [{universityId:'gist'}],
     [{universityId:'gist',majorId:''}],
     [{universityId:'gist',majorId:'physics'},{universityId:'gist',majorId:'math'}],
-    ['gist','kaist','dgist','unist'].map(universityId=>({universityId,majorId:'general'}))
+    ['seoul','yonsei','korea','postech','sogang','hanyang','chungang'].map(universityId=>({universityId,majorId:'general'})),
+    [{universityId:'chonnam',majorId:'general'}]
   ]) rejectUnchanged(physical,()=>E.applyUniversities(physical,invalid),'Invalid university-major application');
   const entries=[{universityId:'gist',majorId:'physics'},{universityId:'kaist',majorId:'math'}];
   E.applyUniversities(physical,entries);
