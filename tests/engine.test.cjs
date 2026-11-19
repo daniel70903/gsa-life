@@ -107,7 +107,7 @@ for(const [f,t]of [[10,99],[90,90]]){const s=fresh(52);resolve(s);s.stats.fatigu
 
 // Difficult dorm relationships reduce real study efficiency and can be repaired.
 const dorm=fresh(30);resolve(dorm);const isolated=copy(dorm),connected=copy(dorm);isolated.stats.social=5;isolated.dormHarmony=10;connected.stats.social=90;connected.dormHarmony=90;
-check(E.getDormStatus(isolated).efficiency<E.getDormStatus(connected).efficiency,'Low harmony reduces dorm efficiency');const a=copy(isolated),b=copy(connected);E.advance(a,'study');E.advance(b,'study');check(a.semesterLearning.math<b.semesterLearning.math,'Dorm conflict reduces actual learning');const friend=copy(isolated);E.advance(friend,'friends');check(friend.dormHarmony>isolated.dormHarmony,'Friend time improves dorm relationships');
+check(E.getDormStatus(isolated).efficiency<E.getDormStatus(connected).efficiency,'Low harmony reduces dorm efficiency');const a=copy(isolated),b=copy(connected);E.advance(a,'study');E.advance(b,'study');{const mathId=E.getSubjects(a).find(x=>x.field==='math').id;check(a.semesterLearning[mathId]<b.semesterLearning[mathId],'Dorm conflict reduces actual learning');};const friend=copy(isolated);E.advance(friend,'friends');check(friend.dormHarmony>isolated.dormHarmony,'Friend time improves dorm relationships');
 
 // Science olympiad eligibility/reward grows with intelligence; awards strongly aid IST in this fictional model.
 const genius=copy(base),novice=copy(base);genius.stats.intelligence=95;novice.stats.intelligence=20;check(E.getOlympiadChance(genius)>E.getOlympiadChance(novice),'Intelligence affects olympiad success');
