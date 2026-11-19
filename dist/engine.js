@@ -50,7 +50,7 @@
   const universities = [
     // v0.13: 실제 이공계 모집단위를 참고한 14개 대학. 합격 확률은 게임 규칙이며 실제 입시 결과가 아닙니다.
     // pctTarget: 학년 누적 석차 백분위 기준점(높을수록 어려움). exempt: 수시 6장 제한과 별도로 지원하는 과학기술원.
-    { id: 'seoul', name: '서울대학교', group: 'sky', difficulty: '최상', description: '학업 성취와 깊이 있는 면접을 함께 보는 가장 어려운 도전', pctTarget: 0.5, researchWeight: 0.03, interview: true, cap: 0.92 },
+    { id: 'seoul', name: '서울대학교', group: 'sky', difficulty: '최상', description: '학업 성취와 깊이 있는 면접을 함께 보는 가장 어려운 도전', pctTarget: 0.79, researchWeight: 0.03, interview: true, cap: 0.92 },
     { id: 'yonsei', name: '연세대학교', group: 'sky', difficulty: '매우 높음', description: '학업 성취와 전공에 대한 설명이 필요한 도전', pctTarget: 0.3, researchWeight: 0.03 },
     { id: 'korea', name: '고려대학교', group: 'sky', difficulty: '매우 높음', description: '꾸준한 학업 성취와 사고력을 함께 보는 도전', pctTarget: 0.3, researchWeight: 0.03 },
     { id: 'kaist', name: 'KAIST', group: 'science', difficulty: '매우 높음', description: '연구와 문제 해결에 무게를 둔 과학기술원 · 수시 6장과 별도', pctTarget: 0.36, researchWeight: 0.045, interview: true, exempt: true, unit: '새내기과정학부(무학과)' },
