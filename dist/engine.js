@@ -989,6 +989,13 @@
     const learn = (n, field) => addLearning(s, n * efficiency, field);
     learn(1.35 + s.stats.discipline * 0.004);
     shift(s, { fatigue: 2, stress: 1 });
+    // v0.14 기숙사 주말: 2주에 한 번 집에 가는 퇴사 주말, 나머지 주말은 기숙사에 남아 하루 종일 자습한다.
+    if (!(s.dorm && s.dorm.status === 'expelled')) {
+      const homeWeekend = (s.turn % 7) % 2 === 1 || s.turn % 7 === 6;
+      s.lastWeekend = homeWeekend ? 'home' : 'stay';
+      if (homeWeekend) { shift(s, { fatigue: -2, stress: -2.5 }); if (routine) routine.activities.push('퇴사 주말: 집에 가서 가족과 쉬고 왔다.'); }
+      else { learn(0.1); shift(s, { fatigue: 3, stress: 2, discipline: 0.2 }); if (routine) routine.activities.push('잔류 주말: 기숙사에 남아 하루 종일 자습했다.'); }
+    }
     if (routine) simulateRoutine(s, routine, efficiency, learn, wasSick, messages);
     else switch (actionId) {
       case 'study': learn(2.4); shift(s, { intelligence: 0.7, discipline: 1.2, fatigue: 4, stress: 6 }); break;

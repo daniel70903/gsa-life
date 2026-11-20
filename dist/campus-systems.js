@@ -346,10 +346,10 @@
         { label: person.greeting, description: '서로 편한 만큼 천천히 대화한다.', campusChoice: 'hello' },
         { label: '오늘은 인사만 나눈다', description: '서두르지 않고 각자의 시간을 보낸다.', campusChoice: 'greet' }
       ] };
-      if (type === 'invite') return { ...identity, id: 'campus_romance_invite', title: `${name}, 우정에서 한 걸음`, description: `${withParticle(name)} 함께하는 시간이 편안해졌다. ${person.interests[0]} 이야기를 나누던 평범한 순간도 오래 기억에 남는다. 내 마음을 말하더라도 대답은 상대가 정할 수 있다.`, choices: [
-        { label: '좋아하는 마음을 솔직히 전한다', description: '어떤 대답이든 존중하며 이야기한다.', campusChoice: 'ask' },
-        { label: '지금처럼 친구로 지낸다', description: '함께하는 우정도 충분히 소중하다.', campusChoice: 'friend' },
-        { label: '내 마음을 조금 더 생각해 본다', description: '서두르지 않고 나만의 시간을 갖는다.', campusChoice: 'wait' }
+      if (type === 'invite') return { ...identity, id: 'campus_romance_invite', title: `${name}, 우정에서 한 걸음`, description: `야간 1차 자습이 끝난 9시 10분. 2차 자습까지 25분 남은 쉬는 시간에 산책로를 걷는 친구들이 많다. ${withParticle(name)} 함께하는 시간이 편안해졌다. 내 마음을 말하더라도 대답은 상대가 정할 수 있다.`, dm: dmBlock(name, person, [['them', '야자 1차 끝나고 쉬는 시간에'], ['them', '잠깐 같이 산책할래?']]), choices: [
+        { label: '산책하며 좋아하는 마음을 솔직히 전한다', description: '고백 · 어떤 대답이든 존중한다', campusChoice: 'ask' },
+        { label: '산책하며 평소처럼 이야기한다', description: '함께하는 우정도 충분히 소중하다', campusChoice: 'friend' },
+        { label: '"오늘은 2차 준비해야 해, 다음에!" 하고 답한다', description: '서두르지 않고 내 시간을 갖는다', campusChoice: 'wait' }
       ] };
       if (type === 'chat') return { ...identity, id: 'campus_romance_chat', title: `${withParticle(name)}의 쉬는 시간`, description: `${withParticle(name)} 잠깐 마주쳤다. ${person.chats[record.meetings % person.chats.length]} 함께 이야기하거나 각자의 일과를 이어갈 수 있다.`, choices: [
         { label: person.chatLabel, description: '서로의 이야기를 편하게 듣는다.', campusChoice: 'talk' },
@@ -360,11 +360,10 @@
         { label: '시험 끝날 때까지 잠시 시간을 갖자고 한다', description: '잘 풀릴 수도, 멀어질 수도 있다', campusChoice: 'time' },
         { label: '지금은 각자에게 집중하자고 말한다', description: '관계를 정중하게 마무리한다', campusChoice: 'end' }
       ] };
-      return { ...identity, id: 'campus_romance_date', title: `${name}, 함께하는 한 주`, description: `${person.date.replaceAll(person.name, name)} 가까운 사이에도 각자의 공부와 휴식은 필요하다.`, choices: [
-        { label: person.dateLabel, description: '대화하며 기분을 환기한다.', campusChoice: 'walk' },
-        { label: '같이 공부하고 각자 쉰다', description: '서로의 일과를 응원한다.', campusChoice: 'study' },
-        { label: '이번 주는 각자의 시간을 갖는다', description: '거리를 두는 선택도 서로 존중한다.', campusChoice: 'space' },
-        { label: '관계를 마무리하고 싶다고 말한다', description: '상대에게 솔직하고 정중하게 마음을 전한다.', campusChoice: 'end' }
+      return { ...identity, id: 'campus_romance_date', title: `${name}, 야자 쉬는 시간`, description: `${person.date.replaceAll(person.name, name)} 야간 1차와 2차 자습 사이 25분, 산책로에는 같은 마음인 친구들이 많다.`, dm: dmBlock(name, person, [['them', '1차 끝났다!'], ['them', '같이 산책 갈래? 9시 10분에 기숙사 앞에서 보자']]), choices: [
+        { label: '쉬는 시간에 같이 산책한다', description: '대화하며 기분을 환기한다', campusChoice: 'walk' },
+        { label: '"2차 끝나고 같이 복습하자"고 답한다', description: '같이 공부하며 서로 응원한다', campusChoice: 'study' },
+        { label: '관계를 마무리하고 싶다고 말한다', description: '솔직하고 정중하게 마음을 전한다', campusChoice: 'end' }
       ] };
     }
     function handleAction(s, id) {

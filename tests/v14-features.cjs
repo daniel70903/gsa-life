@@ -66,6 +66,8 @@ for (let seed = 1; seed <= N; seed++) {
     if (!s.pendingEvent && !s.span) assert.ok(s.turn - before <= 2 && s.turn > before, 'One step covers at most two weeks');
   }
   settle();
+  if (s.applicationSnapshot && s.grades.length === 6) assert.ok(s.applicationSnapshot.turn <= 35, 'Applications are written before 3-2 grades exist');
+  if (s.admissions && s.applicationSnapshot) assert.ok(Number.isFinite(s.applicationSnapshot.percentile), '3-2 grades do not change the admission rank');
   dist[Math.min(3, s.romance.relationships || 0)]++;
   for (const r of Object.values(s.romance.records)) if (r.stage === 'dating' || r.stage === 'ended') {
     const person = E.romanceCandidates.find(p => p.id === r.characterId);
