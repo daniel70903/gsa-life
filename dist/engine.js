@@ -28,23 +28,12 @@
     { id: 'information', name: '정보부', stat: 'intelligence' }
   ];
   const academicClubs = [
-    // v0.13.4: 2026년 광주과학고 학술동아리. field는 학습·진로 분야(정보과학은 'ai').
-    { id: 'integral', name: '인테그랄', fieldName: '수학', description: '증명과 문제 해결의 즐거움', field: 'math' },
-    { id: 'axiom', name: 'AXIOM', fieldName: '수학', description: '공리에서 출발해 끝까지 밀어붙이는 수학', field: 'math' },
-    { id: 'qm', name: 'QM', fieldName: '물리', description: '실험과 이론으로 세상을 설명하는 질문', field: 'physics' },
-    { id: 'scv', name: 'SCV', fieldName: '물리·공학', description: '물리 원리를 장치와 설계로 옮겨 보는 시간', field: 'physics' },
-    { id: 'psi', name: '프사이', fieldName: '물리', description: '현상 뒤에 숨은 물리 법칙을 파고드는 탐구', field: 'physics' },
-    { id: 'chemtech', name: 'CHEMTECH', fieldName: '화학', description: '반응 속에서 발견하는 새로운 가능성', field: 'chemistry' },
-    { id: 'kelvin', name: '켈빈', fieldName: '화학', description: '실험대 위에서 확인하는 화학의 원리', field: 'chemistry' },
-    { id: 'soma', name: 'SOMA', fieldName: '생명과학', description: '생명의 작은 원리를 탐구하는 시간', field: 'biology' },
-    { id: 'biochemi', name: '바이오케미', fieldName: '생명과학', description: '생명 현상을 분자와 반응으로 읽는 탐구', field: 'biology' },
-    { id: 'terra', name: 'TERRA', fieldName: '지구과학', description: '땅과 바다, 하늘을 자료로 읽는 탐구', field: 'earth' },
-    { id: 'idea', name: '!DEA', fieldName: '정보과학', description: '코드와 데이터로 만드는 새로운 도구', field: 'ai' },
-    { id: 'ifex', name: 'Ifex', fieldName: '정보과학', description: '알고리즘과 프로그램으로 문제를 푸는 사람들', field: 'ai' }
+    { id: 'physics', name: '물리 탐구회', description: '실험과 역학, 세상을 설명하는 질문', field: 'physics' },
+    { id: 'math', name: '수학 탐구회', description: '증명과 문제 해결의 즐거움', field: 'math' },
+    { id: 'chemistry', name: '화학 탐구회', description: '반응 속에서 발견하는 새로운 가능성', field: 'chemistry' },
+    { id: 'biology', name: '생명과학 탐구회', description: '생명의 작은 원리를 탐구하는 시간', field: 'biology' },
+    { id: 'ai', name: 'AI·정보 탐구회', description: '코드와 데이터로 만드는 새로운 도구', field: 'ai' }
   ];
-  // 예전 저장·호출의 동아리 id → 2026년 동아리
-  const LEGACY_ACADEMIC = { physics: 'qm', math: 'integral', chemistry: 'chemtech', biology: 'soma', ai: 'idea', earth: 'terra' };
-  function academicField(s) { const c = academicClubs.find(x => x.id === s.academicClub); return c ? c.field : (s.academicClub || null); }
   const activityClubs = [
     { id: 'music', name: '밴드부', description: '합주와 무대, 함께 맞추는 박자' },
     { id: 'media', name: '방송·영상부', description: '학교의 순간을 기록하는 사람들' },
@@ -64,7 +53,7 @@
     { id: 'seoul', name: '서울대학교', group: 'sky', difficulty: '최상', description: '학업 성취와 깊이 있는 면접을 함께 보는 가장 어려운 도전', pctTarget: 0.79, researchWeight: 0.03, interview: true, cap: 0.92 },
     { id: 'yonsei', name: '연세대학교', group: 'sky', difficulty: '매우 높음', description: '학업 성취와 전공에 대한 설명이 필요한 도전', pctTarget: 0.3, researchWeight: 0.03 },
     { id: 'korea', name: '고려대학교', group: 'sky', difficulty: '매우 높음', description: '꾸준한 학업 성취와 사고력을 함께 보는 도전', pctTarget: 0.3, researchWeight: 0.03 },
-    { id: 'kaist', name: 'KAIST', group: 'science', difficulty: '매우 높음', description: '연구와 문제 해결에 무게를 둔 과학기술원 · 수시 6장과 별도 · 고등학교 과정 이수만으로 진학 가능', pctTarget: 0.36, researchWeight: 0.045, interview: true, exempt: true, completionOk: true, unit: '새내기과정학부(무학과)' },
+    { id: 'kaist', name: 'KAIST', group: 'science', difficulty: '매우 높음', description: '연구와 문제 해결에 무게를 둔 과학기술원 · 수시 6장과 별도', pctTarget: 0.36, researchWeight: 0.045, interview: true, exempt: true, unit: '새내기과정학부(무학과)' },
     { id: 'postech', name: 'POSTECH', group: 'science', difficulty: '매우 높음', description: '집중적인 탐구 경험을 보는 이공계 특성화 대학 · 수시 6장에 포함', pctTarget: 0.4, researchWeight: 0.045, interview: true, unit: '무은재학부' },
     { id: 'gist', name: 'GIST', group: 'science', difficulty: '높음', description: '과학 탐구와 성장 가능성을 보는 과학기술원 · 수시 6장과 별도', pctTarget: 0.16, researchWeight: 0.04, interview: true, exempt: true, unit: '기초교육학부(무학과)' },
     { id: 'unist', name: 'UNIST', group: 'science', difficulty: '높음', description: '융합 탐구 경험을 보는 과학기술원 · 수시 6장과 별도', pctTarget: 0.14, researchWeight: 0.04, exempt: true, unit: '이공계열(무학과)' },
@@ -503,7 +492,6 @@
   }
   function migrate(s) {
     convertCalendar(s);
-    if (s && s.academicClub && LEGACY_ACADEMIC[s.academicClub]) s.academicClub = LEGACY_ACADEMIC[s.academicClub];
     if (!s || !s.stats || !Number.isInteger(s.turn) || s.turn < 0 || s.turn > 42 || !Array.isArray(s.grades)) throw new Error('저장 데이터를 읽을 수 없어요.');
     if (s.version !== 6) {
       const legacyGraduated = s.turn >= 42 && s.ending === 'graduated';
@@ -532,7 +520,6 @@
   function setClubs(s, academicId, activityId) {
     assertAlive(s);
     if (s.turn !== 0 || s.academicClub) throw new Error('동아리는 입학할 때 한 번 선택할 수 있어요.');
-    if (LEGACY_ACADEMIC[academicId]) academicId = LEGACY_ACADEMIC[academicId];
     if (!academicClubs.some(c => c.id === academicId) || !activityClubs.some(c => c.id === activityId)) throw new Error('학술동아리와 상설 활동을 각각 골라 주세요.');
     s.academicClub = academicId; s.activityClub = activityId;
     const ac = academicClubs.find(c => c.id === academicId), club = activityClubs.find(c => c.id === activityId);
@@ -646,7 +633,7 @@
       const preparation = (Math.min(18, knowledge) + Math.max(0, knowledge - 18) * 0.4) * 0.9;
       const ability = value => Math.min(70, value) + Math.max(0, value - 70) * 0.65;
       const midtermAdjustment = phase.exam === 'midterm' ? 8 : 0;
-      const academicAffinity = sub.field === academicField(s) ? 2 : 0;
+      const academicAffinity = sub.field === s.academicClub ? 2 : 0;
       const researchBoost = sub.field === 'research' ? s.stats.research * 0.08 + s.stats.creativity * 0.02 : 0;
       const courseDifficulty = Math.max(0, (sub.difficulty || 2) - 2) * 2.2;
       const kindKey = { lab: 'ms', art: 'gen', pf: 'gen' }[courseKind(sub)] || courseKind(sub);
@@ -700,7 +687,7 @@
     shift(s, { intelligence: (0.12 + rng(s) * 0.18) * efficiency, discipline: 0.2 + rng(s) * 0.15, resilience: 0.15 });
     s.toeic.practice = round(s.toeic.practice + (light ? 0.05 : 0.15));
     if (!light && rolls.academic < 0.68) {
-      s.clubWeeks++; learn(0.9, academicField(s));
+      s.clubWeeks++; learn(0.9, s.academicClub);
       shift(s, { research: 0.9 * efficiency, creativity: 0.3, social: 0.2, fatigue: 1.2 });
       routine.activities.push('학술동아리에서 친구들과 탐구 주제를 나누었다.');
     }
@@ -855,7 +842,7 @@
     else switch (actionId) {
       case 'study': learn(2.4); shift(s, { intelligence: 0.7, discipline: 1.2, fatigue: 4, stress: 6 }); break;
       case 'research': s.researchWeeks++; learn(0.65); shift(s, { research: (3.5 + s.stats.creativity * 0.032) * efficiency, creativity: 0.8, intelligence: 0.5, fatigue: 6, stress: 4 }); break;
-      case 'academic': learn(0.7); learn(4.4, academicField(s)); shift(s, { research: 2.8 * efficiency, social: 1.3, creativity: 0.4, intelligence: 0.4, fatigue: 3, stress: 2 }); s.clubWeeks++; break;
+      case 'academic': learn(0.7); learn(4.4, s.academicClub); shift(s, { research: 2.8 * efficiency, social: 1.3, creativity: 0.4, intelligence: 0.4, fatigue: 3, stress: 2 }); s.clubWeeks++; break;
       case 'club':
         if (s.activityClub !== 'none') { s.clubWeeks++; s.relationships = clamp(s.relationships + 3); shift(s, { social: 4, leadership: 1.2, creativity: 0.7, fatigue: 2, stress: -6 }); }
         else shift(s, { fatigue: -8, stress: -8, discipline: 1.2 });
@@ -1003,7 +990,7 @@
       { id: 'national', label: '올림피아드 국가대표', earned: has('nationalTeam') },
       { id: 'contestGold', label: '교내 대회 금상', earned: awards.some(a => a.kind === 'contest' && a.tier === '금상') },
       { id: 'subjects', label: '교과우수상 8개 이상', earned: subjectAwards >= 8 },
-      { id: 'snu', label: '서울대 합격', earned: (s.admissions || []).some(a => a.id === 'seoul' && a.accepted && canEnroll(s, a) !== false) },
+      { id: 'snu', label: '서울대 합격', earned: (s.admissions || []).some(a => a.id === 'seoul' && a.accepted) },
       { id: 'ovr95', label: '졸업 OVR 95 이상', earned: s.turn >= 42 && s.alive !== false && getOverall(s) >= 95 }
     ];
     return { stars: list.filter(x => x.earned).length, list };
@@ -1014,8 +1001,8 @@
   function getCareer(s) {
     if (s.alive === false || s.turn < 42) return null;
     const ovr = getOverall(s), q = clamp((ovr - 78) / 21, 0, 1), research = (s.stats.research || 0) / 100;
-    const field = CAREER_PRIZE[academicField(s)] ? academicField(s) : 'physics', prize = CAREER_PRIZE[field];
-    const accepted = (s.admissions || []).filter(a => a.accepted && canEnroll(s, a) !== false), uni = accepted.find(a => a.id === 'seoul') || accepted.find(a => ['kaist', 'postech'].includes(a.id)) || accepted[0];
+    const field = CAREER_PRIZE[s.academicClub] ? s.academicClub : 'physics', prize = CAREER_PRIZE[field];
+    const accepted = (s.admissions || []).filter(a => a.accepted), uni = accepted.find(a => a.id === 'seoul') || accepted.find(a => ['kaist', 'postech'].includes(a.id)) || accepted[0];
     const stars = getAchievements(s).stars;
     const timeline = [];
     timeline.push({ age: 19, text: uni ? `${uni.name} ${uni.majorName || ''}에 입학했다.`.replace(' 에', '에') : '재수 끝에 이공계 대학에 입학했다.' });
@@ -1159,14 +1146,7 @@
     if (crisisLimit(s)) triggerEmergency(s); nextEvent(s); updateEnding(s);
     return { ...result, event: s.pendingEvent };
   }
-    // v0.13.4: 연구(현장연구) 6학점·TOEIC 730점을 못 채워 졸업하지 못하면, 고등학교 과정 이수만으로 받는 대학(KAIST)만 진학할 수 있습니다.
-  function canEnroll(s, r) {
-    if (!r || !r.accepted) return false;
-    const u = universities.find(x => x.id === r.id);
-    if (u && u.completionOk) return true;
-    return s.turn < 42 ? null : s.ending === 'graduated';
-  }
-  const API = { canEnroll, academicField, LEGACY_ACADEMIC, TERM_WEEKS, TOTAL_WEEKS, legacyWeekToNew, getAchievements, getCareer, getOverall, ensurePotential, OVR_SHAPE, OVR_WEIGHTS, getClassRank, courseKind, EXAM_CALIBRATION, EXAM_SHAPE, coreTables, create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, getAdmissionStatus, unitName, APPLICATION_LIMIT, PLAN_BLOCKS, normalizePlan, planLabel, setStudyPlannerDay, setStudyPlannerWeek, plannerWeekLevel, plannerWindow, plannerFractions, PLANNER_DAYS, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
+  const API = { TERM_WEEKS, TOTAL_WEEKS, legacyWeekToNew, getAchievements, getCareer, getOverall, ensurePotential, OVR_SHAPE, OVR_WEIGHTS, getClassRank, courseKind, EXAM_CALIBRATION, EXAM_SHAPE, coreTables, create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, getAdmissionStatus, unitName, APPLICATION_LIMIT, PLAN_BLOCKS, normalizePlan, planLabel, setStudyPlannerDay, setStudyPlannerWeek, plannerWeekLevel, plannerWindow, plannerFractions, PLANNER_DAYS, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
   root.GSAEngine = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);
