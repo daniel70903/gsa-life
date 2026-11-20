@@ -77,7 +77,7 @@
       if (!Array.isArray(s.money.purchasedIdsThisWeek)) s.money.purchasedIdsThisWeek = [];
       if (!s.money.buffs) s.money.buffs = {};
       if (!s.dorm) s.dorm = { status: 'resident', deliveryCaught: 0, electronicsCaught: 0, expelledTurn: null };
-      // v0.13.1 단계별 퇴사: 1회 5일(1주) → 10일(2주) → 30일(4주) → 90일(12주) → 영구. 예전 퇴사 저장은 1회 퇴사로 봅니다.
+      // v0.13.1 단계별 퇴사: 1회 5일(1주) → 10일(2주) → 30일(4주) → 90일(12주) → 영구. 예전 퇴사 저장은 1회 강제 퇴사로 봅니다.
       if (!Number.isFinite(s.dorm.expulsions)) s.dorm.expulsions = s.dorm.status === 'expelled' ? 1 : 0;
       if (!Array.isArray(s.dorm.history)) s.dorm.history = s.dorm.status === 'expelled' ? [{ turn: Number(s.dorm.expelledTurn) || 0, weeks: 1, legacy: true }] : [];
       if (s.dorm.status === 'expelled' && s.dorm.returnTurn === undefined) s.dorm.returnTurn = Math.max((Number(s.dorm.expelledTurn) || 0) + 2, (Number(s.turn) || 0) + 1);
@@ -304,7 +304,7 @@
       assertAlive(s);
       if (!actions.some(a => a.id === id)) return false;
       if (!s.gender) throw new Error('학교생활을 이어가기 전에 성별을 선택해 주세요.');
-      if (['delivery', 'device_dorm'].includes(id) && s.dorm.status === 'expelled') throw new Error('기숙사 퇴사 후에는 이 활동을 할 수 없어요.');
+      if (['delivery', 'device_dorm'].includes(id) && s.dorm.status === 'expelled') throw new Error('기숙사 강제 퇴사 후에는 이 활동을 할 수 없어요.');
       if (id === 'delivery' && (!Number.isFinite(s.money.balance) || s.money.balance < 12000)) throw new Error('배달 주문에는 12,000원이 필요해요.');
       return true;
     }
@@ -312,8 +312,8 @@
     function expulsionStep(n) { return EXPULSION_STEPS[n - 1] || null; }
     function dormNotice(s) {
       const step = expulsionStep(s.dorm.expulsions);
-      const desc = step ? `누적된 생활 규정 위반으로 ${s.dorm.expulsions}번째 퇴사 처분을 받았다. ${step.days}일(${step.weeks}주) 동안 통학하고, 기간이 끝나면 기숙사로 돌아간다. 다음 퇴사는 ${expulsionStep(s.dorm.expulsions + 1) ? `${expulsionStep(s.dorm.expulsions + 1).days}일` : '영구 퇴사'}이다.` : '다섯 번째 퇴사 처분으로 기숙사에서 영구 퇴사하게 되었다. 졸업할 때까지 통학하며 학교생활을 이어 가야 한다.';
-      return { id: 'campus_dorm_notice', title: step ? `기숙사 퇴사 ${step.days}일` : '기숙사 영구 퇴사', description: desc, choices: [
+      const desc = step ? `누적된 생활 규정 위반으로 ${s.dorm.expulsions}번째 강제 퇴사 처분을 받았다. ${step.days}일(${step.weeks}주) 동안 통학하고, 기간이 끝나면 기숙사로 돌아간다. 다음 강제 퇴사는 ${expulsionStep(s.dorm.expulsions + 1) ? `${expulsionStep(s.dorm.expulsions + 1).days}일` : '영구 강제 퇴사'}이다.` : '다섯 번째 강제 퇴사 처분으로 기숙사에서 영구 강제 퇴사하게 되었다. 졸업할 때까지 통학하며 학교생활을 이어 가야 한다.';
+      return { id: 'campus_dorm_notice', title: step ? `기숙사 강제 퇴사 ${step.days}일` : '기숙사 영구 강제 퇴사', description: desc, choices: [
         { label: '통학 계획을 세운다', description: '학교생활을 계속하며 새 일과를 준비한다.', campusChoice: 'commute' },
         { label: '주변에 도움을 요청한다', description: '가족과 선생님에게 통학 준비를 의논한다.', campusChoice: 'support' }
       ] };
@@ -334,7 +334,7 @@
         const step = expulsionStep(s.dorm.expulsions);
         s.dorm.returnTurn = step ? s.turn + 1 + step.weeks : null;
         s.dorm.history.push({ turn: s.turn, weeks: step ? step.weeks : null, permanent: !step });
-        messages.push(step ? `누적 적발 기록으로 기숙사 퇴사 ${step.days}일(${step.weeks}주)이 결정되었다. 그동안 통학한다.` : '다섯 번째 퇴사로 기숙사 영구 퇴사가 결정되었다. 재학을 유지하며 통학하는 생활로 바뀐다.');
+        messages.push(step ? `누적 적발 기록으로 기숙사 강제 퇴사 ${step.days}일(${step.weeks}주)이 결정되었다. 그동안 통학한다.` : '다섯 번째 강제 퇴사로 기숙사 영구 강제 퇴사가 결정되었다. 재학을 유지하며 통학하는 생활로 바뀐다.');
         events.push(dormNotice(s));
       }
       return { messages, events };
@@ -360,7 +360,7 @@
         { label: '시험 끝날 때까지 잠시 시간을 갖자고 한다', description: '잘 풀릴 수도, 멀어질 수도 있다', campusChoice: 'time' },
         { label: '지금은 각자에게 집중하자고 말한다', description: '관계를 정중하게 마무리한다', campusChoice: 'end' }
       ] };
-      return { ...identity, id: 'campus_romance_date', title: `${name}, 야자 쉬는 시간`, description: `${person.date.replaceAll(person.name, name)} 야간 1차와 2차 자습 사이 25분, 산책로에는 같은 마음인 친구들이 많다.`, dm: dmBlock(name, person, [['them', '1차 끝났다!'], ['them', '같이 산책 갈래? 9시 10분에 기숙사 앞에서 보자']]), choices: [
+      return { ...identity, id: 'campus_romance_date', title: `${name}, 야자 쉬는 시간`, description: `${person.date.replaceAll(person.name, name)} 야간 1차와 2차 자습 사이 25분, 산책로에는 같은 마음인 친구들이 많다.`, dm: dmBlock(name, person, [['them', '1차 끝났다!'], ['them', '같이 산책 갈래? 9시 10분에 정독실 앞에서 보자']]), choices: [
         { label: '쉬는 시간에 같이 산책한다', description: '대화하며 기분을 환기한다', campusChoice: 'walk' },
         { label: '"쉬는 시간엔 같이 모르는 문제 풀자"고 답한다', description: '같이 공부하며 서로 응원한다', campusChoice: 'study' },
         { label: '관계를 마무리하고 싶다고 말한다', description: '솔직하고 정중하게 마음을 전한다', campusChoice: 'end' }
@@ -421,7 +421,7 @@
       // Existing boarders and commuters incur different travel costs. Expulsion is not a school withdrawal.
       if (s.dorm.status === 'expelled' && Number.isFinite(s.dorm.returnTurn) && s.turn >= s.dorm.returnTurn) {
         s.dorm.status = 'resident'; s.dorm.deliveryCaught = 0; s.dorm.electronicsCaught = 0; delete s.dorm.returnTurn;
-        messages.push(`퇴사 기간이 끝나 기숙사로 돌아왔다. 적발 기록은 새로 시작하지만, 다음 퇴사는 ${expulsionStep(s.dorm.expulsions + 1) ? `${expulsionStep(s.dorm.expulsions + 1).days}일` : '영구 퇴사'}이다.`);
+        messages.push(`강제 퇴사 기간이 끝나 기숙사로 돌아왔다. 적발 기록은 새로 시작하지만, 다음 강제 퇴사는 ${expulsionStep(s.dorm.expulsions + 1) ? `${expulsionStep(s.dorm.expulsions + 1).days}일` : '영구 강제 퇴사'}이다.`);
       }
       if (s.dorm.status === 'expelled' && s.dorm.expelledTurn < s.turn) {
         shift(s, { fatigue: 6 }); addLearning(s, -0.4);
@@ -569,8 +569,8 @@
     function getDormStatus(s) {
       const expelled = s.dorm.status === 'expelled', permanent = expelled && !Number.isFinite(s.dorm.returnTurn);
       const next = expulsionStep((s.dorm.expulsions || 0) + 1), weeksLeft = expelled && !permanent ? Math.max(1, s.dorm.returnTurn - s.turn) : 0;
-      const nextText = next ? `다음 퇴사는 ${next.days}일(${next.weeks}주)` : '다음 퇴사는 영구 퇴사';
-      return { ...s.dorm, permanent, weeksLeft, label: !expelled ? '기숙사 생활 중' : permanent ? '기숙사 영구 퇴사 · 통학 중' : `기숙사 퇴사 · 통학 중 (${weeksLeft}주 뒤 복귀)`, isResident: !expelled, deliveryLimit: 2, electronicsLimit: 4, description: expelled ? `재학은 계속됩니다. 통학으로 매주 피로도 +6, 학습량 −0.4가 적용돼요. ${permanent ? '영구 퇴사라 돌아갈 수 없어요.' : `${weeksLeft}주 뒤 기숙사로 돌아가요. ${nextText}예요.`}` : `배달 적발 2회 또는 전자기기 적발 4회가 되면 퇴사해요. 퇴사는 5일 → 10일 → 30일 → 90일 → 영구 순으로 길어져요.${s.dorm.expulsions ? ` 지금까지 ${s.dorm.expulsions}회 퇴사 · ${nextText}예요.` : ''}` };
+      const nextText = next ? `다음 강제 퇴사는 ${next.days}일(${next.weeks}주)` : '다음 강제 퇴사는 영구 강제 퇴사';
+      return { ...s.dorm, permanent, weeksLeft, label: !expelled ? '기숙사 생활 중' : permanent ? '기숙사 영구 강제 퇴사 · 통학 중' : `기숙사 강제 퇴사 · 통학 중 (${weeksLeft}주 뒤 복귀)`, isResident: !expelled, deliveryLimit: 2, electronicsLimit: 4, description: expelled ? `재학은 계속됩니다. 통학으로 매주 피로도 +6, 학습량 −0.4가 적용돼요. ${permanent ? '영구 강제 퇴사라 돌아갈 수 없어요.' : `${weeksLeft}주 뒤 기숙사로 돌아가요. ${nextText}예요.`}` : `배달 적발 2회 또는 전자기기 적발 4회가 되면 강제 퇴사돼요. 강제 퇴사는 5일 → 10일 → 30일 → 90일 → 영구 순으로 길어져요.${s.dorm.expulsions ? ` 지금까지 ${s.dorm.expulsions}회 강제 퇴사 · ${nextText}예요.` : ''}` };
     }
     return { init, migrate, actions, shopItems, validateAction, beginWeek, handleAction, weekly, automaticEvents, checkDiscipline, resolve, handleChoice: resolve, getShop, buyItem, setGender, getDormStatus, romanceCandidates, getRomanceRoster, selectRomanceTarget };
   }

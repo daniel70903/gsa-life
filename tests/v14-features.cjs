@@ -84,3 +84,27 @@ assert.ok(dmScenes > 0, 'Important scenes open the messenger window');
 assert.ok(spans / N <= 26, `About 24 steps per run: ${(spans / N).toFixed(1)}`);
 assert.ok(decisions / N <= 48, `Choices per run stay near 40: ${(decisions / N).toFixed(1)}`);
 console.log('v14 features ok', { dist, seasons: [...seasons], dmScenes, stepsPerRun: +(spans / N).toFixed(1), decisionsPerRun: +(decisions / N).toFixed(1) });
+
+// 6) 졸업 엔딩 광곽톡: 상태별 보내는 사람, 답장 검사(욕설·개인정보 차단).
+{
+  const G = require('../dist/ending-ui.js');
+  const end = E.create('검증', 'v14-ending', { gender: 'female' });
+  E.setClubs(end, E.academicClubs[0].id, 'none');
+  end.turn = 42;
+  assert.equal(G.sender(end).kind, 'never', 'No relationship → a close friend writes');
+  const boy = E.romanceCandidates.find(p => p.gender === 'male');
+  Object.assign(end.romance.records[boy.id], { stage: 'ended', datingSince: 20 }); end.romance.relationships = 1;
+  assert.equal(G.sender(end).kind, 'ex');
+  assert.equal(G.sender(end).person.id, boy.id, 'The most recent ex writes "잘 지냈어?"');
+  Object.assign(end.romance.records[boy.id], { stage: 'dating' }); end.romance.datingId = boy.id;
+  assert.equal(G.sender(end).kind, 'couple');
+  assert.ok(G.sender(end).person.gender !== end.gender);
+  assert.equal(G.check('응 잘 지냈어! 너도 대학 가서 잘 지내', ''), null);
+  assert.ok(G.check('', ''), 'Empty replies are rejected');
+  assert.ok(G.check('x'.repeat(G.MAX + 1), ''), 'Replies are limited to 200 characters');
+  assert.ok(G.check('연락해 010-1234-5678', ''), 'Phone numbers are blocked');
+  assert.ok(G.check('내 인스타 @gsa_life_123', ''), 'SNS handles are blocked');
+  assert.ok(G.check('씨발 뭐야', ''), 'Rude words are blocked');
+  assert.ok(G.html(end).includes('졸업식 날 밤') && G.html(end).includes('ending-consent'), 'The ending asks for consent before sending');
+  for (const k of Object.keys(G.SCRIPTS)) assert.ok(G.SCRIPTS[k].lines.length === 2);
+}
