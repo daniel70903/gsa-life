@@ -277,7 +277,7 @@
   actions.push(...campus.actions, ...school.actions);
   function create(name = '새로운 학생', seed, options = {}) {
     const randomSeed = seed === undefined ? (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0 : seedNumber(seed);
-    const s = { version: 6, name: String(name).trim().slice(0, 16) || '새로운 학생', seed: randomSeed, rng: randomSeed, turn: 0, stats: {}, archetype: null, academicClub: null, activityClub: null, sportsClubs: [], sportsTryouts: [], electives: [], grades: [], semesterLearning: {}, midterm: null, pendingEvent: null, councilRole: '일반 학생', councilHistory: [], interview: null, captain: false, captainClub: null, relationships: 10, clubWeeks: 0, councilWeeks: 0, researchWeeks: 0, sportsWeeks: 0, illnessWeeks: 0, illnessCount: 0, researchProject: '아직 연구 주제를 찾는 중', calendarWeeks: 7, courseTable: 2, studyStreak: 0, performanceDeductions: {}, badges: [], log: [], admissions: null, admissionRolls: {}, enrolledUniversity: null };
+    const s = { version: 6, name: String(name).trim().slice(0, 16) || '새로운 학생', seed: randomSeed, rng: randomSeed, turn: 0, stats: {}, archetype: null, academicClub: null, activityClub: null, sportsClubs: [], sportsTryouts: [], electives: [], grades: [], semesterLearning: {}, midterm: null, pendingEvent: null, councilRole: '일반 학생', councilHistory: [], interview: null, captain: false, captainClub: null, relationships: 10, clubWeeks: 0, councilWeeks: 0, researchWeeks: 0, sportsWeeks: 0, illnessWeeks: 0, illnessCount: 0, researchProject: '아직 연구 주제를 찾는 중', calendarWeeks: 7, creditRule: 180, courseTable: 2, studyStreak: 0, performanceDeductions: {}, badges: [], log: [], admissions: null, admissionRolls: {}, enrolledUniversity: null };
     Object.assign(s, { alive: true, ending: null, emergency: null, hospitalizations: [], eventQueue: [], dormHarmony: 65, awards: [], tournamentHistory: [], olympiadHistory: [], toeic: { best: 0, attempts: [], practice: 0 }, extraWeeks: 0, applications: [], applicationSnapshot: null, universityInterview: null, universityInterviews: [], admissionStage: 'not_started', dailySeen: [], captainSelectionDone: false, captainHistory: [] });
     const type = archetypes[Math.floor(rng(s) * archetypes.length)]; s.archetype = type.id;
     for (const k of ['intelligence', 'social', 'athletics', 'discipline', 'luck', 'creativity', 'resilience', 'leadership']) s.stats[k] = clamp(32 + Math.floor(rng(s) * 25) + (type.bonuses[k] || 0));
@@ -316,7 +316,11 @@
     const fieldCredits = Number(field.total) || 0, toeicPassed = toeicScore >= 730, fieldPassed = fieldCredits >= 6;
     const curriculumStatus = curriculum.getStatus(s), courseRequirements = Array.isArray(curriculumStatus.requirements) ? curriculumStatus.requirements : [];
     const curriculumPassed = !s.curriculum || !!curriculumStatus.legacyExempt || courseRequirements.every(r => r.complete);
-    return { toeicScore, toeicRequired: 730, toeicPassed, fieldCredits, fieldRequired: 6, fieldPassed, curriculumPassed, curriculumStatus, eligible: s.alive !== false && !s.emergency && toeicPassed && fieldPassed && curriculumPassed, requirements: [{ id: 'toeic', label: 'TOEIC 730점', current: toeicScore, required: 730, complete: toeicPassed }, { id: 'field', label: '현장연구 6학점', current: fieldCredits, required: 6, complete: fieldPassed }, ...courseRequirements] };
+    // v0.14: 졸업 이수학점 180학점(교과 + 연구활동 + 현장연구). 새로 시작한 게임에만 적용합니다.
+    const totalCredits = (s.grades || []).reduce((n, g) => n + (Number.isFinite(g.earnedCredits) ? g.earnedCredits : (Number(g.credits) || 0)), 0) + fieldCredits;
+    const creditRule = Number(s.creditRule) || 0, creditsPassed = !creditRule || totalCredits >= creditRule;
+    const extra = creditRule ? [{ id: 'total', label: `총 이수학점 ${creditRule}학점`, current: totalCredits, required: creditRule, complete: creditsPassed }] : [];
+    return { toeicScore, toeicRequired: 730, toeicPassed, fieldCredits, fieldRequired: 6, fieldPassed, totalCredits, creditRule, creditsPassed, curriculumPassed, curriculumStatus, eligible: s.alive !== false && !s.emergency && toeicPassed && fieldPassed && curriculumPassed && creditsPassed, requirements: [{ id: 'toeic', label: 'TOEIC 730점', current: toeicScore, required: 730, complete: toeicPassed }, { id: 'field', label: '현장연구 6학점', current: fieldCredits, required: 6, complete: fieldPassed }, ...extra, ...courseRequirements] };
   }
   function getActionDisabledReason(s, id) {
     if (s.alive === false) return '이 이야기는 끝났어요.';
@@ -399,9 +403,33 @@
       { label: '다른 사람 앞에서 책임을 묻고 혼자 끝내라고 한다', description: '개인의 책임을 강하게 강조한다.', interviewPoints: -2 }
     ] };
   }
+  const POPULAR_CLUBS = ['qm', 'idea', 'integral', 'soma'];
+  function clubInterviewEvent(s) {
+    const ac = academicClubs.find(c => c.id === s.academicClub);
+    return { id: 'club_interview', title: `${ac.name} 신입 부원 면접`, description: `입학 첫 주, ${ac.name}(${ac.fieldName || ''}) 면접 날이다. 선배들 앞에서 무엇을 이야기할까? 떨어져도 다른 동아리에 2차 지원할 수 있다.`, choices: [
+      { label: '중학교 때 해 본 탐구 이야기를 한다', description: '연구 역량이 높을수록 유리', clubTopic: 'research' },
+      { label: '이 동아리에서 해 보고 싶은 활동을 말한다', description: '창의성이 높을수록 유리', clubTopic: 'creativity' },
+      { label: '성실하게 끝까지 해내겠다고 약속한다', description: '자기관리가 높을수록 유리', clubTopic: 'discipline' }
+    ] };
+  }
+  function clubSecondEvent(s) {
+    const cur = academicClubs.find(c => c.id === s.academicClub);
+    const others = academicClubs.filter(c => c.id !== s.academicClub && !(s.clubTried || []).includes(c.id));
+    const same = others.filter(c => c.field === cur.field), rest = others.filter(c => c.field !== cur.field);
+    const picks = [...same, ...rest].slice(0, 3);
+    return { id: 'club_second', title: '학술동아리 2차 지원', description: `${cur.name} 면접에서는 아쉽게 떨어졌다. 아직 부원을 더 뽑는 동아리에 2차로 지원할 수 있다.`, choices: picks.map(c => ({ label: `${c.name}(${c.fieldName || ''})에 2차 지원`, description: c.description, clubSecond: c.id })) };
+  }
+  function clubMoveEvent(s) {
+    const cur = academicClubs.find(c => c.id === s.academicClub);
+    const alt = academicClubs.filter(c => c.id !== s.academicClub && c.field === cur.field)[0] || academicClubs.find(c => c.id !== s.academicClub);
+    return { id: 'club_move', title: '2학년, 동아리를 옮겨 볼까?', description: `${alt.name} 친구가 같이 해 보자고 권한다. 정식 절차는 아니지만 2학년이 되면 가끔 동아리를 옮기는 친구들이 있다. 대부분은 원래 동아리에 남는다.`, choices: [
+      { label: `${cur.name}에 남는다`, description: '지금 동아리에서 쌓은 것을 이어 간다', clubMove: 'stay' },
+      { label: `${alt.name}으로 옮긴다`, description: '새 동아리에서 다시 시작한다 · 사회성↑ 연구 흐름 초기화', clubMove: alt.id }
+    ] };
+  }
   function captainEvent(s) {
     const targets = [...academicClubs.filter(c => c.id === s.academicClub), ...activityClubs.filter(c => c.id === s.activityClub && c.id !== 'none'), ...sportsClubs.filter(c => s.sportsClubs.includes(c.id))];
-    return { id: 'club_captain', title: '1학년의 끝, 다음 기장 선출', description: '한 해의 동아리 활동을 돌아보며 다음 기장을 정한다. 가입한 동아리 한 곳에서 다음 활동을 이끌겠다고 나설 수 있다.', choices: [...targets.map(c => ({ label: `${c.name} 기장 지원`, description: '내가 함께 만들어갈 활동을 이야기한다.', captainTarget: { id: c.id, name: c.name } })), { label: '팀원으로 함께한다', description: '사회성 +5 · 유대감 +8 · 스트레스 −4', effects: { social: 5, stress: -4 }, bond: 8 }] };
+    return { id: 'club_captain', title: '1학년의 끝, 동아리 기장·부기장 선거', description: '동아리마다 다음 해를 이끌 기장과 부기장을 뽑는다. 대부분 선거로 정한다. 가입한 동아리 한 곳에 출마할 수 있다.', choices: [...targets.map(c => ({ label: `${c.name} 기장 지원`, description: '내가 함께 만들어갈 활동을 이야기한다.', captainTarget: { id: c.id, name: c.name } })), { label: '팀원으로 함께한다', description: '사회성 +5 · 유대감 +8 · 스트레스 −4', effects: { social: 5, stress: -4 }, bond: 8 }] };
   }
   function syncRoleTerms(s, announce = false) {
     if (!Array.isArray(s.captainHistory)) s.captainHistory = [];
@@ -480,6 +508,7 @@
       else if (existingEvent.id === 'sports_tryout') s.pendingEvent = sportsEvent(s, s.turn >= 14);
       else if (existingEvent.id !== 'club_captain') s.pendingEvent = existingEvent;
     }
+    if (s.turn === 14 && !s.clubMoveOffered && s.academicClub && rng(s) < 0.12) { s.clubMoveOffered = true; s.eventQueue.push(clubMoveEvent(s)); }
     if (s.turn === 14 && !s.captainSelectionDone) { if (s.pendingEvent) s.eventQueue.push(s.pendingEvent); s.pendingEvent = captainEvent(s); }
     s.version = 3;
     updateEnding(s);
@@ -563,7 +592,8 @@
     s.academicClub = academicId; s.activityClub = activityId;
     const ac = academicClubs.find(c => c.id === academicId), club = activityClubs.find(c => c.id === activityId);
     note(s, `${ac.name} · ${club.name} 선택. 학교생활을 시작했다.`, 'club');
-    s.pendingEvent = sportsEvent(s); s.eventQueue.push(...school.scheduleEvents(s));
+    // v0.14: 1학년 1학기 초 학술동아리 면접(선택 1번). 떨어지면 다른 동아리에 2차 지원.
+    s.pendingEvent = clubInterviewEvent(s); s.eventQueue.push(sportsEvent(s), ...school.scheduleEvents(s));
     return s;
   }
   function enrollSemester(s, ids) { assertAlive(s); return curriculum.enroll(s, ids); }
@@ -744,7 +774,8 @@
     learn(light ? 0.35 : 1.15);
     shift(s, { intelligence: (0.12 + rng(s) * 0.18) * efficiency, discipline: 0.2 + rng(s) * 0.15, resilience: 0.15 });
     s.toeic.practice = round(s.toeic.practice + (light ? 0.05 : 0.15));
-    if (!light && rolls.academic < 0.68) {
+    // v0.14: 3학년은 학술동아리 활동을 하지 않습니다.
+    if (!light && s.turn < 28 && rolls.academic < 0.68) {
       s.clubWeeks++; learn(0.9, academicField(s));
       shift(s, { research: 0.9 * efficiency, creativity: 0.3, social: 0.2, fatigue: 1.2 });
       routine.activities.push('학술동아리에서 친구들과 탐구 주제를 나누었다.');
@@ -997,6 +1028,10 @@
         if(passed){s.councilRole=i.role;shift(s,{leadership:7,social:3,stress:3});s.badges.push(`${i.year}학년 ${i.role}`);messages.push(i.department?`${i.role} 면접에 합격했다!`:`학생들의 투표 결과, ${i.role}에 당선됐다!`);}
         else{shift(s,{leadership:2,resilience:2});messages.push(i.department?`${i.role} 면접에서 이번에는 선발되지 않았다.`:`개표 결과, 이번 ${i.role} 선거에서는 당선되지 않았다.`);}s.interview=null;}
     }else if(c.skipCouncil){s.councilHistory.push({year:getPhase(s).year,role:'지원하지 않음',department:null,passed:false,chance:null,answers:[]});messages.push('이번 학생회 모집에는 지원하지 않기로 했다.');}
+    else if(c.clubTopic){const st=s.stats,pop=POPULAR_CLUBS.includes(s.academicClub)?0.1:0,chance=clamp(0.62+((st.intelligence+st[c.clubTopic])/200-0.5)*0.6-pop,0.45,0.92),passed=rng(s)<chance;s.clubTried=[...(s.clubTried||[]),s.academicClub];const ac=academicClubs.find(x=>x.id===s.academicClub);s.clubInterview={clubId:s.academicClub,passed,chance:round(chance*100)/100};
+      if(passed){shift(s,{social:1,resilience:1});messages.push(`${ac.name} 면접에 합격했다! 동아리 활동을 시작한다.`);}else{shift(s,{stress:3,resilience:1});messages.push(`${ac.name} 면접에서 떨어졌다. 다른 동아리에 2차 지원할 수 있다.`);s.eventQueue.unshift(clubSecondEvent(s));}}
+    else if(c.clubSecond){const ac=academicClubs.find(x=>x.id===c.clubSecond);if(!ac)throw new Error('동아리를 확인해 주세요.');s.academicClub=ac.id;s.clubInterview={...(s.clubInterview||{}),secondClubId:ac.id};messages.push(`${ac.name} 2차 지원에 합격했다. 이곳에서 3년의 탐구를 시작한다.`);}
+    else if(c.clubMove){if(c.clubMove==='stay'){messages.push('지금 동아리에 남기로 했다.');}else{const ac=academicClubs.find(x=>x.id===c.clubMove);if(!ac)throw new Error('동아리를 확인해 주세요.');s.academicClub=ac.id;s.clubMoved={turn:s.turn,to:ac.id};shift(s,{social:2,stress:2});messages.push(`${ac.name}으로 동아리를 옮겼다.`);}}
     else if(c.captainTarget){s.captainSelectionDone=true;const passed=rng(s)<getCaptainChance(s);if(!Array.isArray(s.captainHistory))s.captainHistory=[];s.captainHistory.push({club:c.captainTarget.name,clubId:c.captainTarget.id,selectedTurn:s.turn,expiresTurn:28,endedTurn:null,passed});if(passed){s.captain=true;s.captainClub=c.captainTarget.name;shift(s,{leadership:8,social:3});s.badges.push(`${s.captainClub} 기장`);messages.push(`${s.captainClub} 기장으로 선출됐다! 다음 해의 활동을 준비한다.`);}else{shift(s,{social:2,leadership:2});messages.push(`${c.captainTarget.name} 기장은 다른 친구가 맡았다. 함께하는 팀원으로 계속 성장한다.`);}}
     else if(c.participateTournament){
       if(s.tournamentHistory.some(h=>h.year===c.tournamentYear))throw new Error('올해 대회 기록은 이미 남았어요.');

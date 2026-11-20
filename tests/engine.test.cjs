@@ -25,7 +25,7 @@ function bounds(s){for(const [k,v]of Object.entries(s.stats)){check(Number.isFin
 // Versioning, eight character traits and seeded starts remain intact.
 assert.equal(E.archetypes.length,6);
 const seen=new Set();for(let seed=0;seed<180;seed++){const s=E.create('학생',seed);assert.equal(s.version,6);seen.add(s.archetype);assert.deepEqual(E.create('학생',seed),s);for(const k of ['intelligence','social','athletics','discipline','luck','creativity','resilience','leadership'])check(Number.isFinite(s.stats[k]),k);bounds(s);}assert.equal(seen.size,6);
-const start=fresh(41);assert.equal(start.pendingEvent.id,'sports_tryout');assert.equal(start.sportsClubs.length,0);assert.throws(()=>E.advance(start,'study'));
+const start=fresh(41);assert.equal(start.pendingEvent.id,'club_interview','v0.14: academic club interview comes first');E.chooseEvent(start,0);while(start.pendingEvent&&start.pendingEvent.id==='club_second')E.chooseEvent(start,0);assert.equal(start.pendingEvent.id,'sports_tryout');assert.equal(start.sportsClubs.length,0);assert.throws(()=>E.advance(start,'study'));
 const athletic=copy(start), weak=copy(start);athletic.stats.athletics=90;weak.stats.athletics=10;check(E.getSportsChance(athletic,'basketball')>E.getSportsChance(weak,'basketball'),'Athletics affect tryouts');
 resolve(start);noLeak(start);
 

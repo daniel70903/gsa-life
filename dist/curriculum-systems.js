@@ -106,7 +106,7 @@
     }
     function recommendEnrollment(s,field='physics'){
       if(!FIELDS.includes(field))field='physics';const o=getEnrollmentOptions(s),prior=basePlanTotals(s,o.term),remaining=6-o.term;
-      const target=Math.max(6,Math.min(16,Math.ceil((28-prior.specialist)/remaining)));
+      const desired={3:16,4:17,5:8}[o.term]||12,libPlan=Math.min(4,Math.max(0,o.term===5?4-prior.liberal:Math.min(2,4-prior.liberal))),target=Math.max(6,Math.min(16,Math.max(Math.ceil((28-prior.specialist)/remaining),desired-libPlan-(o.term<5?3:0))));/* v0.14: 학기별 선택 학점 권장(2-2 15~16, 3-1 16~17, 3-2 7~9)에 맞춰 총 이수학점 180을 넘기도록 */
       const specialized=o.courses.filter(c=>c.category==='specialist').sort((a,b)=>{const pa=a.field===field?0:a.field==='math'?1:2,pb=b.field===field?0:b.field==='math'?1:2;return pa-pb||CATALOG.findIndex(c=>c.id===a.id)-CATALOG.findIndex(c=>c.id===b.id);});
       let best=null;
       function search(index,picks,credits,cost){if(credits>=target&&credits<=16){const score=cost+(credits-target)*2;if(!best||score<best.score)best={ids:[...picks],score};return;}if(index>=specialized.length||credits>16)return;for(let i=index;i<specialized.length;i++){const c=specialized[i];search(i+1,[...picks,c.id],credits+c.credits,cost+i+1);}}
