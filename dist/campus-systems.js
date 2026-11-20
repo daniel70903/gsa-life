@@ -362,7 +362,7 @@
       ] };
       return { ...identity, id: 'campus_romance_date', title: `${name}, 야자 쉬는 시간`, description: `${person.date.replaceAll(person.name, name)} 야간 1차와 2차 자습 사이 25분, 산책로에는 같은 마음인 친구들이 많다.`, dm: dmBlock(name, person, [['them', '1차 끝났다!'], ['them', '같이 산책 갈래? 9시 10분에 기숙사 앞에서 보자']]), choices: [
         { label: '쉬는 시간에 같이 산책한다', description: '대화하며 기분을 환기한다', campusChoice: 'walk' },
-        { label: '"2차 끝나고 같이 복습하자"고 답한다', description: '같이 공부하며 서로 응원한다', campusChoice: 'study' },
+        { label: '"쉬는 시간엔 같이 모르는 문제 풀자"고 답한다', description: '같이 공부하며 서로 응원한다', campusChoice: 'study' },
         { label: '관계를 마무리하고 싶다고 말한다', description: '솔직하고 정중하게 마음을 전한다', campusChoice: 'end' }
       ] };
     }
