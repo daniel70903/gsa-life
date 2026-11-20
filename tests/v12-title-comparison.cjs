@@ -74,7 +74,7 @@ module.exports = function verifyTitleAndComparison() {
   for (const m of matches) {
     ok(!/(자기관리|이휘소)이 /.test(m.best.reason.text) && !/[가-힣]이 돋보이는/.test(m.best.reason.text.replace(/(지능|사회성|운동|행운|창의성|회복력|리더십|연구 역량)이 돋보이는/, '')), `Korean particles are correct: ${m.best.reason.text}`);
   }
-  const mathRun = runs.find((s) => s.academicClub === 'math');
+  const mathRun = runs.find((s) => s.academicClub === 'integral');
   ok(C.compare(mathRun, E).fields.math >= 0.3, 'Math club and electives count toward mathematics');
 
   // 회고 마지막 장과 한 장 요약에 컴패리즌이 나옵니다.
