@@ -1,3 +1,5 @@
+// 연애 기능은 게임에서 꺼져 있지만, 예전 엔진 회귀 테스트는 개발용 스위치로 연애 코드를 함께 검사합니다.
+globalThis.GSA_ROMANCE_DEV = true;
 'use strict';
 const assert = require('node:assert/strict');
 const E = require('../dist/engine.js');

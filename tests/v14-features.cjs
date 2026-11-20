@@ -10,18 +10,13 @@ const banned = /(키스|뽀뽀|스킨십|입맞춤|껴안|포옹|끌어안|안�
 assert.ok(!banned.test(campusSource), 'Romance prose avoids physical-contact and inappropriate wording');
 assert.ok(campusSource.includes("app: '광곽톡'"), 'Messenger scenes use the in-game 광곽톡 name');
 
-// 2) 이성 후보만 보입니다.
+// 2) 연애 기능은 꺼져 있습니다: 후보 목록이 비어 있고, 180학점 규칙은 새 게임에 적용됩니다.
 for (const gender of ['male', 'female']) {
   const s = E.create('검증', `v14-${gender}`, { gender });
   E.setClubs(s, E.academicClubs[0].id, 'none');
-  const roster = E.getRomanceRoster(s);
-  assert.equal(roster.length, 3);
-  assert.ok(roster.every(p => p.gender !== gender), `${gender} players only see opposite-gender classmates`);
-  const target = E.romanceCandidates.find(p => p.id === s.romance.targetId);
-  assert.notEqual(target.gender, gender, 'The default romance target is opposite-gender');
-  assert.equal(s.romance.records[target.id].partnerName, target.name, 'The default target keeps its own name');
+  assert.equal(E.romanceOn(s), false, 'Romance is off in the game');
+  assert.deepEqual(E.getRomanceRoster(s), [], 'No romance roster is shown');
   assert.equal(s.creditRule, 180, 'New games use the 180-credit graduation rule');
-  assert.ok(E.getGraduationStatus(s).requirements?.some?.(r => r.id === 'total') ?? true);
 }
 
 // 3) 서울대 모집단위와 추천 원서.
@@ -39,20 +34,13 @@ assert.ok(ee.top < naoe.top, 'Electrical engineering needs a higher class rank t
   assert.deepEqual(lengths, [2, 2, 2, 2, 2, 2, 1], 'Weeks 1-2, 3-4, 5-6 and the final week 7');
 }
 
-// 5) 3년 시뮬레이션(2주 단위): 연애 분포, 기념일, DM, 선택 횟수.
-const N = 120, dist = [0, 0, 0, 0], seasons = new Set();
-let decisions = 0, dmScenes = 0, spans = 0;
+// 5) 3년 시뮬레이션(2주 단위): 연애 사건이 전혀 나오지 않고, 선택 횟수가 적습니다.
+const N = 60;
+let decisions = 0, spans = 0;
 for (let seed = 1; seed <= N; seed++) {
   const s = E.create('검증', 14000 + seed, { gender: seed % 2 ? 'male' : 'female' });
   E.setClubs(s, E.academicClubs[seed % 12].id, 'none');
-  const choose = e => {
-    if (e.id === 'campus_romance_season') seasons.add(e.season);
-    assert.ok(!/^campus_romance_(meet|chat)$/.test(e.id), 'Routine romance encounters run automatically in two-week mode');
-    if (e.dm) { dmScenes++; assert.equal(e.dm.app, '광곽톡'); assert.ok(e.dm.messages.length >= 1 && e.choices.length <= 3, 'DM scenes keep few choices'); }
-    if (/^campus_romance_/.test(e.id)) return 0;
-    return seed % e.choices.length;
-  };
-  const settle = () => { let k = 0; while (s.pendingEvent && s.alive && k++ < 120) { decisions++; E.chooseEvent(s, choose(s.pendingEvent)); } };
+  const settle = () => { let k = 0; while (s.pendingEvent && s.alive && k++ < 120) { const e = s.pendingEvent; assert.ok(!/^campus_romance_/.test(e.id) && !e.dm, `No romance scenes: ${e.id}`); decisions++; E.chooseEvent(s, seed % e.choices.length); } };
   settle();
   let guard = 0;
   while (s.turn < 42 && s.alive && guard++ < 200) {
@@ -67,44 +55,36 @@ for (let seed = 1; seed <= N; seed++) {
   }
   settle();
   if (s.applicationSnapshot && s.grades.length === 6) assert.ok(s.applicationSnapshot.turn <= 35, 'Applications are written before 3-2 grades exist');
-  if (s.admissions && s.applicationSnapshot) assert.ok(Number.isFinite(s.applicationSnapshot.percentile), '3-2 grades do not change the admission rank');
-  dist[Math.min(3, s.romance.relationships || 0)]++;
-  for (const r of Object.values(s.romance.records)) if (r.stage === 'dating' || r.stage === 'ended') {
-    const person = E.romanceCandidates.find(p => p.id === r.characterId);
-    assert.notEqual(person.gender, s.gender, 'Relationships are opposite-gender only');
-  }
+  assert.ok(!(s.romance.relationships > 0), 'Nobody dates');
 }
-const pct = dist.map(n => n / N);
-assert.ok(pct[0] >= 0.25 && pct[0] <= 0.6, `About 40% never date: ${dist}`);
-assert.ok(pct[1] >= 0.3 && pct[1] <= 0.65, `About half date once: ${dist}`);
-assert.ok(pct[2] <= 0.2, `Two relationships stay rare: ${dist}`);
-assert.ok(pct[3] <= 0.08, `Three relationships are very rare (about 3%): ${dist}`);
-assert.ok(seasons.size >= 4, `Seasonal events appear: ${[...seasons]}`);
-assert.ok(dmScenes > 0, 'Important scenes open the messenger window');
 assert.ok(spans / N <= 26, `About 24 steps per run: ${(spans / N).toFixed(1)}`);
-assert.ok(decisions / N <= 48, `Choices per run stay near 40: ${(decisions / N).toFixed(1)}`);
-console.log('v14 features ok', { dist, seasons: [...seasons], dmScenes, stepsPerRun: +(spans / N).toFixed(1), decisionsPerRun: +(decisions / N).toFixed(1) });
+assert.ok(decisions / N <= 45, `Choices per run stay near 40: ${(decisions / N).toFixed(1)}`);
+console.log('v14 features ok', { stepsPerRun: +(spans / N).toFixed(1), decisionsPerRun: +(decisions / N).toFixed(1) });
 
-// 6) 졸업 엔딩 광곽톡: 상태별 보내는 사람, 답장 검사(욕설·개인정보 차단).
+// 6) 졸업 엔딩 메시지: 같은 성별 친구가 보내고, 답장 검사(욕설·개인정보 차단).
 {
   const G = require('../dist/ending-ui.js');
-  const end = E.create('검증', 'v14-ending', { gender: 'female' });
-  E.setClubs(end, E.academicClubs[0].id, 'none');
-  end.turn = 42;
-  assert.equal(G.sender(end).kind, 'never', 'No relationship → a close friend writes');
-  const boy = E.romanceCandidates.find(p => p.gender === 'male');
-  Object.assign(end.romance.records[boy.id], { stage: 'ended', datingSince: 20 }); end.romance.relationships = 1;
-  assert.equal(G.sender(end).kind, 'ex');
-  assert.equal(G.sender(end).person.id, boy.id, 'The most recent ex writes "잘 지냈어?"');
-  Object.assign(end.romance.records[boy.id], { stage: 'dating' }); end.romance.datingId = boy.id;
-  assert.equal(G.sender(end).kind, 'couple');
-  assert.ok(G.sender(end).person.gender !== end.gender);
+  for (const gender of ['male', 'female']) {
+    const end = E.create('검증', `v14-ending-${gender}`, { gender });
+    E.setClubs(end, E.academicClubs[0].id, 'none');
+    end.turn = 42;
+    const who = G.sender(end);
+    assert.equal(who.kind, 'friend');
+    assert.equal(who.person.gender, gender, 'The ending message comes from a same-gender friend');
+    assert.ok(G.html(end).includes('졸업식 날 밤') && G.html(end).includes('ending-consent'), 'The ending asks for consent before sending');
+    assert.ok(!/연애|연인|사귀/.test(G.html(end)), 'No romance wording in the ending');
+  }
   assert.equal(G.check('응 잘 지냈어! 너도 대학 가서 잘 지내', ''), null);
   assert.ok(G.check('', ''), 'Empty replies are rejected');
   assert.ok(G.check('x'.repeat(G.MAX + 1), ''), 'Replies are limited to 200 characters');
   assert.ok(G.check('연락해 010-1234-5678', ''), 'Phone numbers are blocked');
   assert.ok(G.check('내 인스타 @gsa_life_123', ''), 'SNS handles are blocked');
   assert.ok(G.check('씨발 뭐야', ''), 'Rude words are blocked');
-  assert.ok(G.html(end).includes('졸업식 날 밤') && G.html(end).includes('ending-consent'), 'The ending asks for consent before sending');
-  for (const k of Object.keys(G.SCRIPTS)) assert.ok(G.SCRIPTS[k].lines.length === 2);
+  assert.deepEqual(Object.keys(G.SCRIPTS), ['friend']);
+}
+
+// 7) 패치노트·도움말에 연애 이야기가 없습니다.
+{
+  const src = fs.readFileSync(path.join(__dirname, '../dist/extras-ui.js'), 'utf8');
+  assert.ok(!/연애|고백|광곽톡|교제|커플/.test(src), 'Patch notes and help never mention romance');
 }

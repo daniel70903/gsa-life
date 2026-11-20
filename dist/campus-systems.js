@@ -42,6 +42,8 @@
     return `${text}${hasFinalConsonant ? consonantParticle : vowelParticle}`;
   }
   function createAPI(hooks) {
+    // 연애 기능은 꺼져 있습니다. 개발용으로만 상태(s.romanceOn) 또는 hooks.romance 로 켤 수 있습니다.
+    const romanceOn = s => hooks.romance === true || (typeof globalThis !== 'undefined' && globalThis.GSA_ROMANCE_DEV === true) || !!(s && s.romanceOn);
     const { rng, shift, note, clamp, round, addLearning } = hooks;
     function assertAlive(s) {
       if (hooks.assertAlive) hooks.assertAlive(s);
@@ -203,6 +205,7 @@
       return '';
     }
     function getRomanceRoster(s) {
+      if (!romanceOn(s)) return [];
       const r = initRomance(s), disabledReason = romanceSelectionReason(s);
       return oppositeCandidates(s).map(person => {
         const record = r.records[person.id];
@@ -369,6 +372,7 @@
       ] };
     }
     function handleAction(s, id) {
+      if (id === 'romance' && !romanceOn(s)) throw new Error('지금 할 수 없는 활동이에요.');
       const messages = [], events = [];
       if (!actions.some(a => a.id === id)) return { handled: false, messages, events };
       validateAction(s, id);
@@ -449,10 +453,10 @@
       const history = s.campusOpportunities, now = weekClock(s);
       if (history.lastGeneratedTurn === now) return [];
       history.lastGeneratedTurn = now;
-      const season = seasonEvent(s);
+      const season = romanceOn(s) ? seasonEvent(s) : null;
       if (season) { history.lastTurn = now; return [season]; }
       // 새 학년이 되면 연애 중인 관계에 작은 위기가 찾아옵니다(반·시간표가 바뀌는 시기).
-      { const rr = initRomance(s); if (rr.datingId && ([7, 14, 21, 28, 35].includes(s.turn) || ((rr.relationships || 0) >= 2 && s.turn % 7 === 4)) && s.turn - (rr.records[rr.datingId].datingSince ?? -99) >= ((rr.relationships || 0) >= 2 ? 2 : 5) && !(rr.yearCrisis || []).includes(s.turn)) { rr.yearCrisis = [...(rr.yearCrisis || []), s.turn]; history.lastTurn = now; return [romanceEvent(s, 'crisis', rr.datingId)]; } }
+      if (romanceOn(s)) { const rr = initRomance(s); if (rr.datingId && ([7, 14, 21, 28, 35].includes(s.turn) || ((rr.relationships || 0) >= 2 && s.turn % 7 === 4)) && s.turn - (rr.records[rr.datingId].datingSince ?? -99) >= ((rr.relationships || 0) >= 2 ? 2 : 5) && !(rr.yearCrisis || []).includes(s.turn)) { rr.yearCrisis = [...(rr.yearCrisis || []), s.turn]; history.lastTurn = now; return [romanceEvent(s, 'crisis', rr.datingId)]; } }
       if (now - history.lastTurn < 2 || rng(s) >= 0.72) return [];
       const candidates = [{ id: 'earn', weight: 1 }, { id: 'device_study', weight: 0.7 }];
       if (s.dorm.status !== 'expelled') {
@@ -460,7 +464,7 @@
         if (s.money.balance >= 12000) candidates.push({ id: 'delivery', weight: 0.8 });
       }
       const r = initRomance(s);
-      if (s.turn >= 3 && s.turn - r.globalLastEventTurn >= 2) {
+      if (romanceOn(s) && s.turn >= 3 && s.turn - r.globalLastEventTurn >= 2) {
         const available = romanceCandidates.filter(person => {
           if (s.gender && person.gender === s.gender) return false;
           const record = r.records[person.id];
@@ -574,7 +578,7 @@
       const nextText = next ? `다음 강제 퇴사는 ${next.days}일(${next.weeks}주)` : '다음 강제 퇴사는 영구 강제 퇴사';
       return { ...s.dorm, permanent, weeksLeft, label: !expelled ? '기숙사 생활 중' : permanent ? '기숙사 영구 강제 퇴사 · 통학 중' : `기숙사 강제 퇴사 · 통학 중 (${weeksLeft}주 뒤 복귀)`, isResident: !expelled, deliveryLimit: 2, electronicsLimit: 4, description: expelled ? `재학은 계속됩니다. 통학으로 매주 피로도 +6, 학습량 −0.4가 적용돼요. ${permanent ? '영구 강제 퇴사라 돌아갈 수 없어요.' : `${weeksLeft}주 뒤 기숙사로 돌아가요. ${nextText}예요.`}` : `배달 적발 2회 또는 전자기기 적발 4회가 되면 강제 퇴사돼요. 강제 퇴사는 5일 → 10일 → 30일 → 90일 → 영구 순으로 길어져요.${s.dorm.expulsions ? ` 지금까지 ${s.dorm.expulsions}회 강제 퇴사 · ${nextText}예요.` : ''}` };
     }
-    return { init, migrate, actions, shopItems, validateAction, beginWeek, handleAction, weekly, automaticEvents, checkDiscipline, resolve, handleChoice: resolve, getShop, buyItem, setGender, getDormStatus, romanceCandidates, getRomanceRoster, selectRomanceTarget };
+    return { romanceOn, init, migrate, actions, shopItems, validateAction, beginWeek, handleAction, weekly, automaticEvents, checkDiscipline, resolve, handleChoice: resolve, getShop, buyItem, setGender, getDormStatus, romanceCandidates, getRomanceRoster, selectRomanceTarget };
   }
   const api = { createAPI, actions, shopItems, romanceCandidates };
   root.GSACampusSystems = api;

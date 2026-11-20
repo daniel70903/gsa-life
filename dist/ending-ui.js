@@ -1,5 +1,4 @@
 /* v0.14 졸업 엔딩: 졸업식 날 밤 광곽톡 한 통과 플레이어가 직접 쓰는 답장.
- * 연애 상태(연애 중 / 연애해 봤지만 솔로 / 연애 경험 없음)에 따라 보내는 사람과 메시지가 달라집니다.
  * 제출 주소는 ending-config.js 의 window.GSA_ENDING_CONFIG 로 연결합니다. 비어 있으면 브라우저에만 저장합니다. */
 (function (root) {
   'use strict';
@@ -11,23 +10,18 @@
   let api = null;
 
   const SCRIPTS = {
-    couple: { label: '연애 중', lines: ['졸업 축하해! 3년 진짜 빨리 갔다', '대학 가서도 지금처럼 응원해 줄 거지?'] },
-    ex: { label: '연애해 봤지만 지금은 솔로', lines: ['잘 지냈어? 졸업 축하해', '그때는 고마웠어. 대학 가서도 잘 지내'] },
-    never: { label: '연애 경험 없음', lines: ['졸업 축하해! 3년 동안 고마웠어', '대학 가면 뭐 제일 해 보고 싶어?'] }
+    friend: { label: '3년을 함께한 친구', lines: ['졸업 축하해! 3년 동안 고마웠어', '대학 가면 뭐 제일 해 보고 싶어?'] }
   };
 
+  // 졸업식 날 밤, 3년을 함께한 같은 반 친구가 메시지를 보냅니다(플레이어와 같은 성별의 친구, 저장마다 고정).
   function sender(state) {
-    const E = root.GSAEngine, r = state && state.romance;
-    if (!E || !r || !r.records) return null;
-    const people = E.romanceCandidates.filter(p => !state.gender || p.gender !== state.gender);
-    const rec = id => r.records[id] || {};
-    if (r.datingId && rec(r.datingId).stage === 'dating') return { kind: 'couple', person: E.romanceCandidates.find(p => p.id === r.datingId), name: rec(r.datingId).partnerName };
-    if ((r.relationships || 0) > 0) {
-      const exes = people.filter(p => rec(p.id).stage === 'ended').sort((a, b) => (rec(b.id).datingSince ?? -1) - (rec(a.id).datingSince ?? -1));
-      if (exes[0]) return { kind: 'ex', person: exes[0], name: rec(exes[0].id).partnerName };
-    }
-    const friend = people.filter(p => rec(p.id).met).sort((a, b) => (rec(b.id).bond || 0) - (rec(a.id).bond || 0))[0] || people[0];
-    return friend ? { kind: 'never', person: friend, name: rec(friend.id).partnerName || friend.name } : null;
+    const E = root.GSAEngine;
+    if (!E || !state) return null;
+    const pool = E.romanceCandidates.filter(p => !state.gender || p.gender === state.gender);
+    const list = pool.length ? pool : E.romanceCandidates;
+    const key = String(state.seed ?? state.name ?? 'gsa'); let h = 0; for (const ch of key) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    const person = list[h % list.length];
+    return person ? { kind: 'friend', person, name: person.name } : null;
   }
 
   function check(text, nick) {
