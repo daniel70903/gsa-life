@@ -34,7 +34,7 @@ const calendar=fresh(21);resolve(calendar);for(let week=1;week<=7;week++){const 
 
 // First-year end now holds the captain choice before the second team opportunity.
 const captain=fresh(3);captain.stats.athletics=95;captain.stats.luck=95;E.chooseEvent(captain,0);toTurn(captain,14);
-seek(captain,'club_captain');const teamBefore=copy(captain.sportsClubs);check(captain.pendingEvent.choices.some(c=>c.label.includes('QM')),'Actual academic club can be captained');noLeak(captain);E.chooseEvent(captain,0);seek(captain,'sports_tryout');for(const id of teamBefore)check(!captain.pendingEvent.choices.some(c=>c.sportsId===id),'No duplicate team option');resolve(captain);assert.equal(captain.sportsTryouts.length,2);assert.ok(captain.sportsClubs.length<=2);
+seek(captain,'club_captain');const teamBefore=copy(captain.sportsClubs);check(captain.pendingEvent.choices.some(c=>c.label.includes('물리')),'Actual academic club can be captained');noLeak(captain);E.chooseEvent(captain,0);seek(captain,'sports_tryout');for(const id of teamBefore)check(!captain.pendingEvent.choices.some(c=>c.sportsId===id),'No duplicate team option');resolve(captain);assert.equal(captain.sportsTryouts.length,2);assert.ok(captain.sportsClubs.length<=2);
 const at29=toTurn(fresh(12),26);check(at29.pendingEvent?.id!=='club_captain'&&!at29.eventQueue?.some(e=>e.id==='club_captain'),'Old second-year captain timing is removed');
 
 // President/vice-president take questions from students; department officers still interview.

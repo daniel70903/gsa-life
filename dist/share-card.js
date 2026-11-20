@@ -32,7 +32,7 @@
     for (const r of arr(d.roles)) roleMap.set(r.name, (roleMap.get(r.name) || 0) + 1);
     const rank = (name) => (/부회장/.test(name) ? 1 : /회장/.test(name) ? 0 : /기장/.test(name) ? 2 : /부장|임원/.test(name) ? 3 : 4);
     const roles = [...roleMap].sort((a, b) => rank(a[0]) - rank(b[0])).map(([name, count]) => (count > 1 ? `${name} ×${count}` : name));
-    const admissions = arr(d.admissions).map((a) => ({ name: String(a.name || ''), major: String(a.majorName || ''), accepted: !!a.accepted && !a.blocked, blocked: !!a.blocked }));
+    const admissions = arr(d.admissions).map((a) => ({ name: String(a.name || ''), major: String(a.majorName || ''), accepted: !!a.accepted }));
     const stats = arr(d.stats).slice().sort((a, b) => num(b.value) - num(a.value));
     const pick = (re) => {
       const m = metric(re);
@@ -346,7 +346,7 @@
       text(ctx, '대학 전형 결과', rx, cy + 8, { size: 24, weight: 700 });
       model.admissions.slice(0, 3).forEach((a, i) => {
         const y = cy + 22 + i * 50;
-        const tag = a.accepted ? '합격' : a.blocked ? '진학 불가' : '불합격', color = a.accepted ? C.gold : C.dim;
+        const tag = a.accepted ? '합격' : '불합격', color = a.accepted ? C.gold : C.dim;
         ctx.font = font(18, 700);
         const tw = ctx.measureText(tag).width + 22;
         roundRect(ctx, rx, y + 6, tw, 34, 8);

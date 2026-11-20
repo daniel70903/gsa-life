@@ -107,7 +107,7 @@
     const add = (f, v) => {
       if (f in w) w[f] += v;
     };
-    add(typeof engine?.academicField === "function" && s ? engine.academicField(s) : s?.academicClub, 3);
+    add(s?.academicClub, 3);
     for (const plan of Object.values(s?.curriculum?.plans || {})) for (const sub of list(plan?.subjects)) add(sub?.field, num(sub?.credits, 3) / 3);
     const majorFields = (id) => Object.keys(engine?.getMajor?.(id)?.requirements || {});
     for (const id of Object.values(s?.applicationMajors || {})) {
@@ -115,7 +115,7 @@
       for (const f of fs) add(f, 2 / fs.length);
     }
     const admissions = Array.isArray(s?.admissions) ? s.admissions : list(s?.admissions?.results);
-    for (const a of admissions.filter((x) => x?.accepted && !(typeof engine?.canEnroll === 'function' && engine.canEnroll(s, x) === false))) {
+    for (const a of admissions.filter((x) => x?.accepted)) {
       const fs = majorFields(a.majorId);
       for (const f of fs) add(f, 1 / fs.length);
     }
