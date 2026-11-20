@@ -6,7 +6,7 @@
 })(typeof window === 'undefined' ? globalThis : window, function (root) {
   'use strict';
 
-  const VERSION = 'v0.14.0';
+  const VERSION = 'v0.14.1';
   const SAVE_KEY = 'gsa-life-v1';
   const SEEN_VERSION_KEY = 'gsa-life-seen-version';
   const GUIDE_KEY = 'gsa-life-guide-seen';
@@ -83,6 +83,13 @@
   /* ───────────── 도움말 내용 ───────────── */
 
   const changelog = [
+    {
+      version: 'v0.14.1',
+      date: '2026.11',
+      items: [
+        '연애 후보 이름이 바뀌었어요: 지민 → 성운, 도윤 → 태현. 진행 중인 저장도 새 이름으로 바뀌어요.'
+      ]
+    },
     {
       version: 'v0.14.0',
       date: '2026.11',
