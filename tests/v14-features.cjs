@@ -40,7 +40,7 @@ assert.ok(ee.top < naoe.top, 'Electrical engineering needs a higher class rank t
 }
 
 // 5) 3년 시뮬레이션(2주 단위): 연애 분포, 기념일, DM, 선택 횟수.
-const N = 90, dist = [0, 0, 0, 0], seasons = new Set();
+const N = 120, dist = [0, 0, 0, 0], seasons = new Set();
 let decisions = 0, dmScenes = 0, spans = 0;
 for (let seed = 1; seed <= N; seed++) {
   const s = E.create('검증', 14000 + seed, { gender: seed % 2 ? 'male' : 'female' });
@@ -76,7 +76,7 @@ const pct = dist.map(n => n / N);
 assert.ok(pct[0] >= 0.25 && pct[0] <= 0.6, `About 40% never date: ${dist}`);
 assert.ok(pct[1] >= 0.3 && pct[1] <= 0.65, `About half date once: ${dist}`);
 assert.ok(pct[2] <= 0.2, `Two relationships stay rare: ${dist}`);
-assert.equal(dist[3], 0, 'Nobody dates three times in three years');
+assert.ok(pct[3] <= 0.08, `Three relationships are very rare (about 3%): ${dist}`);
 assert.ok(seasons.size >= 4, `Seasonal events appear: ${[...seasons]}`);
 assert.ok(dmScenes > 0, 'Important scenes open the messenger window');
 assert.ok(spans / N <= 26, `About 24 steps per run: ${(spans / N).toFixed(1)}`);

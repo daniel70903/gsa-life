@@ -145,10 +145,11 @@
     function oppositeCandidates(s) { return romanceCandidates.filter(p => !s.gender || p.gender !== s.gender); }
     const SEASONS = [
       { id: 'whiteday', term: 'even', week: 2, title: '화이트데이', when: () => true },
-      { id: 'aprilfools', term: 'even', week: 3, title: '만우절', when: (s, rec) => rec.stage !== 'dating' && rec.bond >= 40 && !s.romance.datingId && (s.romance.relationships || 0) < 2 },
-      { id: 'blackday', term: 'even', week: 3, title: '블랙데이', when: (s, rec) => !s.romance.datingId && !(rec.stage !== 'dating' && rec.bond >= 40 && (s.romance.relationships || 0) < 2) },
+      { id: 'aprilfools', term: 'even', week: 3, title: '만우절', when: (s, rec) => rec.stage !== 'dating' && rec.bond >= 40 && !s.romance.datingId && (s.romance.relationships || 0) < 3 },
+      { id: 'blackday', term: 'even', week: 3, title: '블랙데이', when: (s, rec) => !s.romance.datingId && !(rec.stage !== 'dating' && rec.bond >= 40 && (s.romance.relationships || 0) < 3) },
       { id: 'roseday', term: 'even', week: 5, title: '로즈데이', when: () => true },
-      { id: 'confessday', term: 'odd', week: 3, title: '고백데이 · 크리스마스 D-100', when: (s, rec) => rec.stage !== 'dating' && rec.bond >= 45 && (s.romance.relationships || 0) < 2 && !s.romance.datingId },
+      { id: 'farewell', term: 'odd', week: 6, title: '졸업 전, 마지막 기회', when: (s, rec) => s.turn >= 35 && rec.stage !== 'dating' && rec.bond >= 45 && (s.romance.relationships || 0) < 3 && !s.romance.datingId },
+      { id: 'confessday', term: 'odd', week: 3, title: '고백데이 · 크리스마스 D-100', when: (s, rec) => rec.stage !== 'dating' && rec.bond >= 45 && (s.romance.relationships || 0) < 3 && !s.romance.datingId },
       { id: 'pepero', term: 'odd', week: 6, title: '빼빼로데이', when: () => true }
     ];
     function seasonEvent(s) {
@@ -158,7 +159,7 @@
       if (!target) return null;
       const rec = r.records[target.id]; r.seasonsSeen = r.seasonsSeen || [];
       // v0.14 2주 단위: 기념일 이벤트는 학기에 하나만. 고백할 수 있는 상황이면 화이트데이보다 만우절을 남겨 둡니다.
-      if (r.seasonsSeen.some(k => k.endsWith(`:${term}`))) return null;
+      if (r.seasonsSeen.some(k => k.endsWith(`:${term}`)) && !(term === 5 && week === 6)) return null;
       if (week === 2 && term % 2 === 0 && SEASONS.find(x => x.id === 'aprilfools').when(s, rec) && rec.met) return null;
       const sc = SEASONS.find(x => x.week === week && (x.term === 'even' ? term % 2 === 0 : term % 2 === 1) && !r.seasonsSeen.includes(`${x.id}:${term}`) && (rec.met || x.id === 'blackday') && x.when(s, rec));
       if (!sc) return null;
@@ -180,6 +181,10 @@
       if (sc.id === 'roseday') return { ...id, title: '로즈데이', description: dating ? `${withParticle(name)} 사귀고 처음 맞는 로즈데이다.` : `복도 곳곳에 장미가 보인다. ${name}에게 무언가 해 주고 싶다.`, choices: [
         { label: dating ? '장미 한 송이와 편지를 준비한다' : '꽃 대신 응원 메시지를 보낸다', description: '호감 ↑', campusChoice: 'rose', season: { bond: dating ? 6 : 3, trust: 2, text: dating ? '{name}이(가) 편지를 소중히 가방에 넣었다.' : '"고마워, 너도 화이팅!" 짧은 답장이 왔다.' } },
         { label: '평소처럼 지낸다', description: '변화 없음', campusChoice: 'none', season: { text: '평소처럼 하루를 보냈다.' } }
+      ] };
+      if (sc.id === 'farewell') return { ...id, title: '졸업 전, 마지막 기회', description: '수시 결과를 기다리는 3학년 2학기. 곧 각자 다른 학교로 흩어진다. 밤에 메시지가 왔다.', seasonBonus: (s.romance.relationships || 0) >= 2 ? 0.25 : 0, dm: dmBlock(name, person, [['them', '우리 이제 진짜 얼마 안 남았다'], ['them', '졸업하면 자주 못 보겠지?']]), choices: [
+        { label: '"졸업해도 계속 보고 싶어" 하고 마음을 전한다', description: '고백 · 마지막 기회', campusChoice: 'confess', season: { confess: true, yes: '"나도. 사실 계속 그 말 하고 싶었어." 졸업이 조금 덜 아쉬워졌다.', no: '"고마워. 그래도 좋은 친구로 기억하고 싶어." 아쉽지만 고마운 3년이었다.' } },
+        { label: '"그러게, 그동안 고마웠어" 하고 답한다', description: '편하게 · 좋은 친구로', campusChoice: 'light', season: { bond: 3, text: '3년 동안의 이야기를 한참 주고받았다. 좋은 친구로 남았다.' } }
       ] };
       if (sc.id === 'confessday') return { ...id, title: '고백데이 · 크리스마스까지 100일', description: '크리스마스까지 딱 100일 남은 날. 친구들 사이에서 오늘 고백하면 크리스마스를 함께 보낸다는 말이 돈다.', seasonBonus: 0.1, dm: dmBlock(name, person, [['them', '오늘 크리스마스 D-100이래'], ['them', '벌써 그렇게 됐나 싶다']]), choices: [
         { label: '"그럼 크리스마스 같이 보낼래?" 하고 마음을 전한다', description: '고백 · 오늘은 타이밍 보너스', campusChoice: 'confess', season: { confess: true, yes: '"좋아. 나도 그 말 기다렸어." 100일 뒤가 기다려지기 시작했다.', no: '"고마워. 그런데 지금은 친구로 지내고 싶어." 조심스러운 답장이 왔다. 마음이 조금 무겁다.' } },
@@ -215,7 +220,7 @@
     function romanceType(s, record) {
       if (record.stage === 'dating') return (record.datesSinceCrisis || 0) >= 2 ? 'crisis' : 'date';
       if (['none', 'ended'].includes(record.stage)) return 'meet';
-      if (!s.romance.datingId && !record.friendshipOnly && (s.romance.relationships || 0) < 2 && record.bond >= 55 && record.meetings >= 4 && s.turn - record.lastConfessionTurn >= 10) return 'invite';
+      if (!s.romance.datingId && !record.friendshipOnly && (s.romance.relationships || 0) < 3 && record.bond >= 55 && record.meetings >= 4 && s.turn - record.lastConfessionTurn >= 10) return 'invite';
       return 'chat';
     }
     function recordRomanceMoment(s, characterId, eventType, text) {
@@ -446,7 +451,7 @@
       const season = seasonEvent(s);
       if (season) { history.lastTurn = now; return [season]; }
       // 새 학년이 되면 연애 중인 관계에 작은 위기가 찾아옵니다(반·시간표가 바뀌는 시기).
-      { const rr = initRomance(s); if (rr.datingId && [7, 14, 21, 28, 35].includes(s.turn) && s.turn - (rr.records[rr.datingId].datingSince ?? -99) >= 5 && !(rr.yearCrisis || []).includes(s.turn)) { rr.yearCrisis = [...(rr.yearCrisis || []), s.turn]; history.lastTurn = now; return [romanceEvent(s, 'crisis', rr.datingId)]; } }
+      { const rr = initRomance(s); if (rr.datingId && ([7, 14, 21, 28, 35].includes(s.turn) || ((rr.relationships || 0) >= 2 && s.turn % 7 === 4)) && s.turn - (rr.records[rr.datingId].datingSince ?? -99) >= ((rr.relationships || 0) >= 2 ? 2 : 5) && !(rr.yearCrisis || []).includes(s.turn)) { rr.yearCrisis = [...(rr.yearCrisis || []), s.turn]; history.lastTurn = now; return [romanceEvent(s, 'crisis', rr.datingId)]; } }
       if (now - history.lastTurn < 2 || rng(s) >= 0.72) return [];
       const candidates = [{ id: 'earn', weight: 1 }, { id: 'device_study', weight: 0.7 }];
       if (s.dorm.status !== 'expelled') {
@@ -512,9 +517,9 @@
       // Personal outcomes stay inside the simulation; prose never ranks genders or exposes these mechanics.
       // v0.14: 성별과 무관하게 호감(bond)·신뢰(trust)·타이밍(기념일 보너스)으로 판정합니다.
       if (!Number.isFinite(r.trust)) r.trust = Math.round((r.bond || 0) * 0.6);
-      const confession = clamp(0.56 + (r.bond - 60) * 0.012 + (r.trust - 40) * 0.006 + ((s.stats.social || 0) - 50) * 0.002 + (event.seasonBonus || 0) + ((romance.relationships || 0) === 1 ? 0.15 : 0), 0.04, 0.7);
+      const confession = clamp(0.55 + (r.bond - 60) * 0.012 + (r.trust - 40) * 0.006 + ((s.stats.social || 0) - 50) * 0.002 + (event.seasonBonus || 0) + ((romance.relationships || 0) === 1 ? 0 : (romance.relationships || 0) === 2 ? 0 : 0), 0.04, 0.75);
       const startDating = () => { r.stage = 'dating'; r.datingSince = s.turn; r.bond = Math.max(r.bond, 55); romance.relationships = (romance.relationships || 0) + 1; r.datesSinceCrisis = 0; setMood(s, 'flutter', 2); shift(s, { stress: -5, resilience: 1 }); };
-      const breakUp = (text) => { r.stage = 'ended'; r.bond = 15; r.trust = 10; r.cooldownUntil = s.turn + 14; if (romance.datingId === characterId) romance.datingId = null; setMood(s, 'heavy', 3); shift(s, { stress: 8 }); messages.push(text); const next = oppositeCandidates(s).filter(p => p.id !== characterId).sort((a, b) => (romance.records[b.id].bond || 0) - (romance.records[a.id].bond || 0))[0]; if (next) romance.targetId = next.id; };
+      const breakUp = (text) => { r.stage = 'ended'; r.bond = 15; r.trust = 10; r.cooldownUntil = s.turn + 14; if (romance.datingId === characterId) romance.datingId = null; setMood(s, 'heavy', 3); shift(s, { stress: 8 }); messages.push(text); const next = oppositeCandidates(s).filter(p => p.id !== characterId).sort((a, b) => (romance.records[b.id].bond || 0) - (romance.records[a.id].bond || 0))[0]; if (next) { romance.targetId = next.id; const nr = romance.records[next.id]; if ((romance.relationships || 0) >= 2 && nr.stage !== 'ended') { nr.met = true; if (nr.stage === 'none') nr.stage = 'friendship'; nr.bond = Math.max(nr.bond || 0, 56); nr.meetings = Math.max(nr.meetings || 0, 4); nr.lastConfessionTurn = Math.min(nr.lastConfessionTurn ?? -20, s.turn - 10); } } };
       if (event.id === 'campus_romance_meet') {
         if (key === 'hello') {
           if (rng(s) < clamp(0.72 + ((s.stats.social || 0) - 50) * 0.002, 0.5, 0.9)) { r.stage = 'friendship'; r.bond = 28; r.meetings = 1; r.friendshipOnly = false; r.lastConfessionTurn = -20; shift(s, { social: 1 }); messages.push(`${withParticle(r.partnerName)} 관심사를 나누며 친구가 되었다.`); }
@@ -542,7 +547,7 @@
         else throw new Error('지금 가능한 선택지를 골라 주세요.');
       } else if (event.id === 'campus_romance_crisis') {
         r.datesSinceCrisis = 0;
-        if (key === 'talk') { const ok = rng(s) < clamp(0.15 + (r.trust || 0) * 0.004 + ((s.stats.resilience || 0) - 50) * 0.003, 0.3, 0.9); if (ok) { r.trust = clamp((r.trust || 0) + 8); r.bond = clamp(r.bond + 3); shift(s, { resilience: 2, stress: -3 }); messages.push(`${withParticle(r.partnerName)} 솔직하게 이야기를 나눴다. 오해가 풀리고 서로를 더 잘 알게 되었다.`); } else breakUp('이야기를 나눌수록 서로 바라는 것이 다르다는 걸 알게 됐다. 고마운 마음을 전하고 각자의 길을 응원하기로 했다.'); }
+        if (key === 'talk') { const ok = rng(s) < clamp(0.15 + (r.trust || 0) * 0.004 + ((s.stats.resilience || 0) - 50) * 0.003 - ((romance.relationships || 0) >= 2 ? 0.2 : 0), 0.2, 0.9); if (ok) { r.trust = clamp((r.trust || 0) + 8); r.bond = clamp(r.bond + 3); shift(s, { resilience: 2, stress: -3 }); messages.push(`${withParticle(r.partnerName)} 솔직하게 이야기를 나눴다. 오해가 풀리고 서로를 더 잘 알게 되었다.`); } else breakUp('이야기를 나눌수록 서로 바라는 것이 다르다는 걸 알게 됐다. 고마운 마음을 전하고 각자의 길을 응원하기로 했다.'); }
         else if (key === 'time') { if (rng(s) < 0.55) { r.trust = clamp((r.trust || 0) + 2); shift(s, { stress: -1 }); messages.push('잠시 각자의 시간을 가진 뒤 다시 편하게 이야기할 수 있었다.'); } else breakUp('시간을 갖는 사이 마음이 조금씩 멀어졌다. 서로에게 좋은 친구로 남기로 했다.'); }
         else if (key === 'end') breakUp('지금은 각자에게 집중하는 게 좋겠다고 솔직하게 말했다. 정중하게 관계를 마무리했다.');
         else throw new Error('지금 가능한 선택지를 골라 주세요.');
