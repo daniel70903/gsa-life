@@ -109,12 +109,8 @@ module.exports = function verifyV6(ctx) {
   assert.deepEqual(physical.majorSnapshot,snapshot,'Caller mutations cannot rewrite submitted eligibility');
   assert.ok(Object.isFrozen(physical.majorSnapshot));
   toTurn(physical,38);
-  seek(physical,'university_interview');
-  const firstQuestion=E.getMajorInterviewQuestion('physics');
-  assert.ok(physical.pendingEvent.description.includes(firstQuestion.question),'The first interview question follows the selected major');
-  const pendingInterview=E.migrate(copy(physical));
-  E.chooseEvent(physical,0);E.chooseEvent(pendingInterview,0);
-  assert.deepEqual(pendingInterview,physical,'Major-specific interviews survive reload');
+  // v0.14: 대학 면접은 선택 없이 자동 판정됩니다.
+  assert.ok(physical.universityInterviews.length===2&&physical.universityInterviews.every(i=>i.auto||i.documentOnly),'Interviews are automatic');
   resolve(physical);toTurn(physical,40);resolve(physical);
   assert.deepEqual(physical.majorSnapshot,snapshot,'Later grades and activities cannot alter submitted major evidence');
   assert.deepEqual(physical.universityInterviews.map(i=>i.majorId),['physics','math']);

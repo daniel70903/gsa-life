@@ -401,6 +401,8 @@
       let chosen = candidates[candidates.length - 1];
       for (const c of candidates) { draw -= c.weight; if (draw < 0) { chosen = c; break; } }
       history.lastTurn = now;
+      // v0.14 복잡도 개선: 배달·전자기기·용돈 벌이 같은 기회 사건은 절반만 묻습니다.
+      if (!chosen.available && rng(s) < 0.5) return [];
       if (chosen.available) {
         // Roll for the classmate only after selecting a relationship encounter.
         const selected = chosen.available.find(person => person.id === r.targetId);
