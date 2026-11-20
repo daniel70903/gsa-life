@@ -658,11 +658,11 @@
       const w = plannerWindow(s), prev = s.studyPlanner;
       // v0.14 복잡도 개선: 자습 플래너는 학기에 한 번(중간고사 전)만 묻고, 기말에는 같은 계획을 이어 갑니다.
       if (!prev || prev.key !== w.key) {
-        if (s.turn % 7 === 4 && prev && Array.isArray(prev.days) && prev.key === `${Math.floor(s.turn / 7)}:mid`) {
+        if (prev && Array.isArray(prev.days) && prev.days.length) {
           const levels = [...new Set(prev.days.map(d => d.turn))].sort((a, b) => a - b).map(t => plannerWeekLevel(s, t) || 'none');
           makePlanner(s, prev.preset === 'custom' ? 'custom' : prev.preset);
           if (prev.preset === 'custom') { const weeks = [...new Set(s.studyPlanner.days.map(d => d.turn))].sort((a, b) => a - b); weeks.forEach((t, i) => { const lv = levels[i] || 'none'; for (const d of s.studyPlanner.days.filter(x => x.turn === t)) { d.night = lv !== 'none'; d.dawn = lv === 'both' && s.studyPlanner.examTurn - t <= 1; } }); }
-          note(s, '기말고사 자습 플래너는 중간고사 때 계획을 그대로 이어 간다. 홈 화면에서 주마다 바꿀 수 있다.', 'school');
+          note(s, `${w.examName} 자습 플래너는 지난 계획을 그대로 이어 간다. 홈 화면에서 주마다 바꿀 수 있다.`, 'school');
         } else events.push(plannerEvent(s));
       }
     }
@@ -902,6 +902,65 @@
     s.lastWeekReport = { turn: s.turn, focusId: dominant, plan, focusName: label, dailyEvents: s.weekDaily.slice(), activities: routine.activities, deltas, moneyDelta: s.money.balance - beforeMoney, eventCount: (s.pendingEvent ? 1 : 0) + s.eventQueue.length, eventsResolved: 0, commitment };
     return { ...result, report: s.lastWeekReport };
   }
+  // v0.14 2주 단위 진행: 한 번 진행하면 2주(학기 7주차는 1주)가 흐릅니다.
+  // 사소한 사건(일상·기회)은 한 구간에 한 번만 직접 고르고 나머지는 자동으로 처리합니다.
+  let spanDepth = 0;
+  const ALWAYS_AUTO = /^(campus_romance_meet|campus_romance_chat|tournament_bus|tournament_opening|tournament_closegame)$/;
+  const CAPPED_MINOR = /^(daily_|campus_opportunity_)/;
+  function spanLength(s) { return Math.max(1, Math.min(s.turn % 7 === 6 ? 1 : 2, 42 - s.turn)); }
+  function autoChoiceIndex(e) {
+    const by = key => e.choices.findIndex(c => c.campusChoice === key);
+    if (e.id === 'campus_romance_meet') return Math.max(0, by('hello'));
+    if (e.id === 'campus_romance_chat') return Math.max(0, by('talk'));
+    if (/^campus_opportunity_/.test(e.id)) return by('skip') >= 0 ? by('skip') : e.choices.length - 1;
+    return 0;
+  }
+  function autoResolveMinor(s) {
+    const sp = s.span; let guard = 0;
+    while (s.pendingEvent && s.alive && guard++ < 40) {
+      const e = s.pendingEvent, id = String(e.id || '');
+      const minorDue = !Number.isFinite(s.lastMinorTurn) || s.turn - s.lastMinorTurn >= 4;
+      const auto = !!s.spanMode && (ALWAYS_AUTO.test(id) || e.choices.length === 1 || (CAPPED_MINOR.test(id) && ((sp && sp.shownMinor) || !minorDue)));
+      if (!auto) { if (CAPPED_MINOR.test(id)) { if (sp) sp.shownMinor = true; s.lastMinorTurn = s.turn; } return; }
+      const index = autoChoiceIndex(e), label = e.choices[index].label;
+      spanDepth++; try { chooseEvent(s, index); } finally { spanDepth--; }
+      if (sp) sp.auto.push({ title: e.title, label });
+    }
+  }
+  function finishSpanReport(s) {
+    const sp = s.span; if (!sp || !s.lastWeekReport) return;
+    const r = s.lastWeekReport, deltas = {};
+    for (const key of Object.keys(s.stats)) { const d = round(s.stats[key] - (sp.startStats[key] || 0)); if (d) deltas[key] = d; }
+    r.deltas = deltas; r.moneyDelta = s.money.balance - sp.startMoney; r.weeks = sp.weeksRun; r.startTurn = sp.startTurn;
+    r.dailyEvents = [...sp.daily, ...(r.dailyEvents || []).filter(d => !sp.daily.includes(d))];
+    r.activities = [...new Set([...(sp.activities || []), ...(r.activities || [])])];
+    r.autoEvents = sp.auto.slice();
+  }
+  function continueSpan(s) {
+    const sp = s.span; if (!sp) return null;
+    let last = null;
+    autoResolveMinor(s);
+    while (!s.pendingEvent && sp.remaining > 0 && s.alive !== false) {
+      const p = getPhase(s);
+      if (p.isEnd || p.needsEnrollment || p.needsApplications || s.emergency) { sp.remaining = 0; break; }
+      if (s.lastWeekReport && sp.weeksRun) { sp.daily.push(...(s.lastWeekReport.dailyEvents || [])); sp.activities.push(...(s.lastWeekReport.activities || [])); }
+      last = simulateWeek(s, sp.plan, sp.studyMode, sp.weeksRun === 0 ? sp.commitment : null);
+      sp.weeksRun++; sp.remaining--;
+      if (last && last.semesterResult) sp.semesterResult = last.semesterResult;
+      autoResolveMinor(s);
+    }
+    finishSpanReport(s);
+    const result = { messages: last ? last.messages : [], event: s.pendingEvent, semesterResult: sp.semesterResult || null, weeks: sp.weeksRun, span: true };
+    if (sp.remaining <= 0) s.span = null;
+    return result;
+  }
+  function simulateSpan(s, focusId, studyMode = 'normal', commitment = null) {
+    assertAlive(s);
+    if (s.pendingEvent) throw new Error('먼저 지금의 사건에서 선택해 주세요.');
+    s.spanMode = true;
+    s.span = { plan: typeof focusId === 'object' ? { ...normalizePlan(focusId) } : focusId, studyMode, commitment: commitment || null, remaining: spanLength(s), weeksRun: 0, startTurn: s.turn, startStats: { ...s.stats }, startMoney: s.money.balance, shownMinor: false, auto: [], daily: [], activities: [] };
+    return continueSpan(s);
+  }
   function runWeek(s, actionId, studyMode = 'normal', routine = null) {
     assertAlive(s);
     const p = getPhase(s);
@@ -1070,6 +1129,8 @@
       if (String(e.id || '').startsWith('daily_')) { if (!Array.isArray(s.lastWeekReport.dailyEvents)) s.lastWeekReport.dailyEvents = []; s.lastWeekReport.dailyEvents.push({ id: e.id, title: e.title, label: c.label, chosen: true }); }
       s.lastWeekReport.eventCount = Math.max(s.lastWeekReport.eventCount, s.lastWeekReport.eventsResolved + (s.pendingEvent ? 1 : 0) + s.eventQueue.length);
     }
+    if(!spanDepth&&s.span&&!s.pendingEvent){const more=continueSpan(s);if(more){messages.push(...(more.messages||[]));if(more.semesterResult)return{messages,event:s.pendingEvent,resolvedEventId:e.id,semesterResult:more.semesterResult};}}
+    else if(!spanDepth&&s.spanMode&&s.pendingEvent)autoResolveMinor(s);
     return{messages,event:s.pendingEvent,resolvedEventId:e.id};
   }
 
@@ -1274,7 +1335,7 @@
     if (u && u.completionOk) return true;
     return s.turn < 42 ? null : s.ending === 'graduated';
   }
-  const API = { SNU_UNITS, snuUnitFor, recommendApplications, canEnroll, academicField, LEGACY_ACADEMIC, TERM_WEEKS, TOTAL_WEEKS, legacyWeekToNew, getAchievements, getCareer, getOverall, ensurePotential, OVR_SHAPE, OVR_WEIGHTS, getClassRank, courseKind, EXAM_CALIBRATION, EXAM_SHAPE, coreTables, create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, getAdmissionStatus, unitName, APPLICATION_LIMIT, PLAN_BLOCKS, normalizePlan, planLabel, setStudyPlannerDay, setStudyPlannerWeek, plannerWeekLevel, plannerWindow, plannerFractions, PLANNER_DAYS, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
+  const API = { simulateSpan, continueSpan, spanLength, SNU_UNITS, snuUnitFor, recommendApplications, canEnroll, academicField, LEGACY_ACADEMIC, TERM_WEEKS, TOTAL_WEEKS, legacyWeekToNew, getAchievements, getCareer, getOverall, ensurePotential, OVR_SHAPE, OVR_WEIGHTS, getClassRank, courseKind, EXAM_CALIBRATION, EXAM_SHAPE, coreTables, create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, getAdmissionStatus, unitName, APPLICATION_LIMIT, PLAN_BLOCKS, normalizePlan, planLabel, setStudyPlannerDay, setStudyPlannerWeek, plannerWeekLevel, plannerWindow, plannerFractions, PLANNER_DAYS, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopItems: campus.shopItems, campusActions: campus.actions, getRomanceRoster: campus.getRomanceRoster, selectRomanceTarget: campus.selectRomanceTarget, romanceCandidates: campus.romanceCandidates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
   root.GSAEngine = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -369,7 +369,10 @@
       const events = [], q = s.school;
       if (s.turn % 7 === 0) {
         const term = s.turn / 7, key = `class:${term}`;
-        if (!q.scheduledKeys.includes(key) && !q.officerHistory.some(h => h.term === term)) { q.currentRole = null; s.classRole = '일반 학생'; q.scheduledKeys.push(key); events.push(classElection(s, term)); }
+        const prevTerm = q.officerHistory.find(h => h.term === term - 1);
+        // v0.14 선택 줄이기: 학급 임원은 학년 초에 뽑고 2학기에는 그대로 이어 갑니다.
+        if (term % 2 === 1 && prevTerm && !q.officerHistory.some(h => h.term === term)) { q.scheduledKeys.push(key); q.officerHistory.push({ ...JSON.parse(JSON.stringify(prevTerm)), term, semester: 2, continued: true }); q.currentRole = prevTerm.playerRole; s.classRole = prevTerm.playerRole || '일반 학생'; }
+        else if (!q.scheduledKeys.includes(key) && !q.officerHistory.some(h => h.term === term)) { q.currentRole = null; s.classRole = '일반 학생'; q.scheduledKeys.push(key); events.push(classElection(s, term)); }
       }
       for (const trip of tripsFor(s)) if (trip.turn === s.turn && !q.scheduledKeys.includes(`trip:${trip.id}`) && !q.fieldCredits.some(r => r.id === trip.id)) { q.scheduledKeys.push(`trip:${trip.id}`); events.push(tripEvent(trip)); }
       for (const c of CONTESTS) if (c.turn === s.turn && !q.scheduledKeys.includes(`contest:${c.id}`)) {

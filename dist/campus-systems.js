@@ -157,6 +157,9 @@
       const pool = oppositeCandidates(s), target = pool.find(p => p.id === r.targetId) || pool[0];
       if (!target) return null;
       const rec = r.records[target.id]; r.seasonsSeen = r.seasonsSeen || [];
+      // v0.14 2주 단위: 기념일 이벤트는 학기에 하나만. 고백할 수 있는 상황이면 화이트데이보다 만우절을 남겨 둡니다.
+      if (r.seasonsSeen.some(k => k.endsWith(`:${term}`))) return null;
+      if (week === 2 && term % 2 === 0 && SEASONS.find(x => x.id === 'aprilfools').when(s, rec) && rec.met) return null;
       const sc = SEASONS.find(x => x.week === week && (x.term === 'even' ? term % 2 === 0 : term % 2 === 1) && !r.seasonsSeen.includes(`${x.id}:${term}`) && (rec.met || x.id === 'blackday') && x.when(s, rec));
       if (!sc) return null;
       const key = `${sc.id}:${term}`;
@@ -443,7 +446,7 @@
       const season = seasonEvent(s);
       if (season) { history.lastTurn = now; return [season]; }
       // 새 학년이 되면 연애 중인 관계에 작은 위기가 찾아옵니다(반·시간표가 바뀌는 시기).
-      { const rr = initRomance(s); if (rr.datingId && [14, 21, 28].includes(s.turn) && !(rr.yearCrisis || []).includes(s.turn)) { rr.yearCrisis = [...(rr.yearCrisis || []), s.turn]; history.lastTurn = now; return [romanceEvent(s, 'crisis', rr.datingId)]; } }
+      { const rr = initRomance(s); if (rr.datingId && [7, 14, 21, 28, 35].includes(s.turn) && s.turn - (rr.records[rr.datingId].datingSince ?? -99) >= 5 && !(rr.yearCrisis || []).includes(s.turn)) { rr.yearCrisis = [...(rr.yearCrisis || []), s.turn]; history.lastTurn = now; return [romanceEvent(s, 'crisis', rr.datingId)]; } }
       if (now - history.lastTurn < 2 || rng(s) >= 0.72) return [];
       const candidates = [{ id: 'earn', weight: 1 }, { id: 'device_study', weight: 0.7 }];
       if (s.dorm.status !== 'expelled') {
@@ -509,9 +512,9 @@
       // Personal outcomes stay inside the simulation; prose never ranks genders or exposes these mechanics.
       // v0.14: 성별과 무관하게 호감(bond)·신뢰(trust)·타이밍(기념일 보너스)으로 판정합니다.
       if (!Number.isFinite(r.trust)) r.trust = Math.round((r.bond || 0) * 0.6);
-      const confession = clamp(0.37 + (r.bond - 60) * 0.012 + (r.trust - 40) * 0.006 + ((s.stats.social || 0) - 50) * 0.002 + (event.seasonBonus || 0) + ((romance.relationships || 0) === 1 ? 0.15 : 0), 0.04, 0.7);
-      const startDating = () => { r.stage = 'dating'; r.bond = Math.max(r.bond, 55); romance.relationships = (romance.relationships || 0) + 1; r.datesSinceCrisis = 0; setMood(s, 'flutter', 2); shift(s, { stress: -5, resilience: 1 }); };
-      const breakUp = (text) => { r.stage = 'ended'; r.bond = 15; r.trust = 10; r.cooldownUntil = s.turn + 30; if (romance.datingId === characterId) romance.datingId = null; setMood(s, 'heavy', 3); shift(s, { stress: 8 }); messages.push(text); const next = oppositeCandidates(s).filter(p => p.id !== characterId).sort((a, b) => (romance.records[b.id].bond || 0) - (romance.records[a.id].bond || 0))[0]; if (next) romance.targetId = next.id; };
+      const confession = clamp(0.56 + (r.bond - 60) * 0.012 + (r.trust - 40) * 0.006 + ((s.stats.social || 0) - 50) * 0.002 + (event.seasonBonus || 0) + ((romance.relationships || 0) === 1 ? 0.15 : 0), 0.04, 0.7);
+      const startDating = () => { r.stage = 'dating'; r.datingSince = s.turn; r.bond = Math.max(r.bond, 55); romance.relationships = (romance.relationships || 0) + 1; r.datesSinceCrisis = 0; setMood(s, 'flutter', 2); shift(s, { stress: -5, resilience: 1 }); };
+      const breakUp = (text) => { r.stage = 'ended'; r.bond = 15; r.trust = 10; r.cooldownUntil = s.turn + 14; if (romance.datingId === characterId) romance.datingId = null; setMood(s, 'heavy', 3); shift(s, { stress: 8 }); messages.push(text); const next = oppositeCandidates(s).filter(p => p.id !== characterId).sort((a, b) => (romance.records[b.id].bond || 0) - (romance.records[a.id].bond || 0))[0]; if (next) romance.targetId = next.id; };
       if (event.id === 'campus_romance_meet') {
         if (key === 'hello') {
           if (rng(s) < clamp(0.72 + ((s.stats.social || 0) - 50) * 0.002, 0.5, 0.9)) { r.stage = 'friendship'; r.bond = 28; r.meetings = 1; r.friendshipOnly = false; r.lastConfessionTurn = -20; shift(s, { social: 1 }); messages.push(`${withParticle(r.partnerName)} 관심사를 나누며 친구가 되었다.`); }

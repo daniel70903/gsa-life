@@ -122,7 +122,7 @@ module.exports = function verifyV5(ctx) {
       trialCounts[variant]+=s.romance.records[invitation.pendingEvent.characterId].stage==='dating';
     }
   }
-  assert.ok(trialCounts.baseline>=150&&trialCounts.baseline<=240,`Neutral confession at bond 60 stays near one in three: ${trialCounts.baseline}/600`);
+  assert.ok(trialCounts.baseline>=270&&trialCounts.baseline<=380,`Neutral confession at bond 60 succeeds about half the time: ${trialCounts.baseline}/600`);
   assert.ok(trialCounts.social>trialCounts.baseline,'Social ability helps under matched random draws');
   assert.equal(trialCounts.athletics,trialCounts.baseline,'Athletic stats no longer change confession outcomes');
   assert.equal(trialCounts.female,trialCounts.baseline,'Confession outcomes are independent of the player gender');
