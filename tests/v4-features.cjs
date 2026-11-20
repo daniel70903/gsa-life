@@ -67,8 +67,8 @@ module.exports = function verifyV4(ctx) {
     m.gender = 'male'; f.gender = 'female'; m.rng = seed; f.rng = seed;
     assert.deepEqual(m.pendingEvent, f.pendingEvent, 'Choice prose is independent of hidden gender weights');
     E.chooseEvent(m, 0); E.chooseEvent(f, 0);
-    maleFriends += m.romance.stage === 'friendship';
-    femaleFriends += f.romance.stage === 'friendship';
+    maleFriends += m.romance.records[meeting.pendingEvent.characterId].stage === 'friendship';
+    femaleFriends += f.romance.records[meeting.pendingEvent.characterId].stage === 'friendship';
     for (const state of [m,f]) {
       noLeak(state);
       const prose = JSON.stringify([state.pendingEvent, state.eventQueue, state.log]);

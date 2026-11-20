@@ -272,7 +272,7 @@
   function note(s, message, category = 'life') { s.log.unshift({ turn: s.turn, message, category }); }
   const hooks = { rng, shift, note, clamp, round, addLearning, getPhase, getSubjects, assertAlive };
   const campus = campusModule.createAPI(hooks), school = schoolModule.createAPI(hooks), tournaments = tournamentModule.createAPI(hooks);
-  const curriculum = curriculumModule.createAPI({ ...hooks, legacySubjects: getLegacySubjects });
+  const curriculum = curriculumModule.createAPI({ ...hooks, legacySubjects: getLegacySubjects, creditShortfall: s => { const g = getGraduationStatus(s); return g.creditRule ? Math.max(0, g.creditRule - g.totalCredits) : 0; } });
   const majors = majorModule.createAPI({ ...hooks, getEvidence: curriculum.getEvidence, universities });
   actions.push(...campus.actions, ...school.actions);
   function create(name = '새로운 학생', seed, options = {}) {
@@ -317,7 +317,7 @@
     const curriculumStatus = curriculum.getStatus(s), courseRequirements = Array.isArray(curriculumStatus.requirements) ? curriculumStatus.requirements : [];
     const curriculumPassed = !s.curriculum || !!curriculumStatus.legacyExempt || courseRequirements.every(r => r.complete);
     // v0.14: 졸업 이수학점 180학점(교과 + 연구활동 + 현장연구). 새로 시작한 게임에만 적용합니다.
-    const totalCredits = (s.grades || []).reduce((n, g) => n + (Number.isFinite(g.earnedCredits) ? g.earnedCredits : (Number(g.credits) || 0)), 0) + fieldCredits;
+    const totalCredits = (s.grades || []).reduce((n, g) => n + (Number.isFinite(g.earnedCredits) ? g.earnedCredits : (Number(g.credits) || 0)), 0) + (s.curriculum?.makeups || []).reduce((n, m) => n + (m.passed ? Number(m.credits) || 0 : 0), 0) + fieldCredits;
     const creditRule = Number(s.creditRule) || 0, creditsPassed = !creditRule || totalCredits >= creditRule;
     const extra = creditRule ? [{ id: 'total', label: `총 이수학점 ${creditRule}학점`, current: totalCredits, required: creditRule, complete: creditsPassed }] : [];
     return { toeicScore, toeicRequired: 730, toeicPassed, fieldCredits, fieldRequired: 6, fieldPassed, totalCredits, creditRule, creditsPassed, curriculumPassed, curriculumStatus, eligible: s.alive !== false && !s.emergency && toeicPassed && fieldPassed && curriculumPassed && creditsPassed, requirements: [{ id: 'toeic', label: 'TOEIC 730점', current: toeicScore, required: 730, complete: toeicPassed }, { id: 'field', label: '현장연구 6학점', current: fieldCredits, required: 6, complete: fieldPassed }, ...extra, ...courseRequirements] };
@@ -922,7 +922,10 @@
     const dorm = getDormStatus(s);
     if (dorm.efficiency < 1) { shift(s, { fatigue: 2, stress: 2 }); messages.push(s.dorm && s.dorm.status === 'expelled' ? '통학에 쓰는 시간과 피로 때문에 공부에 집중할 여유가 줄었다.' : '기숙사 관계가 불편해 잠과 공부에 집중하기 어려웠다.'); }
     const courseLoad = curriculum.workload(s);
-    const efficiency = (wasSick ? 0.72 : 1) * dorm.efficiency * courseLoad.learningMultiplier;
+    // v0.14 연애 기분: 설렘은 효율 +5%, 마음이 무거운 주는 효율 −8%·스트레스 +2
+    const moodNow = s.mood && s.turn < s.mood.until ? s.mood.kind : null;
+    if (moodNow === 'heavy') shift(s, { stress: 2 });
+    const efficiency = (wasSick ? 0.72 : 1) * dorm.efficiency * courseLoad.learningMultiplier * (moodNow === 'flutter' ? 1.05 : moodNow === 'heavy' ? 0.92 : 1);
     if (courseLoad.fatigueExtra || courseLoad.stressExtra) { shift(s, { fatigue: courseLoad.fatigueExtra, stress: courseLoad.stressExtra }); if (routine) routine.activities.push(`${courseLoad.totalCredits}학점의 수업과 과제를 계획에 맞춰 진행했다.`); }
     const learn = (n, field) => addLearning(s, n * efficiency, field);
     learn(1.35 + s.stats.discipline * 0.004);

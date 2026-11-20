@@ -97,8 +97,9 @@ module.exports = function verifyV8(ctx) {
   // Choosing a person is a preference, not a free relationship action or a cooldown reset.
   const social=fresh('v8-roster');resolve(social);social.turn=11;
   const roster=E.getRomanceRoster(social);
-  assert.equal(roster.length,6);assert.equal(new Set(roster.map(p=>p.id)).size,6);assert.equal(new Set(roster.map(p=>p.name)).size,6);
-  assert.equal(new Set(roster.map(p=>p.portraitIndex)).size,6);assert.ok(roster.every(p=>p.personality&&p.interests.length));
+  // v0.14: 이성 후보만 보여 줍니다(학교 방송 기준).
+  assert.equal(roster.length,3);assert.ok(roster.every(p=>p.gender!==social.gender),'Only opposite-gender classmates are listed');assert.equal(new Set(roster.map(p=>p.id)).size,3);assert.equal(new Set(roster.map(p=>p.name)).size,3);
+  assert.equal(new Set(roster.map(p=>p.portraitIndex)).size,3);assert.ok(roster.every(p=>p.personality&&p.interests.length));
   const progress=copy({records:social.romance.records,stats:social.stats,money:social.money,turn:social.turn,rng:social.rng});
   for(const person of [...roster,...roster].reverse()) {
     E.selectRomanceTarget(social,person.id);
@@ -116,8 +117,8 @@ module.exports = function verifyV8(ctx) {
   let nextRandom=0;
   const campus=campusModule.createAPI({rng:()=>nextRandom,shift:(s,changes)=>{for(const [k,v]of Object.entries(changes))s.stats[k]=(s.stats[k]||0)+v;},note:()=>{},addLearning:()=>{},clamp:(n,lo=0,hi=100)=>Math.max(lo,Math.min(hi,n)),round:n=>Math.round(n*10)/10});
   const encounters=new Set(),dates=new Set();
-  for(const person of roster) {
-    const s=fresh(`v8-person-${person.id}`);resolve(s);s.turn=11;E.selectRomanceTarget(s,person.id);
+  for(const person of E.romanceCandidates) {
+    const s=E.create('시뮬레이션 검증',`v8-person-${person.id}`,{gender:person.gender==='female'?'male':'female'});E.setClubs(s,'physics','none');resolve(s);s.turn=11;E.selectRomanceTarget(s,person.id);
     const others=copy(Object.fromEntries(Object.entries(s.romance.records).filter(([id])=>id!==person.id)));
     const meet=campus.handleAction(s,'romance').events[0];assert.equal(meet.id,'campus_romance_meet');assert.equal(meet.characterId,person.id);assert.ok(meet.description.includes(person.name));encounters.add(meet.description);
     campus.resolve(s,meet,meet.choices.find(c=>c.campusChoice==='hello'));
@@ -127,7 +128,7 @@ module.exports = function verifyV8(ctx) {
     const invite=campus.handleAction(s,'romance').events[0];assert.equal(invite.id,'campus_romance_invite');
     const declined=copy(s);nextRandom=.99;campus.resolve(declined,invite,invite.choices.find(c=>c.campusChoice==='ask'));nextRandom=0;
     assert.equal(declined.romance.records[person.id].stage,'friendship');assert.ok(declined.romance.records[person.id].cooldownUntil>declined.turn);
-    const refused=copy(declined.romance.records[person.id]);const other=roster.find(p=>p.id!==person.id);
+    const refused=copy(declined.romance.records[person.id]);const other=E.romanceCandidates.find(p=>p.id!==person.id&&p.gender===person.gender);
     E.selectRomanceTarget(declined,other.id);E.selectRomanceTarget(declined,person.id);
     assert.deepEqual(declined.romance.records[person.id],refused,'Switching away and back cannot bypass a refusal cooldown');
     assert.equal(campus.handleAction(declined,'romance').events.length,0);

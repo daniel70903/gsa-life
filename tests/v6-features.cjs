@@ -129,7 +129,7 @@ module.exports = function verifyV6(ctx) {
   assert.equal(failing.ending,'deferred');
   const transcriptBeforeMakeup=copy(failing.grades),makeupStart=failing.extraWeeks;
   let makeupCount=0;
-  while(!E.getCurriculumStatus(failing).complete&&makeupCount++<30) {
+  while((!E.getCurriculumStatus(failing).complete||!E.getGraduationStatus(failing).creditsPassed)&&makeupCount++<30) {
     if(failing.stats.fatigue>65||failing.stats.stress>70){E.prepareToeic(failing);resolve(failing);}
     const options=E.getCourseMakeupOptions(failing);
     assert.ok(options.length,'A missing category has an attainable make-up option');
