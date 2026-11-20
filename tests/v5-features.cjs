@@ -48,7 +48,7 @@ module.exports = function verifyV5(ctx) {
     for(const key of ['intelligence','social','athletics','discipline','luck','creativity','resilience','leadership','research'])s.stats[key]=50;
     let invited=false;
     while(s.turn<42 && s.alive) {
-      settle(s,e=>{if(e.id==='campus_romance_invite')invited=true;}); if(!s.alive)break;
+      settle(s,e=>{if(e.id==='campus_romance_invite'||(e.id==='campus_romance_season'&&['aprilfools','confessday'].includes(e.season)))invited=true;}); if(!s.alive)break;
       const commitment=s.turn>=28&&E.getFieldStatus(s).canIndependent?'fieldresearch':null;
       E.simulateWeek(s,'balanced','normal',commitment);
     }
@@ -67,7 +67,7 @@ module.exports = function verifyV5(ctx) {
   for(let seed=0;seed<12;seed++) {
     const s=fresh(2100+seed); resolve(s); let invited=false;
     while(s.turn<42&&s.alive) {
-      settle(s,e=>{if(e.id==='campus_romance_invite')invited=true;});
+      settle(s,e=>{if(e.id==='campus_romance_invite'||(e.id==='campus_romance_season'&&['aprilfools','confessday'].includes(e.season)))invited=true;});
       if(!s.alive)break;
       E.simulateWeek(s,'social','normal',s.turn>=28&&E.getFieldStatus(s).canIndependent?'fieldresearch':null);
     }
@@ -93,7 +93,8 @@ module.exports = function verifyV5(ctx) {
     assert.deepEqual(after.grades,before.grades);
     assert.equal(after.money.balance,before.money.balance);
     assert.deepEqual(after.school.fieldCredits,before.school.fieldCredits);
-    for(const key of Object.keys(before.romance)) assert.deepEqual(after.romance[key],before.romance[key],`Existing romance ${key} is preserved`);
+    const sameGenderLegacy=after.gender&&E.romanceCandidates.find(p=>p.name===before.romance.partnerName)?.gender===after.gender; // v0.14: 아직 만나지 않은 동성 대상은 이성 후보로 바뀝니다.
+    for(const key of Object.keys(before.romance)) if(!(sameGenderLegacy&&key==='partnerName')) assert.deepEqual(after.romance[key],before.romance[key],`Existing romance ${key} is preserved`);
     if(before.pendingEvent?.schoolJourney) {
       assert.deepEqual(after.pendingEvent,before.pendingEvent);
       const restored=E.migrate(copy(after));
@@ -102,7 +103,7 @@ module.exports = function verifyV5(ctx) {
     }
   }
 
-  // A neutral confession has about a one-in-five success rate; social and athletic strengths help internally.
+  // v0.14: 고백 결과는 성별과 무관하며, 호감·신뢰·사회성이 내부적으로 영향을 줍니다.
   const invitation=fresh(2391); resolve(invitation);
   invitation.romance.stage='friendship'; invitation.romance.bond=60;
   invitation.romance.meetings=6; invitation.romance.lastEventTurn=-20;
@@ -118,13 +119,13 @@ module.exports = function verifyV5(ctx) {
       const displayed=JSON.stringify([s.pendingEvent.title,s.pendingEvent.description,...s.pendingEvent.choices.map(c=>[c.label,c.description])]);
       assert.ok(!/(확률|퍼센트|%|남자|여자|남성|여성|운동 수치|사회성 수치)/.test(displayed),'The confession UI does not disclose probability modifiers');
       E.chooseEvent(s,0);
-      trialCounts[variant]+=s.romance.stage==='dating';
+      trialCounts[variant]+=s.romance.records[invitation.pendingEvent.characterId].stage==='dating';
     }
   }
-  assert.ok(trialCounts.baseline>=90&&trialCounts.baseline<=150,`Neutral confession stays near 20 percent: ${trialCounts.baseline}/600`);
+  assert.ok(trialCounts.baseline>=270&&trialCounts.baseline<=380,`Neutral confession at bond 60 succeeds about half the time: ${trialCounts.baseline}/600`);
   assert.ok(trialCounts.social>trialCounts.baseline,'Social ability helps under matched random draws');
-  assert.ok(trialCounts.athletics>trialCounts.baseline,'Athletic ability helps under matched random draws');
-  assert.ok(trialCounts.female>trialCounts.baseline,'Hidden gender weighting remains internal to confession outcomes');
+  assert.equal(trialCounts.athletics,trialCounts.baseline,'Athletic stats no longer change confession outcomes');
+  assert.equal(trialCounts.female,trialCounts.baseline,'Confession outcomes are independent of the player gender');
   counters.confessions={...trialCounts,samples:600};
 
   // Invitations are offers: generating and refusing them does not spend money or record violations.
@@ -137,7 +138,7 @@ module.exports = function verifyV5(ctx) {
   const opportunities=new Map();
   for(let seed=0;seed<300 && opportunities.size<3;seed++) {
     const s=fresh(2700+seed); resolve(s); s.turn=5; s.rng=seed;
-    s.romance.stage='dating'; s.romance.lastEventTurn=5;
+    s.romance.stage='dating'; s.romance.lastEventTurn=5; s.romance.globalLastEventTurn=5;
     nextRandom=(seed%100)/100; drawIndex=0;
     const balance=s.money.balance, violations=copy(s.dorm);
     const offers=campus.automaticEvents(s,{focusId:'balanced',fromTurn:5,commitment:null});

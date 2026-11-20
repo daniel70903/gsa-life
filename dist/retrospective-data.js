@@ -74,7 +74,8 @@
     if (!relationships.length && s.romance && (num(s.romance.meetings) > 0 || ['friendship', 'dating', 'ended'].includes(s.romance.stage))) relationships.push({ id: 'haneul', name: s.romance.partnerName || '하늘', stage: s.romance.stage || 'friendship', meetings: num(s.romance.meetings), bond: num(s.romance.bond), portraitIndex: 4 });
     const resultList = Array.isArray(s.admissions) ? s.admissions : list(s.admissions?.results);
     const admissions = resultList.map(r => ({ name: r.name || lookup('universities', r.id, '지원 대학'), majorName: r.majorName || (typeof engine?.getMajor === 'function' ? engine.getMajor(r.majorId || s.applicationMajors?.[r.id] || 'general')?.name : '') || '전공 기록 없음', accepted: !!r.accepted }));
-    const accepted = admissions.filter(a => a.accepted);
+    if (engine && typeof engine.canEnroll === 'function') admissions.forEach((a, i) => { const raw = resultList[i]; if (a.accepted && engine.canEnroll(s, raw) === false) { a.blocked = true; } });
+    const accepted = admissions.filter(a => a.accepted && !a.blocked);
     const completedTrips = schoolField.filter(r => r.type === 'school');
     const sportsEntries = list(s.tournamentHistory).filter(t => t.participated);
     const olympiadEntries = list(s.olympiadHistory).filter(t => t.participated);
@@ -143,8 +144,11 @@
     const relationshipHistory = list(s.romance?.history).slice().sort((a, b) => num(a.turn) - num(b.turn));
     const relationMoments = relationshipHistory.filter(h => text(h.text)).slice(-3).map(h => ({ label: turnLabel(num(h.turn)), text: h.text }));
     if (!relationMoments.length) for (const r of relationships.slice(0, 3)) relationMoments.push({ label: `${r.meetings}번의 만남`, text: `${r.name} · ${STAGE_NAMES[r.stage] || '함께한 친구'}` });
-    slide('relationships', 'PEOPLE I REMEMBER', '함께한 사람들도 이야기의 일부.', relationships.length ? `${relationships.map(r => r.name).join(', ')}. 만남마다 서로 다른 속도로 관계를 쌓았어. ${relationships.some(r => r.stage === 'dating') ? '마음을 나누던 관계도 이 기록에 남아 있어.' : '친구로 가까워진 시간과 각자의 길로 돌아간 순간을 함께 기억해.'}` : '아직 개별 친구와 쌓인 만남 기록은 없어. 혼자 집중했던 시간도, 일상에서 스쳐 간 인사도 나만의 학교생활이야.', [{ label: '관계 기록', value: `${relationships.length}명` }, { label: '함께한 만남', value: `${sum(relationships, r => r.meetings)}회` }], relationMoments, relationships.map(r => r.id).slice(0, 3));
-    const nextMoments = admissions.map(a => ({ label: a.accepted ? '합격' : '이번 전형 불합격', text: `${a.name} · ${a.majorName}` }));
+    // v0.14 연애 결말: 졸업 시점의 관계를 한 줄로 남깁니다(스킨십 묘사 없음).
+    const nowDating = relationships.find(r => r.stage === 'dating'), loveCount = num(s.romance?.relationships);
+    const loveEnding = !['graduated', 'deferred'].includes(endingKind) ? '' : nowDating ? ` 졸업식 날 ${nowDating.name}와(과) 꽃다발을 들고 사진을 찍었어. 졸업 뒤에도 서로를 응원하기로 했어.` : loveCount ? ' 짧지만 진심이었던 연애도 3년의 한 페이지로 남았어.' : ' 연애는 없었지만, 3년 내내 곁에 있던 친구들이 있었어.';
+    slide('relationships', 'PEOPLE I REMEMBER', '함께한 사람들도 이야기의 일부.', (relationships.length ? `${relationships.map(r => r.name).join(', ')}. 만남마다 서로 다른 속도로 관계를 쌓았어. ${relationships.some(r => r.stage === 'dating') ? '마음을 나누던 관계도 이 기록에 남아 있어.' : '친구로 가까워진 시간과 각자의 길로 돌아간 순간을 함께 기억해.'}` : '아직 개별 친구와 쌓인 만남 기록은 없어. 혼자 집중했던 시간도, 일상에서 스쳐 간 인사도 나만의 학교생활이야.') + loveEnding, [{ label: '관계 기록', value: `${relationships.length}명` }, { label: '함께한 만남', value: `${sum(relationships, r => r.meetings)}회` }, { label: '연애', value: loveCount ? `${loveCount}번` : '없음' }], relationMoments, relationships.map(r => r.id).slice(0, 3));
+    const nextMoments = admissions.map(a => ({ label: a.blocked ? '합격 · 졸업 요건 미충족으로 진학 불가' : a.accepted ? '합격' : '이번 전형 불합격', text: `${a.name} · ${a.majorName}` }));
     let nextBody;
     if (endingKind === 'death') nextBody = '이 학교생활은 여기서 끝났어. 완주하지 못한 시간을 채워 쓰지 않고, 실제로 남긴 기록만 앨범에 담았어.';
     else if (endingKind === 'deferred') nextBody = '정규 3년을 마쳤지만 졸업에는 아직 채울 요건이 남아 있어. 회고를 닫으면 필요한 준비를 계속할 수 있어. 대학 합격과 최종 졸업은 별도로 기록돼.';

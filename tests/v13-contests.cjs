@@ -26,7 +26,7 @@ module.exports = function verifyV13Contests() {
       E.simulateWeek(s, s.stats.fatigue > 60 ? 'recovery' : 'balanced', 'normal', null);
     }
     if (!s.alive) continue;
-    ok(seen >= 4, `seed ${seed} saw first-year contests (${seen})`);
+    ok(s.school.contests.length >= 4 && seen <= 3, `seed ${seed}: first-year contests happen (${s.school.contests.length}) but few ask (${seen})`);
     for (const r of s.school.contests) {
       if (!r.entered) continue; entered++;
       ok(r.quota === Math.ceil(r.applicants * 0.2 - 1e-9), 'quota is top 20% of applicants');

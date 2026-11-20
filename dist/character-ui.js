@@ -39,6 +39,14 @@
     const sports = /basketball|sports|tournament/.test(String(event.id || '')) || /농구|운동부|체육관/.test(event.title || '');
     return `<div class="people-event people-event--self">${player(state, { size: 'small', mood: sports ? 'sports' : 'idle' })}<span>나의 학교생활</span></div>`;
   }
+  // v0.14 광곽톡: 중요한 연애 장면을 메신저 창으로 보여 줍니다(일반적인 메신저 형태, 특정 앱 브랜드 없음).
+  function dm(event, state) {
+    const d = event && event.dm;
+    if (!d || !Array.isArray(d.messages)) return '';
+    const name = d.name || state?.romance?.partnerName || '친구';
+    const bubbles = d.messages.map(m => `<div class="gtalk-row gtalk-row--${m.from === 'me' ? 'me' : 'them'}"><span class="gtalk-bubble">${escape(m.text)}</span></div>`).join('');
+    return `<div class="gtalk" role="group" aria-label="${escape(d.app || '광곽톡')} 대화"><div class="gtalk-head"><span class="gtalk-back" aria-hidden="true">‹</span>${avatar(d.portraitIndex, { size: 'tiny', label: `${name} 캐릭터` })}<div class="gtalk-who"><strong>${escape(name)}</strong><small>${escape(d.app || '광곽톡')} · 방금 전</small></div></div><div class="gtalk-body">${bubbles}<div class="gtalk-typing" aria-hidden="true"><i></i><i></i><i></i></div></div><div class="gtalk-hint">답장을 골라 보내세요</div></div>`;
+  }
   function toggleHTML() {
     return `<button class="people-motion-toggle" type="button" data-people-toggle aria-label="캐릭터 모션 켜기" aria-pressed="false">${playIcon}<span>모션 켜기</span></button>`;
   }
@@ -88,5 +96,5 @@
     }
     synchronize();
   }
-  root.GSAPeople = { avatar, player, event, toggleHTML, init, refresh, portraits };
+  root.GSAPeople = { avatar, player, event, dm, toggleHTML, init, refresh, portraits };
 })(window);

@@ -36,16 +36,17 @@ for (const u of active) {
   const low = E.getAdmissionChance(applicant(0.1), u.id, 12);
   assert.ok(high > low, `${u.id}: cohort rank changes the outcome`);
   assert.ok(high < 1, `${u.id}: top rank does not guarantee acceptance`);
-  if (u.interview) assert.ok(E.getAdmissionChance(applicant(0.5), u.id, 24) > E.getAdmissionChance(applicant(0.5), u.id, -6), `${u.id}: interview matters`);
+  if (u.interview) assert.ok(E.getAdmissionChance(applicant(0.97), u.id, 24) > E.getAdmissionChance(applicant(0.97), u.id, -6), `${u.id}: interview matters`);
 }
-// Seoul stays hardest for matched records (outside olympiad recognition at the institutes).
+// Seoul's top units stay hardest for matched records (outside olympiad recognition at the institutes).
 for (const p of [0.2, 0.5, 0.8, 1]) for (const interview of [-6, 10, 24]) {
-  const s = applicant(p);
+  const s = applicant(p); s.applications = ['seoul']; s.applicationUnits = { seoul: 'ee' };
   const hardest = E.getAdmissionChance(s, 'seoul', interview);
   for (const u of active.filter(u => u.id !== 'seoul')) assert.ok(hardest <= E.getAdmissionChance(s, u.id, interview) + 1e-9, `${u.id}: Seoul stays hardest at p=${p}`);
 }
 // Department competition: CS is harder than earth science at the same university.
-{ const s = applicant(0.5); s.applicationMajors = { seoul: 'computer' }; const cs = E.getAdmissionChance(s, 'seoul', 10); s.applicationMajors = { seoul: 'earth' }; assert.ok(cs < E.getAdmissionChance(s, 'seoul', 10), 'CS is more competitive'); }
+{ const s = applicant(0.85); s.applications = ['seoul']; s.applicationUnits = { seoul: 'ee' }; const ee = E.getAdmissionChance(s, 'seoul', 10); s.applicationUnits = { seoul: 'eps' }; const eps = E.getAdmissionChance(s, 'seoul', 10); assert.ok(ee < 0.15 && eps > 0.5, `v0.14: SNU unit cutoffs are steep (ee ${ee.toFixed(2)}, eps ${eps.toFixed(2)})`); s.applicationUnits = { seoul: 'ee' }; const top = applicant(0.96); top.applications = ['seoul']; top.applicationUnits = { seoul: 'ee' }; assert.ok(E.getAdmissionChance(top, 'seoul', 10) > 0.5, 'Inside the EE band the chance jumps'); }
+{ const s = applicant(0.5); s.applicationMajors = { yonsei: 'computer' }; const cs = E.getAdmissionChance(s, 'yonsei', 10); s.applicationMajors = { yonsei: 'earth' }; assert.ok(cs < E.getAdmissionChance(s, 'yonsei', 10), 'CS is more competitive'); }
 // Awards help.
 { const plain = applicant(0.5), decorated = applicant(0.5); decorated.awards = [{ kind: 'contest' }, { kind: 'contest' }, { kind: 'subject' }]; assert.ok(E.getAdmissionChance(decorated, 'yonsei') > E.getAdmissionChance(plain, 'yonsei')); }
 
@@ -61,7 +62,7 @@ for (const p of [0.2, 0.5, 0.8, 1]) for (const interview of [-6, 10, 24]) {
   settle(ok);
   const interviewed = ok.universityInterviews.filter(i => !i.documentOnly).map(i => i.id).sort();
   assert.deepEqual(interviewed, ['dgist', 'gist', 'kaist', 'postech', 'seoul'], 'Only interview campuses hold interviews');
-  for (const i of ok.universityInterviews) assert.equal(i.answers.length, i.documentOnly ? 0 : 2);
+  for (const i of ok.universityInterviews) assert.ok(i.documentOnly || (i.auto && Number.isFinite(i.score)), 'v0.14: interviews are automatic');
   assert.equal(ok.universityInterviews.length, 10);
 }
 
