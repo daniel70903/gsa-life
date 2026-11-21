@@ -1,0 +1,30 @@
+/* College planning and game-only difficulty labels. */
+.admission-preview {padding:24px;margin:28px 0 18px}
+.admission-preview h2 {margin:9px 0 12px;font-size:21px}
+.admission-preview p,.admission-preview small {line-height:1.9;color:var(--muted,#68746e)}
+.admission-preview small {display:block;margin-top:10px;font-size:11px}
+.university-group {margin:16px 0;border:1px solid #dce2dc;border-radius:12px;background:#fbfcf9;overflow:hidden}
+.university-group>summary {display:flex;align-items:center;gap:12px;padding:18px 20px;cursor:pointer;font-weight:700;list-style:none}
+.university-group>summary::-webkit-details-marker {display:none}
+.university-group>summary::after {content:'+';margin-left:auto;color:#6e7d74;font-size:20px;font-weight:400}
+.university-group[open]>summary::after {content:'−'}
+.university-group>summary small {font-weight:400;color:#758278;font-size:11px}
+.university-group>.university-grid {padding:0 16px 16px;gap:12px}
+.university-group .university {background:#fff;min-width:0}
+.university-level {font-size:10px;letter-spacing:.2px;color:#698074;margin-bottom:12px}
+.university-group h3 {font-size:16px;line-height:1.5;margin:0}
+.university-group .university p {line-height:1.8}
+.university-requirement {font-size:11px;color:#775d33;background:#f7f0df;padding:8px 10px;border-radius:6px;margin:10px 0;line-height:1.7}
+.university-group .university-warning {font-size:11px;color:#9a5740;margin:10px 0}
+.university--below {border-color:#e4cfad}
+.admission-overview {display:flex;align-items:center;gap:32px;border-radius:12px;background:#eaf1e8;padding:22px 26px;margin-bottom:18px}
+.admission-overview strong {display:block;color:#244f42;font-size:34px;margin-top:6px;white-space:nowrap}
+.admission-overview strong small {font-size:13px;font-weight:400;color:#6c7f71}
+.admission-overview p {font-size:12px;line-height:1.9;color:#567064;margin:0}
+@media(max-width:620px){
+ .admission-overview {gap:16px;padding:18px;align-items:flex-start;flex-direction:column}
+ .admission-overview strong {font-size:30px}
+ .university-group>summary {padding:16px;font-size:14px}
+ .university-group>.university-grid {padding:0 10px 10px;grid-template-columns:1fr}
+ .admission-preview {padding:20px}
+}

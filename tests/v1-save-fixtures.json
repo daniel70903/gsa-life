@@ -1,0 +1,1714 @@
+{
+  "early": {
+    "version": 1,
+    "name": "기존 농구부 학생",
+    "seed": 123,
+    "rng": 1135789069,
+    "turn": 0,
+    "stats": {
+      "intelligence": 62,
+      "social": 37,
+      "athletics": 50,
+      "discipline": 39,
+      "health": 75,
+      "stress": 15,
+      "research": 8,
+      "leadership": 10
+    },
+    "academicClub": "physics",
+    "activityClub": "basketball",
+    "electives": [],
+    "grades": [],
+    "semesterLearning": {},
+    "midterm": null,
+    "pendingEvent": null,
+    "councilRole": "일반 학생",
+    "captain": false,
+    "captainClub": null,
+    "relationships": 10,
+    "clubWeeks": 0,
+    "councilWeeks": 0,
+    "researchWeeks": 0,
+    "researchProject": "아직 연구 주제를 찾는 중",
+    "badges": [],
+    "log": [
+      {
+        "turn": 0,
+        "message": "물리 탐구회 · 농구부와 함께 학교생활을 시작했다.",
+        "category": "club"
+      },
+      {
+        "turn": 0,
+        "message": "광주과학고에서의 첫날. 어떤 3년을 보내게 될까?",
+        "category": "milestone"
+      }
+    ],
+    "admissions": null,
+    "admissionRolls": {
+      "seoul": 0.375791602069512,
+      "kaist": 0.8333538440056145,
+      "postech": 0.8636805524583906,
+      "gist": 0.9290936258621514,
+      "unist": 0.7842922874260694,
+      "chonnam": 0.4090933797415346
+    },
+    "enrolledUniversity": null
+  },
+  "mature": {
+    "version": 1,
+    "name": "기존 농구부 학생",
+    "seed": 123,
+    "rng": 816083084,
+    "turn": 20,
+    "stats": {
+      "intelligence": 64,
+      "social": 44,
+      "athletics": 50,
+      "discipline": 49,
+      "health": 100,
+      "stress": 0,
+      "research": 16,
+      "leadership": 18
+    },
+    "academicClub": "physics",
+    "activityClub": "basketball",
+    "electives": [],
+    "grades": [
+      {
+        "year": 1,
+        "semester": 1,
+        "gpa": 2.81,
+        "credits": 20,
+        "earnedCredits": 20,
+        "subjects": [
+          {
+            "id": "math",
+            "name": "수학",
+            "field": "math",
+            "credits": 4,
+            "score": 75.2,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "physics",
+            "name": "물리학",
+            "field": "physics",
+            "credits": 3,
+            "score": 76.5,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "chemistry",
+            "name": "화학",
+            "field": "chemistry",
+            "credits": 3,
+            "score": 73.1,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "biology",
+            "name": "생명과학",
+            "field": "biology",
+            "credits": 3,
+            "score": 73.4,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "english",
+            "name": "영어",
+            "field": "language",
+            "credits": 2,
+            "score": 72.5,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "korean",
+            "name": "국어",
+            "field": "language",
+            "credits": 2,
+            "score": 70.9,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "ai",
+            "name": "정보",
+            "field": "ai",
+            "credits": 3,
+            "score": 72,
+            "grade": "B−",
+            "point": 2.7
+          }
+        ]
+      },
+      {
+        "year": 1,
+        "semester": 2,
+        "gpa": 2.67,
+        "credits": 20,
+        "earnedCredits": 20,
+        "subjects": [
+          {
+            "id": "math",
+            "name": "수학",
+            "field": "math",
+            "credits": 4,
+            "score": 69.9,
+            "grade": "C+",
+            "point": 2.3
+          },
+          {
+            "id": "physics",
+            "name": "물리학",
+            "field": "physics",
+            "credits": 3,
+            "score": 76.1,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "chemistry",
+            "name": "화학",
+            "field": "chemistry",
+            "credits": 3,
+            "score": 70.8,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "biology",
+            "name": "생명과학",
+            "field": "biology",
+            "credits": 3,
+            "score": 74.4,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "english",
+            "name": "영어",
+            "field": "language",
+            "credits": 2,
+            "score": 73.8,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "korean",
+            "name": "국어",
+            "field": "language",
+            "credits": 2,
+            "score": 73.3,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "ai",
+            "name": "정보",
+            "field": "ai",
+            "credits": 3,
+            "score": 72.3,
+            "grade": "B−",
+            "point": 2.7
+          }
+        ]
+      }
+    ],
+    "semesterLearning": {
+      "math": 6,
+      "physics": 6,
+      "chemistry": 6,
+      "biology": 6,
+      "english": 6,
+      "korean": 6,
+      "ai": 6
+    },
+    "midterm": [
+      {
+        "id": "math",
+        "name": "수학",
+        "field": "math",
+        "credits": 4,
+        "score": 77.5
+      },
+      {
+        "id": "physics",
+        "name": "물리학",
+        "field": "physics",
+        "credits": 3,
+        "score": 76.1
+      },
+      {
+        "id": "chemistry",
+        "name": "화학",
+        "field": "chemistry",
+        "credits": 3,
+        "score": 70.5
+      },
+      {
+        "id": "biology",
+        "name": "생명과학",
+        "field": "biology",
+        "credits": 3,
+        "score": 70.8
+      },
+      {
+        "id": "english",
+        "name": "영어",
+        "field": "language",
+        "credits": 2,
+        "score": 71.6
+      },
+      {
+        "id": "korean",
+        "name": "국어",
+        "field": "language",
+        "credits": 2,
+        "score": 72.8
+      },
+      {
+        "id": "ai",
+        "name": "정보",
+        "field": "ai",
+        "credits": 3,
+        "score": 76.7
+      }
+    ],
+    "pendingEvent": null,
+    "councilRole": "일반 학생",
+    "captain": false,
+    "captainClub": null,
+    "relationships": 24,
+    "clubWeeks": 0,
+    "councilWeeks": 0,
+    "researchWeeks": 0,
+    "researchProject": "실험으로 검증한 자연의 원리",
+    "badges": [],
+    "log": [
+      {
+        "turn": 20,
+        "message": "중간고사 평균 73.7점. 기말까지 다시 준비할 수 있다.",
+        "category": "grade"
+      },
+      {
+        "turn": 20,
+        "message": "2학년 1학기 · 4주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 19,
+        "message": "2학년 1학기 · 3주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 18,
+        "message": "2학년 1학기 · 2주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 17,
+        "message": "나만의 R&E 질문: 실험으로 원리를 검증한다. 이 선택이 나의 3년에 남았다.",
+        "category": "event"
+      },
+      {
+        "turn": 17,
+        "message": "2학년 1학기 · 1주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 16,
+        "message": "1학년 2학기 성적 확정: 2.67 / 4.30.",
+        "category": "grade"
+      },
+      {
+        "turn": 16,
+        "message": "1학년 2학기 · 8주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 15,
+        "message": "1학년 2학기 · 7주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 14,
+        "message": "1학년 2학기 · 6주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 13,
+        "message": "1학년 2학기 · 5주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 12,
+        "message": "중간고사 평균 74.3점. 기말까지 다시 준비할 수 있다.",
+        "category": "grade"
+      },
+      {
+        "turn": 12,
+        "message": "1학년 2학기 · 4주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 11,
+        "message": "1학년 2학기 · 3주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 10,
+        "message": "축제 준비를 도와줄래?: 부스 운영을 맡는다. 이 선택이 나의 3년에 남았다.",
+        "category": "event"
+      },
+      {
+        "turn": 10,
+        "message": "1학년 2학기 · 2주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 9,
+        "message": "1학년 2학기 · 1주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 8,
+        "message": "1학년 1학기 성적 확정: 2.81 / 4.30.",
+        "category": "grade"
+      },
+      {
+        "turn": 8,
+        "message": "1학년 1학기 · 8주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 7,
+        "message": "1학년 1학기 · 7주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 6,
+        "message": "1학년 1학기 · 6주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 5,
+        "message": "1학년 1학기 · 5주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 4,
+        "message": "중간고사 평균 74.1점. 기말까지 다시 준비할 수 있다.",
+        "category": "grade"
+      },
+      {
+        "turn": 4,
+        "message": "1학년 1학기 · 4주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 3,
+        "message": "불 꺼진 기숙사의 대화: 함께 개념을 설명해 본다. 이 선택이 나의 3년에 남았다.",
+        "category": "event"
+      },
+      {
+        "turn": 3,
+        "message": "1학년 1학기 · 3주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 2,
+        "message": "1학년 1학기 · 2주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 1,
+        "message": "1학년 1학기 · 1주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 0,
+        "message": "물리 탐구회 · 농구부와 함께 학교생활을 시작했다.",
+        "category": "club"
+      },
+      {
+        "turn": 0,
+        "message": "광주과학고에서의 첫날. 어떤 3년을 보내게 될까?",
+        "category": "milestone"
+      }
+    ],
+    "admissions": null,
+    "admissionRolls": {
+      "seoul": 0.375791602069512,
+      "kaist": 0.8333538440056145,
+      "postech": 0.8636805524583906,
+      "gist": 0.9290936258621514,
+      "unist": 0.7842922874260694,
+      "chonnam": 0.4090933797415346
+    },
+    "enrolledUniversity": null
+  },
+  "electives": {
+    "version": 1,
+    "name": "기존 농구부 학생",
+    "seed": 123,
+    "rng": 2583707700,
+    "turn": 24,
+    "stats": {
+      "intelligence": 64,
+      "social": 44,
+      "athletics": 50,
+      "discipline": 53,
+      "health": 100,
+      "stress": 0,
+      "research": 16,
+      "leadership": 22
+    },
+    "academicClub": "physics",
+    "activityClub": "basketball",
+    "electives": [],
+    "grades": [
+      {
+        "year": 1,
+        "semester": 1,
+        "gpa": 2.81,
+        "credits": 20,
+        "earnedCredits": 20,
+        "subjects": [
+          {
+            "id": "math",
+            "name": "수학",
+            "field": "math",
+            "credits": 4,
+            "score": 75.2,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "physics",
+            "name": "물리학",
+            "field": "physics",
+            "credits": 3,
+            "score": 76.5,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "chemistry",
+            "name": "화학",
+            "field": "chemistry",
+            "credits": 3,
+            "score": 73.1,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "biology",
+            "name": "생명과학",
+            "field": "biology",
+            "credits": 3,
+            "score": 73.4,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "english",
+            "name": "영어",
+            "field": "language",
+            "credits": 2,
+            "score": 72.5,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "korean",
+            "name": "국어",
+            "field": "language",
+            "credits": 2,
+            "score": 70.9,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "ai",
+            "name": "정보",
+            "field": "ai",
+            "credits": 3,
+            "score": 72,
+            "grade": "B−",
+            "point": 2.7
+          }
+        ]
+      },
+      {
+        "year": 1,
+        "semester": 2,
+        "gpa": 2.67,
+        "credits": 20,
+        "earnedCredits": 20,
+        "subjects": [
+          {
+            "id": "math",
+            "name": "수학",
+            "field": "math",
+            "credits": 4,
+            "score": 69.9,
+            "grade": "C+",
+            "point": 2.3
+          },
+          {
+            "id": "physics",
+            "name": "물리학",
+            "field": "physics",
+            "credits": 3,
+            "score": 76.1,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "chemistry",
+            "name": "화학",
+            "field": "chemistry",
+            "credits": 3,
+            "score": 70.8,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "biology",
+            "name": "생명과학",
+            "field": "biology",
+            "credits": 3,
+            "score": 74.4,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "english",
+            "name": "영어",
+            "field": "language",
+            "credits": 2,
+            "score": 73.8,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "korean",
+            "name": "국어",
+            "field": "language",
+            "credits": 2,
+            "score": 73.3,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "ai",
+            "name": "정보",
+            "field": "ai",
+            "credits": 3,
+            "score": 72.3,
+            "grade": "B−",
+            "point": 2.7
+          }
+        ]
+      },
+      {
+        "year": 2,
+        "semester": 1,
+        "gpa": 2.85,
+        "credits": 20,
+        "earnedCredits": 20,
+        "subjects": [
+          {
+            "id": "math",
+            "name": "수학",
+            "field": "math",
+            "credits": 4,
+            "score": 75.3,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "physics",
+            "name": "물리학",
+            "field": "physics",
+            "credits": 3,
+            "score": 75,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "chemistry",
+            "name": "화학",
+            "field": "chemistry",
+            "credits": 3,
+            "score": 70,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "biology",
+            "name": "생명과학",
+            "field": "biology",
+            "credits": 3,
+            "score": 71.7,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "english",
+            "name": "영어",
+            "field": "language",
+            "credits": 2,
+            "score": 73.6,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "korean",
+            "name": "국어",
+            "field": "language",
+            "credits": 2,
+            "score": 70.6,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "ai",
+            "name": "정보",
+            "field": "ai",
+            "credits": 3,
+            "score": 75.3,
+            "grade": "B0",
+            "point": 3
+          }
+        ]
+      }
+    ],
+    "semesterLearning": {},
+    "midterm": null,
+    "pendingEvent": null,
+    "councilRole": "일반 학생",
+    "captain": false,
+    "captainClub": null,
+    "relationships": 24,
+    "clubWeeks": 0,
+    "councilWeeks": 0,
+    "researchWeeks": 0,
+    "researchProject": "실험으로 검증한 자연의 원리",
+    "badges": [],
+    "log": [
+      {
+        "turn": 24,
+        "message": "2학년 1학기 성적 확정: 2.85 / 4.30.",
+        "category": "grade"
+      },
+      {
+        "turn": 24,
+        "message": "2학년 1학기 · 8주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 23,
+        "message": "2학년 1학기 · 7주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 22,
+        "message": "이번 선거에서는 선택받지 못했다. 공약을 준비한 경험은 리더십으로 남았다.",
+        "category": "event"
+      },
+      {
+        "turn": 22,
+        "message": "2학년 1학기 · 6주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 21,
+        "message": "2학년 1학기 · 5주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 20,
+        "message": "중간고사 평균 73.7점. 기말까지 다시 준비할 수 있다.",
+        "category": "grade"
+      },
+      {
+        "turn": 20,
+        "message": "2학년 1학기 · 4주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 19,
+        "message": "2학년 1학기 · 3주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 18,
+        "message": "2학년 1학기 · 2주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 17,
+        "message": "나만의 R&E 질문: 실험으로 원리를 검증한다. 이 선택이 나의 3년에 남았다.",
+        "category": "event"
+      },
+      {
+        "turn": 17,
+        "message": "2학년 1학기 · 1주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 16,
+        "message": "1학년 2학기 성적 확정: 2.67 / 4.30.",
+        "category": "grade"
+      },
+      {
+        "turn": 16,
+        "message": "1학년 2학기 · 8주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 15,
+        "message": "1학년 2학기 · 7주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 14,
+        "message": "1학년 2학기 · 6주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 13,
+        "message": "1학년 2학기 · 5주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 12,
+        "message": "중간고사 평균 74.3점. 기말까지 다시 준비할 수 있다.",
+        "category": "grade"
+      },
+      {
+        "turn": 12,
+        "message": "1학년 2학기 · 4주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 11,
+        "message": "1학년 2학기 · 3주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 10,
+        "message": "축제 준비를 도와줄래?: 부스 운영을 맡는다. 이 선택이 나의 3년에 남았다.",
+        "category": "event"
+      },
+      {
+        "turn": 10,
+        "message": "1학년 2학기 · 2주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 9,
+        "message": "1학년 2학기 · 1주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 8,
+        "message": "1학년 1학기 성적 확정: 2.81 / 4.30.",
+        "category": "grade"
+      },
+      {
+        "turn": 8,
+        "message": "1학년 1학기 · 8주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 7,
+        "message": "1학년 1학기 · 7주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 6,
+        "message": "1학년 1학기 · 6주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 5,
+        "message": "1학년 1학기 · 5주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 4,
+        "message": "중간고사 평균 74.1점. 기말까지 다시 준비할 수 있다.",
+        "category": "grade"
+      },
+      {
+        "turn": 4,
+        "message": "1학년 1학기 · 4주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 3,
+        "message": "불 꺼진 기숙사의 대화: 함께 개념을 설명해 본다. 이 선택이 나의 3년에 남았다.",
+        "category": "event"
+      },
+      {
+        "turn": 3,
+        "message": "1학년 1학기 · 3주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 2,
+        "message": "1학년 1학기 · 2주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 1,
+        "message": "1학년 1학기 · 1주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 0,
+        "message": "물리 탐구회 · 농구부와 함께 학교생활을 시작했다.",
+        "category": "club"
+      },
+      {
+        "turn": 0,
+        "message": "광주과학고에서의 첫날. 어떤 3년을 보내게 될까?",
+        "category": "milestone"
+      }
+    ],
+    "admissions": null,
+    "admissionRolls": {
+      "seoul": 0.375791602069512,
+      "kaist": 0.8333538440056145,
+      "postech": 0.8636805524583906,
+      "gist": 0.9290936258621514,
+      "unist": 0.7842922874260694,
+      "chonnam": 0.4090933797415346
+    },
+    "enrolledUniversity": null
+  },
+  "graduate": {
+    "version": 1,
+    "name": "기존 농구부 학생",
+    "seed": 123,
+    "rng": 1632166045,
+    "turn": 48,
+    "stats": {
+      "intelligence": 64,
+      "social": 47,
+      "athletics": 50,
+      "discipline": 68,
+      "health": 100,
+      "stress": 0,
+      "research": 28,
+      "leadership": 28
+    },
+    "academicClub": "physics",
+    "activityClub": "basketball",
+    "electives": [
+      "advanced_physics",
+      "advanced_math"
+    ],
+    "grades": [
+      {
+        "year": 1,
+        "semester": 1,
+        "gpa": 2.81,
+        "credits": 20,
+        "earnedCredits": 20,
+        "subjects": [
+          {
+            "id": "math",
+            "name": "수학",
+            "field": "math",
+            "credits": 4,
+            "score": 75.2,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "physics",
+            "name": "물리학",
+            "field": "physics",
+            "credits": 3,
+            "score": 76.5,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "chemistry",
+            "name": "화학",
+            "field": "chemistry",
+            "credits": 3,
+            "score": 73.1,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "biology",
+            "name": "생명과학",
+            "field": "biology",
+            "credits": 3,
+            "score": 73.4,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "english",
+            "name": "영어",
+            "field": "language",
+            "credits": 2,
+            "score": 72.5,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "korean",
+            "name": "국어",
+            "field": "language",
+            "credits": 2,
+            "score": 70.9,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "ai",
+            "name": "정보",
+            "field": "ai",
+            "credits": 3,
+            "score": 72,
+            "grade": "B−",
+            "point": 2.7
+          }
+        ]
+      },
+      {
+        "year": 1,
+        "semester": 2,
+        "gpa": 2.67,
+        "credits": 20,
+        "earnedCredits": 20,
+        "subjects": [
+          {
+            "id": "math",
+            "name": "수학",
+            "field": "math",
+            "credits": 4,
+            "score": 69.9,
+            "grade": "C+",
+            "point": 2.3
+          },
+          {
+            "id": "physics",
+            "name": "물리학",
+            "field": "physics",
+            "credits": 3,
+            "score": 76.1,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "chemistry",
+            "name": "화학",
+            "field": "chemistry",
+            "credits": 3,
+            "score": 70.8,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "biology",
+            "name": "생명과학",
+            "field": "biology",
+            "credits": 3,
+            "score": 74.4,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "english",
+            "name": "영어",
+            "field": "language",
+            "credits": 2,
+            "score": 73.8,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "korean",
+            "name": "국어",
+            "field": "language",
+            "credits": 2,
+            "score": 73.3,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "ai",
+            "name": "정보",
+            "field": "ai",
+            "credits": 3,
+            "score": 72.3,
+            "grade": "B−",
+            "point": 2.7
+          }
+        ]
+      },
+      {
+        "year": 2,
+        "semester": 1,
+        "gpa": 2.85,
+        "credits": 20,
+        "earnedCredits": 20,
+        "subjects": [
+          {
+            "id": "math",
+            "name": "수학",
+            "field": "math",
+            "credits": 4,
+            "score": 75.3,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "physics",
+            "name": "물리학",
+            "field": "physics",
+            "credits": 3,
+            "score": 75,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "chemistry",
+            "name": "화학",
+            "field": "chemistry",
+            "credits": 3,
+            "score": 70,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "biology",
+            "name": "생명과학",
+            "field": "biology",
+            "credits": 3,
+            "score": 71.7,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "english",
+            "name": "영어",
+            "field": "language",
+            "credits": 2,
+            "score": 73.6,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "korean",
+            "name": "국어",
+            "field": "language",
+            "credits": 2,
+            "score": 70.6,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "ai",
+            "name": "정보",
+            "field": "ai",
+            "credits": 3,
+            "score": 75.3,
+            "grade": "B0",
+            "point": 3
+          }
+        ]
+      },
+      {
+        "year": 2,
+        "semester": 2,
+        "gpa": 2.91,
+        "credits": 20,
+        "earnedCredits": 20,
+        "subjects": [
+          {
+            "id": "math",
+            "name": "수학",
+            "field": "math",
+            "credits": 4,
+            "score": 73.7,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "english",
+            "name": "영어",
+            "field": "language",
+            "credits": 2,
+            "score": 76.4,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "korean",
+            "name": "국어",
+            "field": "language",
+            "credits": 2,
+            "score": 73.7,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "advanced_physics",
+            "name": "심화 물리학",
+            "field": "physics",
+            "credits": 4,
+            "score": 76.6,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "advanced_math",
+            "name": "심화 수학",
+            "field": "math",
+            "credits": 4,
+            "score": 71.6,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "research",
+            "name": "융합 탐구",
+            "field": "research",
+            "credits": 4,
+            "score": 80.3,
+            "grade": "B+",
+            "point": 3.3
+          }
+        ]
+      },
+      {
+        "year": 3,
+        "semester": 1,
+        "gpa": 2.88,
+        "credits": 20,
+        "earnedCredits": 20,
+        "subjects": [
+          {
+            "id": "math",
+            "name": "수학",
+            "field": "math",
+            "credits": 4,
+            "score": 74.7,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "english",
+            "name": "영어",
+            "field": "language",
+            "credits": 2,
+            "score": 74.3,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "korean",
+            "name": "국어",
+            "field": "language",
+            "credits": 2,
+            "score": 74.3,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "advanced_physics",
+            "name": "심화 물리학",
+            "field": "physics",
+            "credits": 4,
+            "score": 79.5,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "advanced_math",
+            "name": "심화 수학",
+            "field": "math",
+            "credits": 4,
+            "score": 74.8,
+            "grade": "B−",
+            "point": 2.7
+          },
+          {
+            "id": "research",
+            "name": "융합 탐구",
+            "field": "research",
+            "credits": 4,
+            "score": 83.3,
+            "grade": "B+",
+            "point": 3.3
+          }
+        ]
+      },
+      {
+        "year": 3,
+        "semester": 2,
+        "gpa": 3.06,
+        "credits": 20,
+        "earnedCredits": 20,
+        "subjects": [
+          {
+            "id": "math",
+            "name": "수학",
+            "field": "math",
+            "credits": 4,
+            "score": 78.1,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "english",
+            "name": "영어",
+            "field": "language",
+            "credits": 2,
+            "score": 75.6,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "korean",
+            "name": "국어",
+            "field": "language",
+            "credits": 2,
+            "score": 76,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "advanced_physics",
+            "name": "심화 물리학",
+            "field": "physics",
+            "credits": 4,
+            "score": 79.3,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "advanced_math",
+            "name": "심화 수학",
+            "field": "math",
+            "credits": 4,
+            "score": 76.7,
+            "grade": "B0",
+            "point": 3
+          },
+          {
+            "id": "research",
+            "name": "융합 탐구",
+            "field": "research",
+            "credits": 4,
+            "score": 81.5,
+            "grade": "B+",
+            "point": 3.3
+          }
+        ]
+      }
+    ],
+    "semesterLearning": {},
+    "midterm": null,
+    "pendingEvent": null,
+    "councilRole": "일반 학생",
+    "captain": false,
+    "captainClub": null,
+    "relationships": 36,
+    "clubWeeks": 0,
+    "councilWeeks": 0,
+    "researchWeeks": 0,
+    "researchProject": "실험으로 검증한 자연의 원리",
+    "badges": [
+      "탐구 발표자",
+      "운동장의 마지막 오후"
+    ],
+    "log": [
+      {
+        "turn": 48,
+        "message": "48번의 선택 끝에 3년을 마쳤다. 이제 나의 다음 출발을 고를 시간이다.",
+        "category": "milestone"
+      },
+      {
+        "turn": 48,
+        "message": "3학년 2학기 성적 확정: 3.06 / 4.30.",
+        "category": "grade"
+      },
+      {
+        "turn": 48,
+        "message": "3학년 2학기 · 8주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 47,
+        "message": "3학년 2학기 · 7주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 46,
+        "message": "마지막으로 남길 장면: 친구들과 운동장에서 사진을 찍는다. 이 선택이 나의 3년에 남았다.",
+        "category": "event"
+      },
+      {
+        "turn": 46,
+        "message": "3학년 2학기 · 6주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 45,
+        "message": "3학년 2학기 · 5주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 44,
+        "message": "중간고사 평균 78.1점. 기말까지 다시 준비할 수 있다.",
+        "category": "grade"
+      },
+      {
+        "turn": 44,
+        "message": "3학년 2학기 · 4주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 43,
+        "message": "3학년 2학기 · 3주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 42,
+        "message": "진학 면접 연습: 연구의 시행착오를 설명한다. 이 선택이 나의 3년에 남았다.",
+        "category": "event"
+      },
+      {
+        "turn": 42,
+        "message": "3학년 2학기 · 2주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 41,
+        "message": "3학년 2학기 · 1주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 40,
+        "message": "3학년 1학기 성적 확정: 2.88 / 4.30.",
+        "category": "grade"
+      },
+      {
+        "turn": 40,
+        "message": "3학년 1학기 · 8주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 39,
+        "message": "3학년 1학기 · 7주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 38,
+        "message": "3학년 1학기 · 6주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 37,
+        "message": "3학년 1학기 · 5주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 36,
+        "message": "중간고사 평균 76.6점. 기말까지 다시 준비할 수 있다.",
+        "category": "grade"
+      },
+      {
+        "turn": 36,
+        "message": "3학년 1학기 · 4주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 35,
+        "message": "연구 발표회: 결과와 한계를 솔직하게 설명한다. 이 선택이 나의 3년에 남았다.",
+        "category": "event"
+      },
+      {
+        "turn": 35,
+        "message": "3학년 1학기 · 3주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 34,
+        "message": "3학년 1학기 · 2주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 33,
+        "message": "3학년 1학기 · 1주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 32,
+        "message": "2학년 2학기 성적 확정: 2.91 / 4.30.",
+        "category": "grade"
+      },
+      {
+        "turn": 32,
+        "message": "2학년 2학기 · 8주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 31,
+        "message": "2학년 2학기 · 7주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 30,
+        "message": "2학년 2학기 · 6주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 29,
+        "message": "기장은 다른 친구가 맡았다. 팀원으로서의 소중한 역할은 계속된다.",
+        "category": "event"
+      },
+      {
+        "turn": 29,
+        "message": "2학년 2학기 · 5주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 28,
+        "message": "중간고사 평균 75.7점. 기말까지 다시 준비할 수 있다.",
+        "category": "grade"
+      },
+      {
+        "turn": 28,
+        "message": "2학년 2학기 · 4주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 27,
+        "message": "2학년 2학기 · 3주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 26,
+        "message": "2학년 2학기 · 2주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 25,
+        "message": "2학년 2학기 · 1주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 24,
+        "message": "심화 물리학 · 심화 수학를 선택했다.",
+        "category": "milestone"
+      },
+      {
+        "turn": 24,
+        "message": "2학년 1학기 성적 확정: 2.85 / 4.30.",
+        "category": "grade"
+      },
+      {
+        "turn": 24,
+        "message": "2학년 1학기 · 8주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 23,
+        "message": "2학년 1학기 · 7주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 22,
+        "message": "이번 선거에서는 선택받지 못했다. 공약을 준비한 경험은 리더십으로 남았다.",
+        "category": "event"
+      },
+      {
+        "turn": 22,
+        "message": "2학년 1학기 · 6주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 21,
+        "message": "2학년 1학기 · 5주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 20,
+        "message": "중간고사 평균 73.7점. 기말까지 다시 준비할 수 있다.",
+        "category": "grade"
+      },
+      {
+        "turn": 20,
+        "message": "2학년 1학기 · 4주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 19,
+        "message": "2학년 1학기 · 3주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 18,
+        "message": "2학년 1학기 · 2주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 17,
+        "message": "나만의 R&E 질문: 실험으로 원리를 검증한다. 이 선택이 나의 3년에 남았다.",
+        "category": "event"
+      },
+      {
+        "turn": 17,
+        "message": "2학년 1학기 · 1주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 16,
+        "message": "1학년 2학기 성적 확정: 2.67 / 4.30.",
+        "category": "grade"
+      },
+      {
+        "turn": 16,
+        "message": "1학년 2학기 · 8주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 15,
+        "message": "1학년 2학기 · 7주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 14,
+        "message": "1학년 2학기 · 6주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 13,
+        "message": "1학년 2학기 · 5주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 12,
+        "message": "중간고사 평균 74.3점. 기말까지 다시 준비할 수 있다.",
+        "category": "grade"
+      },
+      {
+        "turn": 12,
+        "message": "1학년 2학기 · 4주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 11,
+        "message": "1학년 2학기 · 3주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 10,
+        "message": "축제 준비를 도와줄래?: 부스 운영을 맡는다. 이 선택이 나의 3년에 남았다.",
+        "category": "event"
+      },
+      {
+        "turn": 10,
+        "message": "1학년 2학기 · 2주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 9,
+        "message": "1학년 2학기 · 1주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 8,
+        "message": "1학년 1학기 성적 확정: 2.81 / 4.30.",
+        "category": "grade"
+      },
+      {
+        "turn": 8,
+        "message": "1학년 1학기 · 8주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 7,
+        "message": "1학년 1학기 · 7주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 6,
+        "message": "1학년 1학기 · 6주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 5,
+        "message": "1학년 1학기 · 5주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 4,
+        "message": "중간고사 평균 74.1점. 기말까지 다시 준비할 수 있다.",
+        "category": "grade"
+      },
+      {
+        "turn": 4,
+        "message": "1학년 1학기 · 4주차: 충분히 쉬기 + 규칙적인 수면.",
+        "category": "activity"
+      },
+      {
+        "turn": 3,
+        "message": "불 꺼진 기숙사의 대화: 함께 개념을 설명해 본다. 이 선택이 나의 3년에 남았다.",
+        "category": "event"
+      },
+      {
+        "turn": 3,
+        "message": "1학년 1학기 · 3주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 2,
+        "message": "1학년 1학기 · 2주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 1,
+        "message": "1학년 1학기 · 1주차: 충분히 쉬기.",
+        "category": "activity"
+      },
+      {
+        "turn": 0,
+        "message": "물리 탐구회 · 농구부와 함께 학교생활을 시작했다.",
+        "category": "club"
+      },
+      {
+        "turn": 0,
+        "message": "광주과학고에서의 첫날. 어떤 3년을 보내게 될까?",
+        "category": "milestone"
+      }
+    ],
+    "admissions": null,
+    "admissionRolls": {
+      "seoul": 0.375791602069512,
+      "kaist": 0.8333538440056145,
+      "postech": 0.8636805524583906,
+      "gist": 0.9290936258621514,
+      "unist": 0.7842922874260694,
+      "chonnam": 0.4090933797415346
+    },
+    "enrolledUniversity": null
+  }
+}
