@@ -73,8 +73,14 @@ function verifyV10Grades(ctx = {}) {
     results[policy]={median:median(runs.map(r=>r.gpa)),applicationMedian:median(runs.map(r=>r.application)),mean:runs.reduce((sum,r)=>sum+r.gpa,0)/runs.length};
   }
   if(process.env.SHOW_GRADES)console.log(JSON.stringify(results));
-  // v0.13: 반 평균 70점 안팎의 실제 시험 난도와 수행평가를 반영해 중간 정도 성적의 목표를 3.85 안팎으로 낮췄습니다.
-  assert.ok(results.moderate.median>=3.7&&results.moderate.median<=4.0,'One focused study week out of four targets about 3.85');
+  // v0.14.2: 학기별 급격한 난도 상승을 없애 보통 공부의 누적 평점 목표를 약 4.0으로 조정합니다.
+  // 구 버전의 3.85 목표를 그대로 적용하면 의도한 난도 완화가 테스트를 부당하게 실패시킵니다.
+  assert.ok(results.moderate.median>=3.95&&results.moderate.median<=4.10,'Moderate study targets around 4.0 under gradual semester difficulty');
+  assert.ok(results.recovery.median<=3.60,'Recovery-only strategy still pays a substantial academic cost');
+  const msBases=Array.from({length:6},(_,i)=>E.EXAM_SHAPE[i].ms[0]);
+  const genBases=Array.from({length:6},(_,i)=>E.EXAM_SHAPE[i].gen[0]);
+  assert.deepEqual(msBases,[74,73,72,71,70,69],'Math/science exam bases change by only one point each semester');
+  assert.deepEqual(genBases,[77.5,76.7,75.9,75.1,74.3,73.5],'General exam bases rise in difficulty by only 0.8 points per semester');
   assert.ok(results.moderate.applicationMedian>=3.65,'Moderate preparation is also reflected before college applications');
   // v0.13: 자습은 조금 너프했지만 여전히 이득이어야 합니다.
   for(const mode of ['night','dawn','both'])assert.ok(results[mode].mean>results.moderate.mean+.02,`${mode} improves complete-run grades with sensible recovery`);
