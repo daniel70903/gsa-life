@@ -821,14 +821,15 @@
     const stressPenalty = Math.max(0, s.stats.stress - 40) * 0.14;
     return getSubjects(s).map(sub => {
       const knowledge = Math.max(0, s.semesterLearning[sub.id] || 0);
-      // Ordinary lessons plus occasional focused study can reach an A0 average.
-      // Further revision has diminishing returns, leaving room for both exam luck
-      // and the stronger exam-week study choices without automatic perfect marks.
-      const basePreparation = (Math.min(18, knowledge) + Math.max(0, knowledge - 18) * 0.4) * 0.9;
-      const focusedStudyBonus = Math.min(5.5, Math.max(0, knowledge - 14) * 0.25);
+      // v0.14.1: Normal study is rewarding; very high knowledge (>30) has
+      // stronger diminishing returns to avoid near-guaranteed perfect grades.
+      const basePreparation = (Math.min(18, knowledge) + Math.min(12, Math.max(0, knowledge - 18)) * 0.4 + Math.max(0, knowledge - 30) * 0.1) * 0.9;
+      // Deliberate study earns an additional bounded preparation bonus.
+      const focusedStudyBonus = Math.min(3.0, Math.max(0, knowledge - 20) * 0.20);
       const preparation = basePreparation + focusedStudyBonus;
       const ability = value => Math.min(70, value) + Math.max(0, value - 70) * 0.65;
-      const intelligenceMastery = Math.max(0, s.stats.intelligence - 75) * 0.13;
+      // The highest intelligence tier gains a small extra payoff without guaranteeing A+.
+      const intelligenceMastery = Math.max(0, s.stats.intelligence - 95) * 0.07;
       const midtermAdjustment = phase.exam === 'midterm' ? 8 : 0;
       const academicAffinity = sub.field === academicField(s) ? 2 : 0;
       const researchBoost = sub.field === 'research' ? s.stats.research * 0.08 + s.stats.creativity * 0.02 : 0;
@@ -880,7 +881,8 @@
     const id = routine.focus.id, strength = routine.commitment ? 0.65 : 1, light = share('recovery') >= 0.6;
     const rolls = { academic: rng(s), sports: rng(s), activity: rng(s), social: rng(s), duties: rng(s) };
     routine.activities.push('정규 수업과 자습에서 배운 개념을 복습했다.');
-    learn(light ? 0.35 : 1.15);
+    // Recovery weeks retain a little lightweight review (0.35 -> 0.55), not full study.
+    learn(light ? 0.55 : 1.15);
     shift(s, { intelligence: (0.12 + rng(s) * 0.18) * efficiency, discipline: 0.2 + rng(s) * 0.15, resilience: 0.15 });
     s.toeic.practice = round(s.toeic.practice + (light ? 0.05 : 0.15));
     // v0.14: 3학년은 학술동아리 활동을 하지 않습니다.
@@ -1133,8 +1135,9 @@
     const nightFrac = plannerWeek ? plannerWeek.night : (studyMode === 'night' || studyMode === 'both') ? 1 : 0;
     const dawnFrac = plannerWeek ? plannerWeek.dawn : (studyMode === 'dawn' || studyMode === 'both') ? 1 : 0;
     if (s.courseTable === 2) s.studyStreak = nightFrac + dawnFrac > 0 ? (s.studyStreak || 0) + 1 : 0;
-    if (nightFrac > 0) { learn((s.courseTable === 2 ? 3.0 : 3.8) * studyFade * nightFrac); shift(s, { fatigue: 11 * nightFrac, stress: 6 * nightFrac }); messages.push(plannerWeek ? `플래너대로 심야자습 ${plannerWeek.nights}일. 피로도 +${round(11 * nightFrac)}.` : '심야자습으로 시험 준비도를 충분히 쌓았다. 피로도 +11.'); }
-    if (dawnFrac > 0) { learn((s.courseTable === 2 ? 2.1 : 2.7) * studyFade * dawnFrac); shift(s, { fatigue: 7 * dawnFrac, stress: 4 * dawnFrac, discipline: 0.5 * dawnFrac }); messages.push(plannerWeek ? `플래너대로 새벽자습 ${plannerWeek.dawns}일. 피로도 +${round(7 * dawnFrac)}.` : '새벽자습으로 시험의 핵심 내용을 다시 정리했다. 피로도 +7.'); }
+    // v0.14.1: Small extra-study nerf (night ~10%, dawn ~15%); fatigue cost unchanged.
+    if (nightFrac > 0) { learn((s.courseTable === 2 ? 2.7 : 3.4) * studyFade * nightFrac); shift(s, { fatigue: 11 * nightFrac, stress: 6 * nightFrac }); messages.push(plannerWeek ? `플래너대로 심야자습 ${plannerWeek.nights}일. 피로도 +${round(11 * nightFrac)}.` : '심야자습으로 시험 준비도를 충분히 쌓았다. 피로도 +11.'); }
+    if (dawnFrac > 0) { learn((s.courseTable === 2 ? 1.8 : 2.3) * studyFade * dawnFrac); shift(s, { fatigue: 7 * dawnFrac, stress: 4 * dawnFrac, discipline: 0.5 * dawnFrac }); messages.push(plannerWeek ? `플래너대로 새벽자습 ${plannerWeek.dawns}일. 피로도 +${round(7 * dawnFrac)}.` : '새벽자습으로 시험의 핵심 내용을 다시 정리했다. 피로도 +7.'); }
     const crossedLimit = crisisLimit(s), crisisSnapshot = { fatigue: s.stats.fatigue, stress: s.stats.stress };
     // Fatigue risk is evaluated after the week's choices; new illness affects this week's exam and the next week.
     if (!wasSick && !recovering && rng(s) < getIllnessRisk(s)) { s.illnessWeeks = 2; s.illnessCount++; messages.push('몸살 기운으로 아프기 시작했다. 이번 주와 다음 주 집중력이 떨어진다. 휴식하면 빨리 회복한다.'); }

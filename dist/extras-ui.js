@@ -6,7 +6,7 @@
 })(typeof window === 'undefined' ? globalThis : window, function (root) {
   'use strict';
 
-  const VERSION = 'v0.14';
+  const VERSION = 'v0.14.1';
   const SAVE_KEY = 'gsa-life-v1';
   const SEEN_VERSION_KEY = 'gsa-life-seen-version';
   const GUIDE_KEY = 'gsa-life-guide-seen';
@@ -83,6 +83,15 @@
   /* ───────────── 도움말 내용 ───────────── */
 
   const changelog = [
+    {
+      version: 'v0.14.1',
+      date: '2026.11',
+      items: [
+        '공부량에 따른 시험 준비 보너스를 조정했어요. 공부를 많이 하면 높은 학점을 받을 수 있지만, 극단적인 공부량의 추가 효율은 조금 줄였어요.',
+        '지능 상한은 유지하면서, 지능을 최대한 성장시킨 전략도 높은 학점을 노릴 수 있어요.',
+        '심야 자습 학습량은 약 10%, 새벽 자습 학습량은 약 15% 줄였어요. 회복 중심 주에는 가벼운 복습량을 조금 늘렸고, 회복력 자체는 유지했어요.'
+      ]
+    },
     {
       version: 'v0.14',
       date: '2026.11',
