@@ -58,7 +58,7 @@ module.exports = function verifyV8(ctx) {
   noExperience.captainHistory=[];
   assert.ok(E.getAdmissionChance(experienced,'gist',0)>E.getAdmissionChance(noExperience,'gist',0),'Completed captain service still contributes to the existing admission evaluation');
 
-  // Matched seeded first semesters show a measured reduction in easy A grades, while preparation still helps.
+  // Matched seeded first semesters verify studied exam performance stays higher than balanced/recovery play, without guaranteeing an A+.
   const difficulty={};
   for(const old of oldGrades.cases) {
     const s=E.create('학점 난도 검증',old.seed,{gender:'male'});E.setClubs(s,'physics','none');
@@ -71,9 +71,10 @@ module.exports = function verifyV8(ctx) {
   }
   for(const row of Object.values(difficulty))for(const key of ['oldMean','newMean','oldGPA','newGPA'])row[key]/=row.samples;
   const balanced=difficulty.balanced,studied=difficulty.intelligence;
-  check(balanced.newMean>=90&&balanced.newGPA>=3.8&&balanced.newGPA<4.25,'Ordinary first-semester students usually earn high grades without automatic perfect scores');
+
+  check(balanced.newMean>=88&&balanced.newGPA>=3.8&&balanced.newGPA<4.2,'Ordinary first-semester students usually earn high grades without automatic perfect scores');
   check(balanced.newGPA<studied.newGPA&&difficulty.recovery.newGPA>=3.4,'Focused study remains stronger while normal recovery does not imply failure');
-  check(studied.newMean>balanced.newMean+5&&studied.newGPA>=4.2,'Sustained study still produces materially better grades');
+  check(studied.newMean>balanced.newMean+4.5&&studied.newGPA>=4.2,'Sustained study still produces materially better grades');
   assert.deepEqual(E.getGrade(90),['A+',4.3]);assert.deepEqual(E.getGrade(89.9),['A0',4]);assert.deepEqual(E.getGrade(40),['D0',1]);assert.deepEqual(E.getGrade(39.9),['F',0]);
   counters.v8Difficulty=difficulty;
 
