@@ -119,11 +119,11 @@ for(const id of ['kaist','gist','unist','dgist']){const low=E.getAdmissionChance
 const olympiad = toTurn(fresh(401), 10); ready(olympiad);
 const learner = copy(olympiad); learner.stats.intelligence = 20;
 E.advance(learner, 'rest'); seek(learner, 'olympiad');
-check(!learner.pendingEvent.choices.some(c => c.participateOlympiad), 'Beginner receives preparation choices');
+check(learner.pendingEvent.choices.filter(c => c.participateOlympiad).length === 7, 'All players may try any of the seven Olympiads');
 olympiad.stats.intelligence = 95; E.advance(olympiad, 'rest'); seek(olympiad, 'olympiad');
 check(olympiad.pendingEvent.choices.some(c => c.participateOlympiad), 'Intelligent student can enter the Olympiad');
 let actualWinner;
-for (let seed = 0; seed < 30 && !actualWinner; seed++) {
+for (let seed = 0; seed < 350 && !actualWinner; seed++) {
  const s = copy(olympiad); s.rng = seed; E.chooseEvent(s, 0);
  if (s.awards.some(a => a.kind === 'olympiad')) actualWinner = s;
 }

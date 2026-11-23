@@ -63,7 +63,7 @@ module.exports = function verifyV6(ctx) {
   // Enrolling is not evidence of completing a course; failed courses never earn category credit.
   const failing=toTurn(fresh(6110),21); resolve(failing); chooseRoute(failing,'physics');
   assert.equal(E.getCourseEvidence(failing).secondYearSecondTerm.length,0,'A planned course cannot unlock a major');
-  assert.equal(E.getMajorOptions(failing).find(m=>m.id==='physics').unlocked,false);
+  assert.equal(E.getMajorOptions(failing).find(m=>m.id==='physics').aligned,false);
   toTurn(failing,27); ready(failing);
   failing.semesterLearning={};
   failing.midterm=E.getSubjects(failing).map(c=>({...c,score:0}));
@@ -77,7 +77,7 @@ module.exports = function verifyV6(ctx) {
   assert.equal(failedSemester.earnedCredits,0);
   assert.deepEqual(E.getCurriculumStatus(failing).earned,earnedBefore,'Failed enrolled credits do not count toward graduation');
   assert.equal(E.getCourseEvidence(failing).secondYearSecondTerm.length,0);
-  assert.equal(E.getMajorOptions(failing).find(m=>m.id==='physics').unlocked,false,'F grades do not unlock the selected field');
+  assert.equal(E.getMajorOptions(failing).find(m=>m.id==='physics').aligned,false,'F grades do not unlock the selected field');
 
   // Major eligibility reflects the actual second-year-second-semester route.
   function makeApplicant(field,seed) {
@@ -86,23 +86,24 @@ module.exports = function verifyV6(ctx) {
   }
   const physical=makeApplicant('physics',6120),chemical=makeApplicant('chemistry',6121);
   const physicsMajors=E.getMajorOptions(physical),chemistryMajors=E.getMajorOptions(chemical);
-  assert.ok(physicsMajors.find(m=>m.id==='physics').unlocked);
-  assert.ok(!physicsMajors.find(m=>m.id==='chemistry').unlocked);
-  assert.ok(chemistryMajors.find(m=>m.id==='chemistry').unlocked);
-  assert.ok(!chemistryMajors.find(m=>m.id==='physics').unlocked);
+  assert.ok(physicsMajors.find(m=>m.id==='physics').aligned);
+  assert.ok(!physicsMajors.find(m=>m.id==='chemistry').aligned);
+  assert.ok(chemistryMajors.find(m=>m.id==='chemistry').aligned);
+  assert.ok(!chemistryMajors.find(m=>m.id==='physics').aligned);
   rejectUnchanged(physical,()=>E.applyUniversities(physical,[{universityId:'gist',majorId:'physics'}]),'Third-year course registration precedes applications');
   chooseRoute(physical,'physics');
   for(const invalid of [
     [],
     [{universityId:'missing',majorId:'general'}],
     [{universityId:'gist',majorId:'missing'}],
-    [{universityId:'gist',majorId:'chemistry'}],
     [{universityId:'gist'}],
     [{universityId:'gist',majorId:''}],
     [{universityId:'gist',majorId:'physics'},{universityId:'gist',majorId:'math'}],
     ['seoul','yonsei','korea','postech','sogang','hanyang','chungang'].map(universityId=>({universityId,majorId:'general'})),
     [{universityId:'chonnam',majorId:'general'}]
   ]) rejectUnchanged(physical,()=>E.applyUniversities(physical,invalid),'Invalid university-major application');
+  assert.ok(physicsMajors.find(m=>m.id==='chemistry').unlocked,'All majors remain selectable despite missing courses');
+  assert.ok(physicsMajors.find(m=>m.id==='chemistry').fitScore < physicsMajors.find(m=>m.id==='physics').fitScore,'Course choices create an academic-fit consequence');
   const entries=[{universityId:'gist',majorId:'physics'},{universityId:'kaist',majorId:'math'}];
   E.applyUniversities(physical,entries);
   assert.deepEqual(physical.applications,['gist','kaist']);
@@ -194,7 +195,7 @@ module.exports = function verifyV6(ctx) {
       if(!s.alive)break;
       if(E.needsEnrollment(s))chooseRoute(s,field);
       if(E.getPhase(s).needsApplications) {
-        assert.ok(E.getMajorOptions(s).find(m=>m.id===majorId).unlocked,`${field} route unlocks its named major`);
+        assert.ok(E.getMajorOptions(s).find(m=>m.id===majorId).aligned,`${field} route unlocks its named major`);
         E.applyUniversities(s,[{universityId:'gist',majorId}]);
       }
       resolve(s);

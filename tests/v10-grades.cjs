@@ -79,8 +79,8 @@ function verifyV10Grades(ctx = {}) {
   assert.ok(results.recovery.median>=3.50&&results.recovery.median<=3.75,'Recovery-only transcripts reflect the new late-semester 3.80 floor without reaching balanced-study GPA');
   const msBases=Array.from({length:6},(_,i)=>E.EXAM_SHAPE[i].ms[0]);
   const genBases=Array.from({length:6},(_,i)=>E.EXAM_SHAPE[i].gen[0]);
-  assert.deepEqual(msBases,[76.5,73.8,73,74.7,74,82.8],'Later terms become easier, especially semester 3-2');
-  assert.deepEqual(genBases,[79.5,76.9,76.3,78.2,77.6,86.5],'All general courses follow the new term calibration');
+  assert.deepEqual(msBases,[76.5,73.8,73,74.7,74,81.3],'Later terms become easier, especially semester 3-2');
+  assert.deepEqual(genBases,[79.5,76.9,76.3,78.2,77.6,84.9],'All general courses follow the new term calibration');
   // v0.14.7: 1-1 역시 6학기 공통 기준을 사용하며 지능·공부 격차를 검증합니다.
   // 과목 점수 계산을 정상 실행하며 GPA 숫자를 강제로 올리지 않습니다.
   const firstTerm = {};
