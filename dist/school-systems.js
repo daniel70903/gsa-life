@@ -2,6 +2,16 @@
   'use strict';
   const COHORT_SIZE = 96, CLASS_SIZE = 16, CLASS_COUNT = 6;
   const ROLE_NAMES = ['반장', '부반장', '대의원'];
+  const OLYMPIAD_STAGES = {
+    math: ['KMO 2차 시험·겨울학교', '국제수학올림피아드(IMO) 최종 선발시험'],
+    physics: ['물리 통신교육 평가·겨울학교', '국제물리올림피아드(IPhO) 최종 선발평가'],
+    chemistry: ['화학 여름·겨울 계절학교', '국제화학올림피아드(IChO) 대표 평가'],
+    biology: ['생물 원격교육·겨울학교', '국제생물올림피아드(IBO) 대표 평가'],
+    geology: ['KESO 팀프로젝트·야외탐구 교육', '국제지구과학올림피아드(IESO) 최종 평가'],
+    astronomy: ['KAO 통신교육·겨울학교', '국제천문천체물리올림피아드(IOAA) 대표 평가'],
+    informatics: ['KOI와 구분된 IOI 통신교육·계절학교', '국제정보올림피아드(IOI) 대표선발고사']
+  };
+
   const TRIPS = [
     { id: 'jeju', name: '제주도 현장탐사', turn: 11, credits: 1 },
     { id: 'usa', name: '미국 현장탐사', turn: 21, credits: 3 },
@@ -246,15 +256,25 @@
       shift(s, { research: 2, discipline: 1, fatigue: 5, stress: 1 });
       return { handled: true, record, messages: [`관찰 과제와 탐사 기록을 제출해 ${record.name} ${record.credits}학점을 이수했다. 현장탐사 누적 ${getFieldStatus(s).total} / 6학점.`], events: [] };
     }
+    function grantOlympiadFieldCredit(s, subjectName) {
+      init(s);
+      if (s.school.fieldCredits.some(r => r.id === 'independent')) return null;
+      return grantCredit(s, { id: 'independent', name: `${subjectName} 올림피아드 현장연구 인정`, credits: 1, type: 'independent', source: 'olympiad' });
+    }
     function nationalTeamEvents(s, record) {
       init(s);
-      if (!record || (record.won !== true && record.kind !== 'olympiad') || s.school.nationalTeam.some(r => r.selected)) return [];
-      const key = `olympiad:${record.turn ?? s.turn}:${record.year ?? currentYear(s)}`;
+      if (!record || (record.qualified !== true && record.won !== true) || s.school.nationalTeam.some(r => r.selected)) return [];
+      const key = `olympiad:${record.subjectId || 'legacy'}:${record.turn ?? s.turn}:${record.year ?? currentYear(s)}`;
       if (s.school.nationalTeam.some(r => r.key === key)) return [];
-      s.school.nationalTeam.push({ key, turn: s.turn, year: currentYear(s), stage: 'invited', selected: false, campChoice: null, chance: null });
-      return [{ id: 'school_national_camp', nationalKey: key, title: '올림피아드 수상 이후, 국가대표 선발 캠프', description: '올림피아드 수상으로 심화 캠프에 도전할 기회가 생겼다. 수상만으로 국가대표가 되는 것은 아니다. 캠프에서 준비한 뒤 별도의 선발 평가를 통과해야 한다.', choices: [{ label: '새로운 문제를 풀며 심화 이론을 정리한다', description: '지능 +2 · 연구 역량 +3 · 피로도 +6', nationalCamp: 'theory', campBonus: 0.07, effects: { intelligence: 2, research: 3, fatigue: 6 } }, { label: '풀이 과정을 설명하고 시간 안에 정리하는 연습을 한다', description: '자기관리 +3 · 연구 역량 +2 · 피로도 +5', nationalCamp: 'practice', campBonus: 0.07, effects: { discipline: 3, research: 2, fatigue: 5 } }, { label: '이번에는 학교생활에 집중한다', description: '국가대표 선발에는 참가하지 않는다.', nationalCamp: 'skip' }] }];
+      const subjectName = record.subjectName || '과학';
+      const selectionPath = OLYMPIAD_STAGES[record.subjectId] || ['종목별 심화교육·계절학교', '국가대표 최종 선발평가'];
+      s.school.nationalTeam.push({ key, subjectId: record.subjectId || 'legacy', subjectName, turn: s.turn, year: currentYear(s), stage: 'invited', selected: false, campChoice: null, chance: null });
+      return [{ id: 'school_national_camp', nationalKey: key, title: `${subjectName} · ${selectionPath[0]}`, description: `${selectionPath[0]}을(를) 준비한다. 해당 과정과 국제대회 국가대표 선발은 별개이며, 실제 절차를 게임 일정으로 압축했다.`, choices: [{ label: '심화 이론과 기출 문제를 집중 연습한다', description: '지능 +2 · 연구 역량 +3 · 피로도 +6', nationalCamp: 'theory', campBonus: 0.015, effects: { intelligence: 2, research: 3, fatigue: 6 } }, { label: '실험·관측·코딩 및 풀이 실전을 준비한다', description: '자기관리 +3 · 연구 역량 +2 · 피로도 +5', nationalCamp: 'practice', campBonus: 0.015, effects: { discipline: 3, research: 2, fatigue: 5 } }, { label: '후보 교육에 참가하지 않는다', description: '국가대표 선발에는 도전하지 않는다.', nationalCamp: 'skip' }] }];
     }
-    function selectionChance(s, record) { return clamp(0.015 + num(s, 'intelligence') * 0.0037 + num(s, 'research', 0) * 0.0028 + num(s, 'discipline') * 0.0018 + num(s, 'luck') * 0.0005 + (record.campBonus || 0), 0.04, 0.94); }
+    function selectionChance(s, record) {
+      // Intentionally selective: an exceptional student may still fail.
+      return clamp(0.005 + Math.max(0, num(s,'intelligence')-50)*0.00055 + Math.max(0,num(s,'research')-50)*0.00035 + Math.max(0,num(s,'discipline')-50)*0.00015 + (record.campBonus||0), 0.005, 0.075);
+    }
     function applyChoiceEffects(s, c) {
       if (c.effects) shift(s, c.effects);
       if (c.bond) s.relationships = clamp((s.relationships || 0) + c.bond);
@@ -299,14 +319,14 @@
         record.campChoice = choice.nationalCamp;
         if (choice.nationalCamp === 'skip') { record.stage = 'declined'; return { handled: true, messages: ['국가대표 캠프 대신 학교에서 탐구를 이어가기로 했다.'], events: [] }; }
         applyChoiceEffects(s, choice); s.examExternalLoad = (s.examExternalLoad || 0) + 1.5; record.campBonus = choice.campBonus || 0; record.stage = 'trained';
-        return { handled: true, messages: ['국가대표 선발 캠프에서 새로운 문제를 풀고 풀이를 정리했다. 이제 최종 선발 평가가 남았다.'], events: [{ id: 'school_national_selection', nationalKey: record.key, title: '국가대표 최종 선발 평가', description: '올림피아드 수상 이후 캠프에서 준비한 내용을 바탕으로 최종 평가에 도전한다. 지능·연구 역량·자기관리·행운과 캠프 준비를 함께 반영한다.', choices: [{ label: '최종 선발 평가에 도전한다', description: '평가 결과에 따라 국가대표가 선발된다.', nationalSelection: 'attempt' }, { label: '이번 선발은 마무리하고 학교로 돌아간다', description: '캠프 경험은 남지만 국가대표 수상 기록은 받지 않는다.', nationalSelection: 'withdraw' }] }] };
+        return { handled: true, messages: ['국가대표 선발 캠프에서 새로운 문제를 풀고 풀이를 정리했다. 이제 최종 선발 평가가 남았다.'], events: [{ id: 'school_national_selection', nationalKey: record.key, title: OLYMPIAD_STAGES[record.subjectId]?.[1] || '국가대표 최종 선발 평가', description: '후보 교육 이후 소수의 국가대표를 가리는 평가다. 국내대회 수상만으로 자동 선발되지 않으며 지능·연구 역량·자기관리와 준비도를 반영한다.', choices: [{ label: '최종 선발 평가에 도전한다', description: '평가 결과에 따라 국가대표가 선발된다.', nationalSelection: 'attempt' }, { label: '이번 선발은 마무리하고 학교로 돌아간다', description: '캠프 경험은 남지만 국가대표 수상 기록은 받지 않는다.', nationalSelection: 'withdraw' }] }] };
       }
       if (choice.nationalSelection) {
         if (record.stage !== 'trained') throw new Error('캠프 준비 이후 한 번만 최종 선발에 도전할 수 있어요.');
         if (choice.nationalSelection === 'withdraw') { record.stage = 'withdrawn'; return { handled: true, messages: ['최종 선발을 마무리하고 학교 연구로 돌아왔다.'], events: [] }; }
         record.chance = selectionChance(s, record); record.selected = rng(s) < record.chance; record.stage = record.selected ? 'selected' : 'not_selected';
         shift(s, { research: 2, fatigue: 7, stress: 3 });
-        if (record.selected) { award(s, { id: `nationalTeam:${record.key}`, kind: 'nationalTeam', name: '과학 올림피아드 국가대표 선발', year: currentYear(s), turn: s.turn }); return { handled: true, messages: ['최종 선발 평가를 통과해 과학 올림피아드 국가대표로 선발됐다! 국가대표 선발 기록이 활동 이력에 추가되었다.'], events: [] }; }
+        if (record.selected) { award(s, { id: `nationalTeam:${record.key}`, kind: 'nationalTeam', name: `${record.subjectName} 올림피아드 국가대표 선발`, year: currentYear(s), turn: s.turn }); return { handled: true, messages: [`${record.subjectName} 국제올림피아드 국가대표로 선발됐다! 기록이 활동 이력에 추가되었다.`], events: [] }; }
         return { handled: true, messages: ['국가대표 최종 선발에는 이르지 못했다. 캠프에서 익힌 사고법과 연구 경험은 남았다.'], events: [] };
       }
       return { handled: false, messages: [], events: [] };
@@ -399,7 +419,7 @@
       const q = s.school;
       return { cohortSize: COHORT_SIZE, classSize: CLASS_SIZE, classCount: CLASS_COUNT, classId: 1, assumption: '게임용 가상 학생 96명, 16명씩 6개 반. 실제 학교 학생 수가 아닙니다.', officers: q?.officerHistory?.at(-1) || null, latestAwards: q?.termResults?.at(-1) || null };
     }
-    return { init, migrate, actions: ACTIONS, validateAction, performAction, scheduleEvents, onSemesterEnd, resolve, getEnrollment, getFieldStatus, makeupFieldTrip, nationalTeamEvents, cohortSummary, getClassRoleBonus, rankCandidates, trips: TRIPS, contests: CONTESTS };
+    return { init, migrate, actions: ACTIONS, validateAction, performAction, scheduleEvents, onSemesterEnd, resolve, getEnrollment, getFieldStatus, makeupFieldTrip, grantOlympiadFieldCredit, nationalTeamEvents, cohortSummary, getClassRoleBonus, rankCandidates, trips: TRIPS, contests: CONTESTS };
   }
   const API = { createAPI, rankCandidates, trips: TRIPS, contests: CONTESTS, cohortSize: COHORT_SIZE, classSize: CLASS_SIZE };
   root.GSASchoolSystems = API;

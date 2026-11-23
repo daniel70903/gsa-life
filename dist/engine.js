@@ -169,7 +169,7 @@
   // v0.14.7: 1-1부터 3-2까지 시험 난도 기준값은 천천히 감소합니다.
   // 전 학기에 동일한 기초학습 버퍼를 쓰며, 지능과 수업 이해도에 따른 차이는 유지합니다.
   const EXAM_PIVOT = 84;
-  const EXAM_SHAPE = { 0:{ms:[76.50,2.2],gen:[79.50,1.8]}, 1:{ms:[73.80,2.2],gen:[76.90,1.8]}, 2:{ms:[73.00,2.45],gen:[76.30,1.9]}, 3:{ms:[74.70,2.7],gen:[78.20,2]}, 4:{ms:[74.00,2.75],gen:[77.60,2.1]}, 5:{ms:[82.80,2.8],gen:[86.50,2.2]} };
+  const EXAM_SHAPE = { 0:{ms:[76.50,2.2],gen:[79.50,1.8]}, 1:{ms:[73.80,2.2],gen:[76.90,1.8]}, 2:{ms:[73.00,2.45],gen:[76.30,1.9]}, 3:{ms:[74.70,2.7],gen:[78.20,2]}, 4:{ms:[74.00,2.75],gen:[77.60,2.1]}, 5:{ms:[81.30,2.8],gen:[84.90,2.2]} };
   const MATH_SCIENCE = ['math', 'physics', 'chemistry', 'biology', 'earth', 'ai'];
   function courseKind(sub) {
     if (sub.kind) return sub.kind;
@@ -716,10 +716,31 @@
   function chooseElectives(s, ids) { return enrollSemester(s, ids); }
   function getTournamentEligibility(s) { return tournaments.getEligibility(s); }
   function tournamentEvent(s) { return tournaments.startEvent(s); }
-  function getOlympiadChance(s) { return clamp(0.04 + Math.max(0, s.stats.intelligence - 60) * 0.014 + s.stats.discipline * 0.0012 + s.stats.research * 0.001 + s.stats.luck * 0.001, 0.05, 0.88); }
+  // Each route is inspired by the 2026 Korean selection system (simplified into
+  // the game's 42-week calendar): domestic entry -> shortlist -> training -> TST.
+  const OLYMPIADS = [
+    {id:'math',name:'수학',short:'KMO 1·2차 시험 → 겨울학교 → IMO 대표 선발',field:'math'},
+    {id:'physics',name:'물리',short:'통신교육·평가 → 겨울학교 → IPhO 대표 선발',field:'physics'},
+    {id:'chemistry',name:'화학',short:'입교 평가 → 여름·겨울학교 → IChO 대표 선발',field:'chemistry'},
+    {id:'biology',name:'생명과학',short:'1차 선발 → 원격교육·겨울학교 → IBO 대표 선발',field:'biology'},
+    {id:'geology',name:'지질·지구과학',short:'KESO 온라인 교육·평가 → 야외탐구·IESO 대표 선발',field:'earth'},
+    {id:'astronomy',name:'천문',short:'KAO 교육생 선발 → 통신교육·겨울학교 → IOAA 대표 선발',field:'earth'},
+    {id:'informatics',name:'정보과학',short:'KOI 1·2차·IOI 별도 통신교육·대표선발고사',field:'ai'}
+  ];
+  function getOlympiadChance(s, subjectId='math') {
+    const subject=OLYMPIADS.find(x=>x.id===subjectId)||OLYMPIADS[0];
+    const club=academicClubs.find(x=>x.id===s.academicClub);
+    const clubBonus=club?.field===subject.field?0.035:0;
+    return clamp(0.11+Math.max(0,s.stats.intelligence-50)*0.0028+Math.max(0,s.stats.research-50)*0.0012+clubBonus,0.08,0.36);
+  }
   function olympiadEvent(s) {
-    const eligible = s.stats.intelligence >= 60;
-    return { id: 'olympiad', title: '과학 올림피아드 도전', description: eligible ? '어려운 문제를 즐기는 모습을 본 선생님이 올림피아드에 도전해보라고 권했다. 익숙한 공식 너머의 사고력을 시험해볼 시간이다.' : '올림피아드 준비 모임이 열렸다. 아직은 기초를 다지는 편이 도움이 될 것 같다.', choices: eligible ? [{ label: '올림피아드에 참가한다', description: '새로운 문제에 도전하고 풀이를 끝까지 정리한다.', participateOlympiad: true }, { label: '이번에는 기초 공부를 더 한다', description: '지능 +2 · 자기관리 +2', effects: { intelligence: 2, discipline: 2 }, skipOlympiad: true }] : [{ label: '준비 모임에서 풀이를 배운다', description: '지능 +3 · 연구 역량 +2', effects: { intelligence: 3, research: 2 }, skipOlympiad: true }, { label: '친구와 기본 개념부터 정리한다', description: '지능 +2 · 사회성 +2', effects: { intelligence: 2, social: 2 }, harmony: 5, skipOlympiad: true }] };
+    return { id:'olympiad',title:'올림피아드 종목 선택',description:'국내 경시·교육·선발과정은 종목마다 달라요. 참가하지 않아도 됩니다. 국내 평가를 통과해도 국가대표로 곧장 선발되지는 않아요. 참가 후 탐구 기록을 제출하면 현장연구 1학점을 인정받습니다.',choices:[...OLYMPIADS.map(o=>({label:`${o.name} 올림피아드 도전`,description:o.short,participateOlympiad:true,olympiadSubject:o.id})),{label:'올해는 참가하지 않는다',description:'올림피아드 대신 학교생활에 집중한다.',skipOlympiad:true}] };
+  }
+  function kaistEarlyEvent() {
+    return { id:'kaist_early_apply',title:'2학년 KAIST 창의도전전형 지원',description:'KAIST의 고2 조기진학은 2학년 수료 예정자 중 과학영재선발 자격을 인정받은 경우에 가능합니다. 게임에서는 자격 심사와 서류 전형을 간소화해 진행하며 면접은 없습니다.',choices:[{label:'과학영재선발 자격 심사와 창의도전전형에 지원한다',description:'연구·학교 성적·수상 기록을 종합해 심사한다. 합격은 보장되지 않는다.',kaistEarlyApply:true},{label:'이번에는 지원하지 않는다',description:'3학년의 일반 지원 기회는 그대로 남는다.',kaistEarlySkip:true}] };
+  }
+  function kaistEarlyResultEvent(s) {
+    return {id:'kaist_early_results',title:'KAIST 창의도전전형 조기 지원 결과',description:'과학영재선발 자격과 서류 심사 결과가 도착했어요.',choices:[{label:'결과 확인',description:'합격과 조기진학 자격 여부를 확인한다.',kaistEarlyResult:true}]};
   }
   function universityQuestionEvent(s) {
     const i = s.universityInterview, u = universities.find(x => x.id === i.universityId), n = i.answers.length;
@@ -760,6 +781,8 @@
     if ([7,21].includes(s.turn)) { events.push(councilEvent(s)); events.push(tournamentEvent(s)); }
     if (s.turn === 14) { if (!s.captainSelectionDone) events.push(captainEvent(s)); events.push(sportsEvent(s, true)); }
     if ([11,25].includes(s.turn)) events.push(olympiadEvent(s));
+    if (s.turn===22 && !s.kaistEarly) events.push(kaistEarlyEvent());
+    if (s.turn===26 && s.kaistEarly?.status==='review') events.push(kaistEarlyResultEvent(s));
     if (s.turn === 38 && s.applications.length) { const e = beginUniversityInterviews(s); if(e) events.push(e); }
     if (s.turn === 40 && s.applications.length && !s.admissions) events.push(resultsEvent());
     if (s.turn === 35) events.push(tournamentEvent(s));
@@ -1295,9 +1318,35 @@
       else messages.push('교육감배 경기를 끝까지 뛰었다. 메달은 얻지 못했지만, 팀으로 함께한 경기가 기억에 남았다.');
     }else if(c.skipTournament){s.tournamentHistory.push({year:c.tournamentYear,clubId:s.sportsClubs[0]||null,participated:false,medal:false});messages.push('이번 교육감배에는 선수로 참가하지 않고 응원했다.');}
     else if(c.participateOlympiad){
-      if(s.stats.intelligence<60)throw new Error('아직 기초를 더 준비해야 해요.');
-      const won=rng(s)<getOlympiadChance(s);s.olympiadHistory.push({turn:s.turn,year:getPhase(s).year,participated:true,won});s.examExternalLoad=(s.examExternalLoad||0)+2.3;shift(s,{intelligence:1.5,research:3,fatigue:6,stress:3});
-      if(won){const award={kind:'olympiad',name:'과학 올림피아드 수상',year:getPhase(s).year,turn:s.turn};s.awards.push(award);s.badges.push(award.name);messages.push('어려운 문제를 끝까지 풀어 과학 올림피아드에서 상을 받았다!');s.eventQueue.unshift(...school.nationalTeamEvents(s,s.olympiadHistory[s.olympiadHistory.length-1]));}else messages.push('올림피아드 수상에는 이르지 못했지만 새로운 문제를 풀며 많이 배웠다.');
+      const subject=OLYMPIADS.find(x=>x.id===c.olympiadSubject)||OLYMPIADS[0];
+      if(s.olympiadHistory.some(r=>r.turn===s.turn&&r.participated))throw new Error('해당 연도의 올림피아드는 이미 신청했어요.');
+      const chance=getOlympiadChance(s,subject.id),qualified=rng(s)<chance;
+      // Only a subset of domestic prelim qualifiers receive a domestic award.
+      const won=qualified&&rng(s)<0.26;
+      const record={kind:'olympiad',turn:s.turn,year:getPhase(s).year,subjectId:subject.id,subjectName:subject.name,participated:true,qualified,won,qualifyingChance:chance};
+      s.olympiadHistory.push(record);s.examExternalLoad=(s.examExternalLoad||0)+2.3;
+      shift(s,{intelligence:1.5,research:2.5,fatigue:6,stress:3});
+      const fieldCredit=school.grantOlympiadFieldCredit(s,subject.name);
+      if(fieldCredit)messages.push(`${subject.name} 올림피아드 참가·탐구 기록으로 현장연구 1학점을 인정받았다.`);
+      if(won){const award={kind:'olympiad',subjectId:subject.id,name:`${subject.name} 올림피아드 국내 평가 수상`,year:getPhase(s).year,turn:s.turn};s.awards.push(award);s.badges.push(award.name);messages.push(`${subject.name} 국내 평가에서 수상했다!`);}
+      if(qualified){messages.push(`${subject.name} 평가를 통과해 후보 교육 대상으로 선발됐다. 국제대회 대표 여부는 후속 선발에서 결정된다.`);s.eventQueue.unshift(...school.nationalTeamEvents(s,record));}
+      else messages.push(`${subject.name} 올림피아드 국내 평가에 참가했다. 올해는 국가대표 후보 단계에 오르지 못했다.`);
+    }else if(c.kaistEarlyApply||c.kaistEarlySkip){
+      if(s.turn<21||s.turn>=28||s.kaistEarly)throw new Error('2학년 조기 지원은 이 시기에 한 번만 선택할 수 있어요.');
+      if(c.kaistEarlySkip){s.kaistEarly={applied:false,status:'skipped',accepted:false};messages.push('KAIST 조기전형은 지원하지 않았다. 3학년 원서는 그대로 낼 수 있다.');}
+      else{
+        const percentile=cohortPercentile(s),research=s.stats.research;
+        const distinguished=(s.awards||[]).some(a=>['olympiad','nationalTeam','contest'].includes(a.kind));
+        const qualified=percentile>=0.70||research>=76||distinguished;
+        const chance=qualified?clamp(0.10+(percentile-0.5)*0.48+(research-60)*0.004+admissionRecordScore(s)*0.055,0.035,0.72):0;
+        s.kaistEarly={applied:true,status:'review',qualified,chance,roll:rng(s),accepted:false,submittedTurn:s.turn,gpa:getProfile(s).gpa};
+        messages.push('KAIST 과학영재선발 자격과 창의도전전형 서류 심사를 신청했다. 결과는 2학년 2학기 말에 확인한다.');
+      }
+    }else if(c.kaistEarlyResult){
+      if(s.kaistEarly?.status!=='review')throw new Error('조기 지원 기록을 찾을 수 없어요.');
+      const a=s.kaistEarly;a.status='results';a.accepted=!!a.qualified&&a.roll<a.chance;
+      if(a.accepted){s.earlyAdmissionQualifications={...(s.earlyAdmissionQualifications||{}),kaist:true};messages.push('KAIST 창의도전전형에 합격했다! 과학영재선발 자격을 인정받아 고2 수료 이후 조기진학이 가능하다.');}
+      else messages.push(a.qualified?'KAIST 창의도전전형 서류평가에서 합격하지 못했다. 3학년 일반 지원은 여전히 가능하다.':'KAIST 과학영재선발 자격을 인정받지 못했다. 3학년에 다시 일반전형에 도전할 수 있다.');
     }else if(typeof c.universityPoints==='number'){
       const i=s.universityInterview;if(!i)throw new Error('진행 중인 대학 면접이 없어요.');i.answers.push(c.label);i.points+=c.universityPoints;
       if(i.answers.length<(i.total||3))s.pendingEvent=universityQuestionEvent(s);
@@ -1350,7 +1399,7 @@
     if (s.alive === false || s.turn < 42) return null;
     const ovr = getOverall(s), q = clamp((ovr - 78) / 21, 0, 1), research = (s.stats.research || 0) / 100;
     const field = CAREER_PRIZE[academicField(s)] ? academicField(s) : 'physics', prize = CAREER_PRIZE[field];
-    const accepted = (s.admissions || []).filter(a => a.accepted && canEnroll(s, a) !== false), uni = accepted.find(a => a.id === 'seoul') || accepted.find(a => ['kaist', 'postech'].includes(a.id)) || accepted[0];
+    const accepted = [...(s.admissions || []), ...(s.kaistEarly?.accepted?[{id:'kaist',name:'KAIST',majorName:'조기입학',accepted:true,earlyAdmissionApproved:true}]:[])].filter(a => a.accepted && canEnroll(s, a) !== false), uni = accepted.find(a => a.id === 'seoul') || accepted.find(a => ['kaist', 'postech'].includes(a.id)) || accepted[0];
     const stars = getAchievements(s).stars;
     const timeline = [];
     const earnedCredits = getGraduationStatus(s).totalCredits;

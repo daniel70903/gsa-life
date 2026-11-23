@@ -55,10 +55,15 @@
   function describeMajor(major, evidence) {
     const progress = Object.entries(major.requirements).map(([field, required]) => ({ field, label: fieldLabels[field], required, current: evidence.byField[field] || 0, met: (evidence.byField[field] || 0) >= required }));
     const missing = progress.filter(p => !p.met).map(p => `${p.label} 분야 ${p.required - p.current}학점 부족`);
-    const unlocked = missing.length === 0;
+    // Courses are recommendations, never an eligibility gate. Missing relevant
+    // specialist credits slightly disadvantage the document review instead.
+    const aligned = missing.length === 0;
+    const shortfall = progress.reduce((sum, p) => sum + Math.max(0, p.required - p.current), 0);
     const surplus = progress.reduce((sum, p) => sum + Math.max(0, p.current - p.required), 0);
-    const fitScore = major.id === 'general' || !unlocked ? 0 : Math.round(Math.min(3, 1.5 + surplus * 0.15) * 100) / 100;
-    return { ...copy(major), unlocked, missing, progress, requirementsText: progress.length ? `게임 조건 · 2학년 2학기 전공 선택 이수: ${progress.map(p => `${p.label} ${p.required}학점`).join(' + ')}` : '게임 조건 · 이수 분야와 관계없이 선택 가능', currentProgress: progress.length ? progress.map(p => `${p.label} ${p.current}/${p.required}학점`).join(' · ') : '언제나 선택 가능', fitScore, fitText: major.id === 'general' ? '별도 전공 연계 가산 없음' : `게임 전형 점수에 전공 연계 가산 ${fitScore.toFixed(2)}점` };
+    const fitScore = major.id === 'general' ? 0 : aligned
+      ? Math.round(Math.min(2.2, 1.0 + surplus * 0.12) * 100) / 100
+      : -Math.round(Math.min(1.6, shortfall * 0.28) * 100) / 100;
+    return { ...copy(major), unlocked: true, aligned, missing, progress, requirementsText: progress.length ? `권장 이수(지원 제한 아님) · ${progress.map(p => `${p.label} ${p.required}학점`).join(' + ')}` : '별도 권장 과목 없음', currentProgress: progress.length ? progress.map(p => `${p.label} ${p.current}/${p.required}학점`).join(' · ') : '언제나 선택 가능', fitScore, fitText: major.id === 'general' ? '별도 전공 적합성 보정 없음' : aligned ? `전공 연계 가산 +${fitScore.toFixed(2)}` : `미이수 과목 서류 보정 ${fitScore.toFixed(2)} (지원 가능)` };
   }
   function fit(rawEvidence, majorId) {
     const major = majors.find(m => m.id === majorId);
@@ -91,8 +96,7 @@
       const applications = normalized.map(entry => {
         const option = options.find(o => o.id === entry.majorId);
         if (!option) throw new Error('존재하는 희망 전공을 선택해 주세요.');
-        if (!option.unlocked) throw new Error(`${option.name}의 게임 조건을 아직 충족하지 못했어요. ${option.missing.join(' · ')}`);
-        return { universityId: entry.universityId, majorId: option.id, majorName: option.name, fitScore: option.fitScore, requirements: copy(option.requirements), eligible: true };
+        return { universityId: entry.universityId, majorId: option.id, majorName: option.name, fitScore: option.fitScore, missingCourses: [...option.missing], requirements: copy(option.requirements), eligible: true };
       });
       const applicationIds = applications.map(a => a.universityId);
       const applicationMajors = Object.fromEntries(applications.map(a => [a.universityId, a.majorId]));
@@ -103,7 +107,7 @@
       const snapshot = frozenSnapshot && (frozenSnapshot.majorSnapshot || frozenSnapshot);
       if (snapshot) {
         const entry = Array.isArray(snapshot.applications) ? snapshot.applications.find(a => a.universityId === universityId && a.majorId === majorId) : null;
-        return entry && Number.isFinite(entry.fitScore) ? Math.max(0, Math.min(3, entry.fitScore)) : 0;
+        return entry && Number.isFinite(entry.fitScore) ? Math.max(-1.6, Math.min(3, entry.fitScore)) : 0;
       }
       // Older applications without a new snapshot keep their original general path and score.
       if ((s.applications || []).length || s.admissions) return 0;
