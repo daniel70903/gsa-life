@@ -6,7 +6,7 @@
 })(typeof window === 'undefined' ? globalThis : window, function (root) {
   'use strict';
 
-  const VERSION = 'v0.14.1';
+  const VERSION = 'v0.14.2';
   const SAVE_KEY = 'gsa-life-v1';
   const SEEN_VERSION_KEY = 'gsa-life-seen-version';
   const GUIDE_KEY = 'gsa-life-guide-seen';
@@ -83,6 +83,15 @@
   /* ───────────── 도움말 내용 ───────────── */
 
   const changelog = [
+    {
+      version: 'v0.14.2',
+      date: '2026.11',
+      items: [
+        '1학년 1학기부터 3학년 2학기까지 시험 난도가 한 학기마다 조금씩만 올라가도록 학기별 기준값을 조정했어요.',
+        '수학·과학 기준값은 학기당 1점, 일반 과목은 0.8점씩 낮아져요. 1학년 2학기와 2학년 1학기의 급격한 난도 상승을 완화했어요.',
+        '지능 상한, 공부량 효율, 심야·새벽 자습 보상과 기존 저장 데이터 형식은 그대로 유지돼요.'
+      ]
+    },
     {
       version: 'v0.14.1',
       date: '2026.11',
