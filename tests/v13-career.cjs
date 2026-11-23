@@ -11,10 +11,12 @@ module.exports = function verifyV13Career() {
   ok(E.getCareer(s) === null, 'No career before graduation');
   const a0 = E.getAchievements(s); ok(a0.stars === 0 && a0.list.length >= 8, 'Achievements list exists');
   const g = copy(s); g.turn = 42; g.awards = [{ kind: 'olympiad' }, { kind: 'contest', tier: '금상' }]; g.admissions = [{ id: 'seoul', name: '서울대학교', majorName: '수리과학부', accepted: true }];
-  ok(E.getAchievements(g).stars === 2, 'v0.13.4: SNU acceptance does not count without graduation');
-  ok(E.canEnroll(g, g.admissions[0]) === false && E.canEnroll(g, { id: 'kaist', accepted: true }) === true, 'Only completion-based campuses (KAIST) admit non-graduates');
+  ok(E.getAchievements(g).stars === 3, 'SNU acceptance is recorded even when enrollment is blocked');
+  ok(E.canEnroll(g, g.admissions[0]) === false && E.canEnroll(g, { id: 'kaist', accepted: true }) === true, 'KAIST science-talent acceptance permits enrollment before graduation');
+  const field = E.getGraduationStatus(g).totalCredits; g.grades = [{ year:3,semester:2,credits:180-field,earnedCredits:180-field,subjects:[],gpa:4.0 }];
+  ok(E.canEnroll(g, {id:'kaist',accepted:true}) === true && E.canEnroll(g, g.admissions[0]) === false, 'At 180 credits KAIST completion exemption still applies; others need graduation');
   g.ending = 'graduated';
-  ok(E.getAchievements(g).stars === 3, 'olympiad, gold, SNU earn stars');
+  ok(E.getAchievements(g).stars === 3, 'Acceptance stars remain independent of enrollment eligibility');
   const c = E.getCareer(g); ok(c && c.prize === '필즈상' && Array.isArray(c.timeline) && c.timeline.length >= 2, 'Math path aims at the Fields Medal');
   assert.deepEqual(E.getCareer(copy(g)), c); checks++;
   ok(c.timeline[0].text.includes('서울대학교'), 'Career starts at the accepted university');

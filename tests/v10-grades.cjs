@@ -79,8 +79,35 @@ function verifyV10Grades(ctx = {}) {
   assert.ok(results.recovery.median<=3.60,'Recovery-only strategy still pays a substantial academic cost');
   const msBases=Array.from({length:6},(_,i)=>E.EXAM_SHAPE[i].ms[0]);
   const genBases=Array.from({length:6},(_,i)=>E.EXAM_SHAPE[i].gen[0]);
-  assert.deepEqual(msBases,[74,73,72,71,70,69],'Math/science exam bases change by only one point each semester');
-  assert.deepEqual(genBases,[77.5,76.7,75.9,75.1,74.3,73.5],'General exam bases rise in difficulty by only 0.8 points per semester');
+  assert.deepEqual(msBases,[77,73,72,71,70,69],'First-term math/science starts easier; later terms retain gradual progression');
+  assert.deepEqual(genBases,[79.5,76.7,75.9,75.1,74.3,73.5],'First-term general exams start easier; later terms retain gradual progression');
+  // v0.14.3: 1-1 저학습량의 낮은 성적이 흔하지 않아야 합니다.
+  // 과목 점수 계산을 정상 실행하며 GPA 숫자를 강제로 올리지 않습니다.
+  const firstTerm = {};
+  for(const policy of ['recovery','nonstudy','moderate','intensive']) {
+    const gpas=[];
+    for(let seed=1;seed<=128;seed++) {
+      const s=E.create('첫학기 저점 검증',seed,{gender:'male'});
+      E.setClubs(s,'physics','none');
+      while(s.alive&&s.turn<7) {
+        ready(s);
+        let focus=policy==='intensive'?'intelligence':policy==='recovery'?'recovery':policy==='nonstudy'?'social':s.turn%4===1?'intelligence':'balanced';
+        if(s.stats.fatigue>60||s.stats.stress>65||s.illnessWeeks)focus='recovery';
+        const phase=E.getPhase(s);let mode='normal';
+        if(policy==='intensive'&&focus!=='recovery'&&s.stats.fatigue<45&&phase.nightAvailable)mode='night';
+        s.studyPlanner=null;
+        E.simulateWeek(s,focus,mode);
+      }
+      settle(s);
+      assert.equal(s.grades.length,1,'A complete first term produces one GPA');
+      gpas.push(s.grades[0].gpa);
+    }
+    firstTerm[policy]={median:median(gpas),lowRate:gpas.filter(g=>g<3.4).length/gpas.length};
+  }
+  assert.ok(firstTerm.recovery.lowRate<=0.06,'Even recovery-only play seldom falls below 3.4 in the first semester');
+  assert.ok(firstTerm.nonstudy.lowRate<=0.04,'Barely studying normally gives at least 3.4 in the first semester');
+  assert.ok(firstTerm.moderate.median>=firstTerm.nonstudy.median+.2,'First-term studying still earns a meaningful academic advantage');
+  assert.ok(firstTerm.intensive.median>=firstTerm.moderate.median+.2,'First-term intensive studying remains worthwhile');
   assert.ok(results.moderate.applicationMedian>=3.65,'Moderate preparation is also reflected before college applications');
   // v0.13: 자습은 조금 너프했지만 여전히 이득이어야 합니다.
   for(const mode of ['night','dawn','both'])assert.ok(results[mode].mean>results.moderate.mean+.02,`${mode} improves complete-run grades with sensible recovery`);
@@ -88,7 +115,7 @@ function verifyV10Grades(ctx = {}) {
   assert.ok(results.recovery.median<results.moderate.median-.25,'Choosing rest throughout has an academic opportunity cost');
   assert.ok(results.giftedLucky.median>=3.9&&results.giftedLucky.median<4.3,'High intelligence and favorable luck can support a4.0-level record');
   assert.deepEqual(E.getGrade(90),['A+',4.3]);assert.deepEqual(E.getGrade(85),['A0',4]);
-  if(ctx.counters)ctx.counters.v10Grades={seeds:32,policies:7,marks,results};
+  if(ctx.counters)ctx.counters.v10Grades={seeds:32,policies:7,marks,results,firstTerm};
   return {seeds:32,policies:7,marks,results};
 }
 module.exports=verifyV10Grades;

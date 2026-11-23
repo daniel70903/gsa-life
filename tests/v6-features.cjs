@@ -31,7 +31,10 @@ module.exports = function verifyV6(ctx) {
     rejectUnchanged(curriculum,()=>E.enrollSemester(curriculum,[...suggested,'invented-course']),'Unknown course IDs are invalid');
     const designIds=options.courses.filter(c=>c.category==='design').map(c=>c.id);
     const allSpecialists=options.courses.filter(c=>c.category==='specialist');
-    if(allSpecialists.reduce((n,c)=>n+c.credits,0)>16) rejectUnchanged(curriculum,()=>E.enrollSemester(curriculum,[...new Set([...suggested,...allSpecialists.map(c=>c.id)])]),'Specialist credit cap is enforced');
+    if(allSpecialists.reduce((n,c)=>n+c.credits,0)>16) {
+      const noCapPlan=[...new Set([...suggested,...allSpecialists.map(c=>c.id)])];
+      assert.equal(E.validateEnrollment(curriculum,noCapPlan).valid,true,'Specialist courses have no semester maximum');
+    }
     if(turn<35){const future=copy(curriculum);future.turn=turn+8;const futureOnly=E.getEnrollmentOptions(future).courses.find(c=>!options.courses.some(now=>now.id===c.id));if(futureOnly)rejectUnchanged(curriculum,()=>E.enrollSemester(curriculum,[...suggested,futureOnly.id]),'Courses from a later semester are invalid');}
     if(turn<35) {
       rejectUnchanged(curriculum,()=>E.enrollSemester(curriculum,suggested.filter(id=>!designIds.includes(id))),'First two plans require a design course');

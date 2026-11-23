@@ -71,9 +71,9 @@ module.exports = function verifyV8(ctx) {
   }
   for(const row of Object.values(difficulty))for(const key of ['oldMean','newMean','oldGPA','newGPA'])row[key]/=row.samples;
   const balanced=difficulty.balanced,studied=difficulty.intelligence;
-  check(balanced.newMean<balanced.oldMean-2.5&&balanced.newGPA<balanced.oldGPA-.15,'A typical balanced life no longer receives near-automatic A+ marks');
-  check(balanced.newMean>balanced.oldMean-20&&balanced.newMean>=65,'The revision increases challenge without turning a prepared ordinary semester into failure');
-  check(studied.newMean>balanced.newMean+5&&studied.newGPA>=3.5,'Sustained study still produces materially better grades');
+  check(balanced.newMean>=90&&balanced.newGPA>=3.8&&balanced.newGPA<4.25,'Ordinary first-semester students usually earn high grades without automatic perfect scores');
+  check(balanced.newGPA<studied.newGPA&&difficulty.recovery.newGPA>=3.4,'Focused study remains stronger while normal recovery does not imply failure');
+  check(studied.newMean>balanced.newMean+5&&studied.newGPA>=4.2,'Sustained study still produces materially better grades');
   assert.deepEqual(E.getGrade(90),['A+',4.3]);assert.deepEqual(E.getGrade(89.9),['A0',4]);assert.deepEqual(E.getGrade(40),['D0',1]);assert.deepEqual(E.getGrade(39.9),['F',0]);
   counters.v8Difficulty=difficulty;
 
