@@ -824,8 +824,11 @@
       // Ordinary lessons plus occasional focused study can reach an A0 average.
       // Further revision has diminishing returns, leaving room for both exam luck
       // and the stronger exam-week study choices without automatic perfect marks.
-      const preparation = (Math.min(18, knowledge) + Math.max(0, knowledge - 18) * 0.4) * 0.9;
+      const basePreparation = (Math.min(18, knowledge) + Math.max(0, knowledge - 18) * 0.4) * 0.9;
+      const focusedStudyBonus = Math.min(5.5, Math.max(0, knowledge - 14) * 0.25);
+      const preparation = basePreparation + focusedStudyBonus;
       const ability = value => Math.min(70, value) + Math.max(0, value - 70) * 0.65;
+      const intelligenceMastery = Math.max(0, s.stats.intelligence - 75) * 0.13;
       const midtermAdjustment = phase.exam === 'midterm' ? 8 : 0;
       const academicAffinity = sub.field === academicField(s) ? 2 : 0;
       const researchBoost = sub.field === 'research' ? s.stats.research * 0.08 + s.stats.creativity * 0.02 : 0;
@@ -834,7 +837,7 @@
       const calibration = s.courseTable === 2 ? (EXAM_CALIBRATION[termIndex(s)] || EXAM_CALIBRATION[5])[kindKey] || 0 : 0;
       const examFatigue = s.courseTable === 2 ? Math.max(0, s.stats.fatigue - 65) * 0.2 : 0;
       const noise = (rng(s) - 0.5) * 10;
-      const raw = 46 - examFatigue + ability(s.stats.intelligence) * 0.17 + ability(s.stats.discipline) * 0.1 + preparation + midtermAdjustment + academicAffinity + researchBoost + bonus - courseDifficulty - healthPenalty - stressPenalty - (s.illnessWeeks > 0 ? 7 : 0) + (s.stats.luck - 50) * 0.04;
+      const raw = 46 - examFatigue + ability(s.stats.intelligence) * 0.17 + intelligenceMastery + ability(s.stats.discipline) * 0.1 + preparation + midtermAdjustment + academicAffinity + researchBoost + bonus - courseDifficulty - healthPenalty - stressPenalty - (s.illnessWeeks > 0 ? 7 : 0) + (s.stats.luck - 50) * 0.04;
       // v0.13 과목표: 반 평균이 실제 시험(어려우면 65점, 쉬우면 70점대 후반, 인문은 조금 높게)처럼 나오도록 평균과 폭을 맞춥니다.
       const shape = s.courseTable === 2 ? (EXAM_SHAPE[termIndex(s)] || EXAM_SHAPE[5])[kindKey] : null;
       const score = round(clamp(shape ? shape[0] + (raw + calibration - EXAM_PIVOT) * shape[1] + noise * 0.8 : raw + calibration + noise));
