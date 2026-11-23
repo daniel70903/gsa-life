@@ -137,7 +137,7 @@
   ];
   const focuses = [
     { id: 'balanced', name: '균형 성장', description: '수업·관계·활동과 휴식을 고르게 배분해요.', effectsText: '여러 능력의 고른 성장 · 안정적인 생활 리듬' },
-    { id: 'intelligence', name: '지능', description: '개념을 연결하고 낯선 문제를 깊게 생각하는 데 집중해요.', effectsText: '지능 중심 성장 · 교과 이해 향상' },
+    { id: 'intelligence', name: '지능', description: '개념을 연결하고 낯선 문제를 깊게 생각하는 데 집중해요. 공부에 몰입하면 동아리 등 비교과 자동 참여는 줄어들어요.', effectsText: '지능 성장 · 교과 이해 ↑ · 비교과 활동 여유 ↓' },
     { id: 'social', name: '사회성', description: '친구들의 이야기를 듣고 함께하는 시간을 더 가져요.', effectsText: '사회성 중심 성장 · 관계와 기숙사 생활 개선' },
     { id: 'athletics', name: '운동', description: '일상 운동과 팀 훈련에서 기초 기술을 다져요.', effectsText: '운동 중심 성장 · 체력과 회복력 향상' },
     { id: 'discipline', name: '자기관리', description: '계획과 수면, 공부 습관을 꾸준히 지켜요.', effectsText: '자기관리 중심 성장 · 피로와 스트레스 조절' },
@@ -166,10 +166,10 @@
   // 학기·과목 유형별 지필 난이도 보정(시뮬레이션으로 맞춘 값). 수행평가는 사건이 없으면 만점이라 지필을 더 어렵게 둡니다.
   const EXAM_CALIBRATION = { 0: { ms: 0, gen: 0 }, 1: { ms: 0, gen: 0 }, 2: { ms: 0, gen: 0 }, 3: { ms: 0, gen: 0 }, 4: { ms: 0, gen: 0 }, 5: { ms: 0, gen: 0 } };
   // 학기·유형별 [시험점수 기준값, 실력 차이 폭]. EXAM_PIVOT은 보정 전 평균적인 학생의 점수입니다.
-  // v0.14.3: 1-1의 기초 성적을 현실에 가깝게 높이고, 저점에서 점수 변동을 완화합니다.
-  // 1-2 이후 기준값과 실력 차이 폭은 v0.14.2 그대로 유지합니다.
+  // v0.14.7: 1-1부터 3-2까지 시험 난도 기준값은 천천히 감소합니다.
+  // 전 학기에 동일한 기초학습 버퍼를 쓰며, 지능과 수업 이해도에 따른 차이는 유지합니다.
   const EXAM_PIVOT = 84;
-  const EXAM_SHAPE = { 0:{ms:[77,2.2],gen:[79.5,1.8]}, 1:{ms:[73,2.15],gen:[76.7,1.7]}, 2:{ms:[72,2.5],gen:[75.9,1.9]}, 3:{ms:[71,3.0],gen:[75.1,2.3]}, 4:{ms:[70,3.0],gen:[74.3,2.3]}, 5:{ms:[69,3.0],gen:[73.5,2.3]} };
+  const EXAM_SHAPE = { 0:{ms:[76.50,2.2],gen:[79.50,1.8]}, 1:{ms:[73.80,2.2],gen:[76.90,1.8]}, 2:{ms:[73.00,2.45],gen:[76.30,1.9]}, 3:{ms:[74.70,2.7],gen:[78.20,2]}, 4:{ms:[74.00,2.75],gen:[77.60,2.1]}, 5:{ms:[82.80,2.8],gen:[86.50,2.2]} };
   const MATH_SCIENCE = ['math', 'physics', 'chemistry', 'biology', 'earth', 'ai'];
   function courseKind(sub) {
     if (sub.kind) return sub.kind;
@@ -227,7 +227,7 @@
   // v0.13 오버롤: 능력치마다 숨은 잠재력(상한)이 있어, 상한에 가까울수록 덜 오르고 상한을 넘기 어렵습니다.
   const POTENTIAL_STATS = ['intelligence', 'social', 'athletics', 'discipline', 'creativity', 'resilience', 'leadership', 'research'];
   const OVR_WEIGHTS = { intelligence: 0.2, research: 0.16, creativity: 0.14, discipline: 0.14, leadership: 0.1, social: 0.1, resilience: 0.08, athletics: 0.08 };
-  const OVR_SHAPE = { base: 4, scale: 1.05, potLow: 66, potSpan: 33, potCurve: 0.45, bonus: 6, floor: 0.3, power: 7, talent: 20, knee: 85, boost: 0.6, ceil: 95, ceilRate: 0.2 };
+  const OVR_SHAPE = { base: 4, scale: 1.05, potLow: 66, potSpan: 33, potCurve: 0.45, bonus: 6, floor: 0.3, power: 7, talent: 20, knee: 85, boost: 0.6, midKnee: 87, midPenalty: 1.21, eliteKnee: 92, eliteBonus: 1.05 };
   function potentialFor(seed, archetypeId, k) {
     let h = 2166136261;
     for (const c of `${seed}|potential|${k}`) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); }
@@ -251,16 +251,24 @@
     let w = 0;
     for (const [k, weight] of Object.entries(OVR_WEIGHTS)) w += (Number(s.stats?.[k]) || 0) * weight;
     const raw = OVR_SHAPE.base + w * OVR_SHAPE.scale;
-    // 최상위 구간은 조금 넓혀 95 이상이 의미 있는 목표가 되게 합니다.
-    let v = raw + Math.max(0, raw - OVR_SHAPE.knee) * OVR_SHAPE.boost;
-    // 99는 아주 드물게: 상단은 다시 완만하게 눌러 줍니다.
-    if (v > OVR_SHAPE.ceil) v = OVR_SHAPE.ceil + (v - OVR_SHAPE.ceil) * OVR_SHAPE.ceilRate;
+    // v0.14.9: Spending more time studying reduces passive extracurricular gains,
+    // so recalibrate the upper OVR display curve without raising actual stats.
+    // The mapping is continuous and monotone: median ~88, 90+ ~30%, 95+ ~5%
+    // for the same reproducible 12-strategy graduation cohort used in tests.
+    const v = raw <= 75 ? raw
+      : raw <= 85.9 ? 75 + (raw - 75) * 13 / 10.9
+      : raw <= 88.9 ? 88 + (raw - 85.9) * 1.5 / 3
+      : raw <= 94.2 ? 89.5 + (raw - 88.9) * 5 / 5.3
+      : 94.5 + (raw - 94.2) * 1.2;
     return Math.max(1, Math.min(99, Math.round(v)));
   }
   function shift(s, changes) {
     for (const [key, value] of Object.entries(changes)) {
       const k = key === 'health' ? 'fatigue' : key;
       let delta = key === 'health' ? -value : value;
+      // v0.14.7: All positive permanent-ability gains are softened by 5%.
+      // Do not alter health, fatigue, stress, luck, temporary conditions or GPA directly.
+      if (delta > 0 && POTENTIAL_STATS.includes(k)) delta *= 0.95;
       const pot = s.potential && s.potential[k];
       if (pot && delta > 0) {
         const cur = s.stats[k] || 0;
@@ -823,11 +831,10 @@
     const stressPenalty = Math.max(0, s.stats.stress - 40) * 0.14;
     return getSubjects(s).map(sub => {
       const knowledge = Math.max(0, s.semesterLearning[sub.id] || 0);
-      // v0.14.1: Normal study is rewarding; very high knowledge (>30) has
-      // stronger diminishing returns to avoid near-guaranteed perfect grades.
-      const basePreparation = (Math.min(18, knowledge) + Math.min(12, Math.max(0, knowledge - 18)) * 0.4 + Math.max(0, knowledge - 30) * 0.1) * 0.9;
+      // v0.14.7: 여섯 학기에 똑같은 공부 효율을 사용하되, 18/30 초과 이해도는 점감합니다.
+      const basePreparation = (Math.min(18, knowledge) + Math.min(12, Math.max(0, knowledge - 18)) * 0.3 + Math.max(0, knowledge - 30) * 0.07) * 0.9;
       // Deliberate study earns an additional bounded preparation bonus.
-      const focusedStudyBonus = Math.min(3.0, Math.max(0, knowledge - 20) * 0.20);
+      const focusedStudyBonus = Math.min(2, Math.max(0, knowledge - 20) * 0.13);
       const preparation = basePreparation + focusedStudyBonus;
       const ability = value => Math.min(70, value) + Math.max(0, value - 70) * 0.65;
       // The highest intelligence tier gains a small extra payoff without guaranteeing A+.
@@ -840,16 +847,38 @@
       const calibration = s.courseTable === 2 ? (EXAM_CALIBRATION[termIndex(s)] || EXAM_CALIBRATION[5])[kindKey] || 0 : 0;
       const examFatigue = s.courseTable === 2 ? Math.max(0, s.stats.fatigue - 65) * 0.2 : 0;
       const noise = (rng(s) - 0.5) * 10;
-      const raw = 46 - examFatigue + ability(s.stats.intelligence) * 0.17 + intelligenceMastery + ability(s.stats.discipline) * 0.1 + preparation + midtermAdjustment + academicAffinity + researchBoost + bonus - courseDifficulty - healthPenalty - stressPenalty - (s.illnessWeeks > 0 ? 7 : 0) + (s.stats.luck - 50) * 0.04;
+      const raw = 44 - examFatigue + ability(s.stats.intelligence) * 0.17 + intelligenceMastery + ability(s.stats.discipline) * 0.1 + preparation + midtermAdjustment + academicAffinity + researchBoost + bonus - courseDifficulty - healthPenalty - stressPenalty - (s.illnessWeeks > 0 ? 7 : 0) + (s.stats.luck - 50) * 0.04;
       // v0.13 과목표: 반 평균이 실제 시험(어려우면 65점, 쉬우면 70점대 후반, 인문은 조금 높게)처럼 나오도록 평균과 폭을 맞춥니다.
       const shape = s.courseTable === 2 ? (EXAM_SHAPE[termIndex(s)] || EXAM_SHAPE[5])[kindKey] : null;
-      // v0.14.3: 1-1에서는 중등 기초학습을 인정해 공부량이 적어도
-      // 학점이 3점 초반까지 자주 떨어지지 않도록 작은 점수 완충을 제공합니다.
-      // 실제 과목별 지필 점수에만 적용되어 성적표(과목 등급·GPA)가 일관됩니다.
-      // 1-2부터는 적용하지 않으며, 공부를 많이 한 학생의 A+ 보상도 유지됩니다.
-      const firstTermFoundation = s.courseTable === 2 && termIndex(s) === 0
-        ? Math.min(4, Math.max(0, 28 - knowledge) * 0.2) : 0;
-      const score = round(clamp((shape ? shape[0] + (raw + calibration - EXAM_PIVOT) * shape[1] + noise * 0.8 : raw + calibration + noise) + firstTermFoundation));
+      // v0.14.7: 예전 '1-1만' 완충하던 조건 제거. 모든 학기에 동일한
+      // 저학습량 기초학습 버퍼를 주되 지능 50일 때 학점 약 3.4를 목표로 합니다.
+      const baselineLearningBuffer = s.courseTable === 2 ? Math.min(2, Math.max(0, 23 - knowledge) * 0.15) : 0;
+      // 시험 전까지 꾸준히 지능에 투자하면서 심야·새벽 복습까지 한 경우만 시너지.
+      // 회복/사회성 위주 + 자습으로 공부 보상을 독점하지 못하도록 집중 주차를 확인한다.
+      const consistentStudy = (s.examIntelligenceWeeks || 0) >= (phase.exam === 'midterm' ? 3 : 4);
+      const completedExtraStudy = (s.examNightUnits || 0) >= 1.5 && (s.examDawnUnits || 0) >= 0.8;
+      // Reward deliberate academic investment in the opening semesters, not passive social play.
+      const termEffortBonus = s.courseTable === 2 && (s.examIntelligenceWeeks || 0) >= 1
+        ? [6, 0, 0, 0, 0, 0][termIndex(s)] : 0;
+      const independentEffortBonus = s.courseTable === 2 && (s.examIntelligenceWeeks || 0) >= 1
+        ? Math.min([0, 3, 0, 0, 0, 0][termIndex(s)], Math.max(0, (s.examIntelligenceWeeks || 0) - 1) * [0, 1.5, 0, 0, 0, 0][termIndex(s)]) : 0;
+      // Prevent the hardest core courses from becoming automatic A+ through surplus preparation alone.
+      const highPreparationSoftening = Math.min([0, 0, 6, 0, 0, 0][termIndex(s)], Math.max(0, knowledge - 27) * [0, 0, 1.05, 0, 0, 0][termIndex(s)]);
+      const nightStudyComplete = (s.examNightUnits || 0) >= 1.5;
+      // v0.14.8: A full intelligence schedule without extra study now targets about 4.18;
+      // night-only retains its previous payoff, while night+dawn no longer guarantees 4.30.
+      const nightStudyBoost = [-1, -2, -2, -2, -3, -4][termIndex(s)];
+      const dawnStudyBoost = [-2, -2, 0, -4, -4, -5][termIndex(s)];
+      // Only a genuinely full-term intelligence schedule without night study is adjusted.
+      // Recovery/social/exam-only strategies and night-only study use their old formula.
+      const fullTimeNoNightPenalty = s.courseTable === 2 && (s.examIntelligenceWeeks || 0) >= (phase.exam === 'midterm' ? 4 : 7) && !nightStudyComplete ? 2.6 : 0;
+      const examStudySynthesis = s.courseTable === 2 && consistentStudy && nightStudyComplete
+        ? (completedExtraStudy ? dawnStudyBoost : nightStudyBoost) : 0;
+      // Optional extracurricular competitions use real preparation time: a bounded
+      // academic opportunity cost, not a direct penalty for getting a high GPA.
+      // Mandatory R&E presentations are excluded from this cost.
+      const externalActivityCost = Math.min(14, Math.max(0, (s.examExternalLoad || 0) - 1.5) * 2.6);
+      const score = round(clamp((shape ? shape[0] + (raw + calibration - EXAM_PIVOT) * shape[1] + noise * 0.8 : raw + calibration + noise) + baselineLearningBuffer + termEffortBonus + independentEffortBonus - highPreparationSoftening - fullTimeNoNightPenalty + examStudySynthesis - externalActivityCost));
       return { ...sub, score };
     });
   }
@@ -887,24 +916,30 @@
   function simulateRoutine(s, routine, efficiency, learn, wasSick, messages) {
     const mix = routine.mix || { [routine.focus.id]: 1 }, share = k => mix[k] || 0;
     const id = routine.focus.id, strength = routine.commitment ? 0.65 : 1, light = share('recovery') >= 0.6;
+    // v0.14.9: Studying consumes real after-school time. Passive club, sports,
+    // and council participation becomes less frequent with academic focus.
+    // Deliberately chosen activities / commitments are never forbidden.
+    const academicTime = clamp(share('intelligence') + 0.5 * share('english') + 0.2 * share('discipline'), 0, 1);
+    const extraTime = 1 - 0.45 * academicTime;
     const rolls = { academic: rng(s), sports: rng(s), activity: rng(s), social: rng(s), duties: rng(s) };
     routine.activities.push('정규 수업과 자습에서 배운 개념을 복습했다.');
+    if (academicTime >= 0.6) routine.activities.push('공부에 집중한 만큼 동아리·운동부·학생회 자동 참여에 쓸 시간이 줄었다.');
     // Recovery weeks retain a little lightweight review (0.35 -> 0.55), not full study.
     learn(light ? 0.55 : 1.15);
     shift(s, { intelligence: (0.12 + rng(s) * 0.18) * efficiency, discipline: 0.2 + rng(s) * 0.15, resilience: 0.15 });
     s.toeic.practice = round(s.toeic.practice + (light ? 0.05 : 0.15));
     // v0.14: 3학년은 학술동아리 활동을 하지 않습니다.
-    if (!light && s.turn < 28 && rolls.academic < 0.68) {
+    if (!light && s.turn < 28 && rolls.academic < 0.68 * extraTime) {
       s.clubWeeks++; learn(0.9, academicField(s));
       shift(s, { research: 0.9 * efficiency, creativity: 0.3, social: 0.2, fatigue: 1.2 });
       routine.activities.push('학술동아리에서 친구들과 탐구 주제를 나누었다.');
     }
-    if (!light && s.sportsClubs.length && rolls.sports < 0.72 + 0.18 * share('athletics')) {
+    if (!light && s.sportsClubs.length && rolls.sports < (0.72 + 0.18 * share('athletics')) * extraTime) {
       s.sportsWeeks++; s.clubWeeks++; s.relationships = round(clamp(s.relationships + 1.2));
       shift(s, { athletics: 1.7 * efficiency, social: 0.5, leadership: 0.2, fatigue: 2.8, stress: -1 });
       routine.activities.push(`${s.sportsClubs.map(club => sportsClubs.find(c => c.id === club)?.name || '운동부').join('·')} 훈련에서 기본기와 팀워크를 맞췄다.`);
     }
-    if (!light && s.activityClub && s.activityClub !== 'none' && rolls.activity < 0.55) {
+    if (!light && s.activityClub && s.activityClub !== 'none' && rolls.activity < 0.55 * extraTime) {
       s.clubWeeks++; s.relationships = round(clamp(s.relationships + 1));
       shift(s, { social: 0.7, creativity: 0.3, fatigue: 0.6, stress: -1.5 });
       routine.activities.push('상설동아리 활동을 친구들과 함께 준비했다.');
@@ -915,7 +950,7 @@
       shift(s, { social: 0.4, stress: -2 });
       routine.activities.push('식사와 쉬는 시간에 친구들의 이야기를 들었다.');
     }
-    if (!light && rolls.duties < 0.65 && (s.councilRole !== '일반 학생' || s.classRole !== '일반 학생')) {
+    if (!light && rolls.duties < 0.65 * extraTime && (s.councilRole !== '일반 학생' || s.classRole !== '일반 학생')) {
       s.councilWeeks++; shift(s, { leadership: 0.7, social: 0.2, fatigue: 0.7 });
       routine.activities.push('학생회와 학급에서 맡은 역할을 챙겼다.');
     }
@@ -1142,10 +1177,17 @@
     const studyFade = s.courseTable === 2 ? 1 / (1 + 0.35 * (s.studyStreak || 0)) : 1;
     const nightFrac = plannerWeek ? plannerWeek.night : (studyMode === 'night' || studyMode === 'both') ? 1 : 0;
     const dawnFrac = plannerWeek ? plannerWeek.dawn : (studyMode === 'dawn' || studyMode === 'both') ? 1 : 0;
+    // 이번 학기 누적 투자와 심야/새벽 참여량 (중간+기말을 합산, 학기 끝에 초기화).
+    // 이전 저장 데이터에 필드가 없어도 0부터 누적하므로 세이브 형식을 바꾸지 않습니다.
+    const intelligenceShare = routine ? (routine.mix ? (routine.mix.intelligence || 0) : (routine.focus.id === 'intelligence' ? 1 : 0)) : (actionId === 'study' ? 1 : 0);
+    if (intelligenceShare >= 0.6) s.examIntelligenceWeeks = (s.examIntelligenceWeeks || 0) + 1;
+    s.examNightUnits = (s.examNightUnits || 0) + nightFrac;
+    s.examDawnUnits = (s.examDawnUnits || 0) + dawnFrac;
     if (s.courseTable === 2) s.studyStreak = nightFrac + dawnFrac > 0 ? (s.studyStreak || 0) + 1 : 0;
-    // v0.14.1: Small extra-study nerf (night ~10%, dawn ~15%); fatigue cost unchanged.
-    if (nightFrac > 0) { learn((s.courseTable === 2 ? 2.7 : 3.4) * studyFade * nightFrac); shift(s, { fatigue: 11 * nightFrac, stress: 6 * nightFrac }); messages.push(plannerWeek ? `플래너대로 심야자습 ${plannerWeek.nights}일. 피로도 +${round(11 * nightFrac)}.` : '심야자습으로 시험 준비도를 충분히 쌓았다. 피로도 +11.'); }
-    if (dawnFrac > 0) { learn((s.courseTable === 2 ? 1.8 : 2.3) * studyFade * dawnFrac); shift(s, { fatigue: 7 * dawnFrac, stress: 4 * dawnFrac, discipline: 0.5 * dawnFrac }); messages.push(plannerWeek ? `플래너대로 새벽자습 ${plannerWeek.dawns}일. 피로도 +${round(7 * dawnFrac)}.` : '새벽자습으로 시험의 핵심 내용을 다시 정리했다. 피로도 +7.'); }
+    // v0.14.7: Sustainable nightly study alongside intelligence 100; dawn still gives the extra exam synthesis.
+    // The GPA contribution is separate from the small fatigue cost (0.5 each).
+    if (nightFrac > 0) { learn((s.courseTable === 2 ? 2.7 : 3.4) * studyFade * nightFrac); shift(s, { fatigue: 0.5 * nightFrac, stress: 1 * nightFrac }); messages.push(plannerWeek ? `플래너대로 심야자습 ${plannerWeek.nights}일. 피로도 +${round(0.5 * nightFrac)}.` : '심야자습으로 시험 준비도를 충분히 쌓았다. 피로도 +0.5.'); }
+    if (dawnFrac > 0) { learn((s.courseTable === 2 ? 1.8 : 2.3) * studyFade * dawnFrac); shift(s, { fatigue: 0.5 * dawnFrac, stress: 0.5 * dawnFrac, discipline: 0.5 * dawnFrac }); messages.push(plannerWeek ? `플래너대로 새벽자습 ${plannerWeek.dawns}일. 피로도 +${round(0.5 * dawnFrac)}.` : '새벽자습으로 시험의 핵심 내용을 다시 정리했다. 피로도 +0.5.'); }
     const crossedLimit = crisisLimit(s), crisisSnapshot = { fatigue: s.stats.fatigue, stress: s.stats.stress };
     // Fatigue risk is evaluated after the week's choices; new illness affects this week's exam and the next week.
     if (!wasSick && !recovering && rng(s) < getIllnessRisk(s)) { s.illnessWeeks = 2; s.illnessCount++; messages.push('몸살 기운으로 아프기 시작했다. 이번 주와 다음 주 집중력이 떨어진다. 휴식하면 빨리 회복한다.'); }
@@ -1158,12 +1200,31 @@
         const composed = composeSemester(s, scores);
         const subjects = composed.subjects, passFail = composed.passFail;
         const credits = subjects.reduce((a, x) => a + x.credits, 0), earnedCredits = subjects.filter(x => x.point > 0).reduce((a, x) => a + x.credits, 0) + passFail.filter(x => x.passed).reduce((a, x) => a + x.credits, 0);
-        const gpa = Math.round(subjects.reduce((a, x) => a + x.point * x.credits, 0) / credits * 100) / 100;
-        semesterResult = { year: p.year, semester: p.semester, gpa, credits, earnedCredits, subjects, gradeScaleVersion: s.courseTable === 2 ? 5 : 4 };
+        // The expected term GPA follows actual subject grades (which already reflect
+        // intelligence, study, fatigue, optional activities, and exam outcomes).
+        // A small centered, reproducible random variation makes identical study
+        // plans less deterministic without overwhelming their academic payoff.
+        const subjectGpa = Math.round(subjects.reduce((a, x) => a + x.point * x.credits, 0) / credits * 100) / 100;
+        // v0.14.10: Guaranteed term-level safety net, not extra marks on individual
+        // subjects. Early terms bottom out at 3.45; 2-2 onward at 3.80.
+        // Keep the raw subject-weighted GPA and the transparent floor adjustment
+        // so the transcript can explain why its recorded GPA differs.
+        const semesterFloor = p.year < 2 || (p.year === 2 && p.semester === 1) ? 3.45 : 3.80;
+        const baseGpa = Math.max(subjectGpa, semesterFloor);
+        const gpaFloorBoost = Math.round((baseGpa - subjectGpa) * 100) / 100;
+        const key = String(s.seed ?? s.name ?? 'gsa');
+        // Shared student-level variation plus an independent term-level variation;
+        // each is triangular (difference of uniforms), total strictly within +/-0.05.
+        const studentVariation = (hashUnit(`${key}|gpa-student-a`) - hashUnit(`${key}|gpa-student-b`)) * 0.025;
+        const termVariation = (hashUnit(`${key}|gpa-term-${p.year}-${p.semester}-a`) - hashUnit(`${key}|gpa-term-${p.year}-${p.semester}-b`)) * 0.025;
+        // An all-A+ transcript stays perfect; no random penalty to an earned 4.30.
+        const gpa = baseGpa >= 4.3 ? 4.3 : Math.round(clamp(baseGpa + studentVariation + termVariation, semesterFloor, 4.3) * 100) / 100;
+        const gpaVariance = Math.round((gpa - baseGpa) * 100) / 100;
+        semesterResult = { year: p.year, semester: p.semester, gpa, subjectGpa, semesterFloor, gpaFloorBoost, baseGpa, gpaVariance, credits, earnedCredits, subjects, gradeScaleVersion: s.courseTable === 2 ? 5 : 4 };
         if (passFail.length) semesterResult.passFail = passFail;
         s.grades.push(semesterResult);
         semesterResult.rank = getClassRank(s);
-        s.courseTable = 2; s.studyStreak = 0; s.performanceDeductions = {};
+        s.courseTable = 2; s.studyStreak = 0; s.performanceDeductions = {}; s.examIntelligenceWeeks=0;s.examNightUnits=0;s.examDawnUnits=0;s.examExternalLoad=Math.max(0, (s.examExternalLoad || 0) * 0.55);
         curriculum.onSemesterEnd(s, semesterResult);
         s.eventQueue.push(...school.onSemesterEnd(s, semesterResult));
         messages.push(`${p.year}학년 ${p.semester}학기 성적 확정: ${gpa.toFixed(2)} / 4.30.`);
@@ -1229,13 +1290,13 @@
       if(s.tournamentHistory.some(h=>h.year===c.tournamentYear))throw new Error('올해 대회 기록은 이미 남았어요.');
       if(!getTournamentEligibility(s))throw new Error('학교 대표로 선발되지 않았어요.');
       const medal=rng(s)<0.1, clubId=s.sportsClubs[0];s.tournamentHistory.push({year:c.tournamentYear,clubId,participated:true,medal});
-      shift(s,{athletics:2,social:3,fatigue:8});
+      s.examExternalLoad=(s.examExternalLoad||0)+1.5;shift(s,{athletics:2,social:3,fatigue:8});
       if(medal){const award={kind:'sports',name:`교육감배 ${sportsClubs.find(x=>x.id===clubId).name} 메달`,year:c.tournamentYear,turn:s.turn};s.awards.push(award);s.badges.push(award.name);messages.push('마지막 경기까지 팀원들과 힘을 모아 교육감배 메달을 받았다!');}
       else messages.push('교육감배 경기를 끝까지 뛰었다. 메달은 얻지 못했지만, 팀으로 함께한 경기가 기억에 남았다.');
     }else if(c.skipTournament){s.tournamentHistory.push({year:c.tournamentYear,clubId:s.sportsClubs[0]||null,participated:false,medal:false});messages.push('이번 교육감배에는 선수로 참가하지 않고 응원했다.');}
     else if(c.participateOlympiad){
       if(s.stats.intelligence<60)throw new Error('아직 기초를 더 준비해야 해요.');
-      const won=rng(s)<getOlympiadChance(s);s.olympiadHistory.push({turn:s.turn,year:getPhase(s).year,participated:true,won});shift(s,{intelligence:1.5,research:3,fatigue:6,stress:3});
+      const won=rng(s)<getOlympiadChance(s);s.olympiadHistory.push({turn:s.turn,year:getPhase(s).year,participated:true,won});s.examExternalLoad=(s.examExternalLoad||0)+2.3;shift(s,{intelligence:1.5,research:3,fatigue:6,stress:3});
       if(won){const award={kind:'olympiad',name:'과학 올림피아드 수상',year:getPhase(s).year,turn:s.turn};s.awards.push(award);s.badges.push(award.name);messages.push('어려운 문제를 끝까지 풀어 과학 올림피아드에서 상을 받았다!');s.eventQueue.unshift(...school.nationalTeamEvents(s,s.olympiadHistory[s.olympiadHistory.length-1]));}else messages.push('올림피아드 수상에는 이르지 못했지만 새로운 문제를 풀며 많이 배웠다.');
     }else if(typeof c.universityPoints==='number'){
       const i=s.universityInterview;if(!i)throw new Error('진행 중인 대학 면접이 없어요.');i.answers.push(c.label);i.points+=c.universityPoints;
@@ -1316,7 +1377,15 @@
   function getProfile(s) {
     const attempted = s.grades.reduce((a, g) => a + g.credits, 0);
     const earned = s.grades.reduce((a, g) => a + (g.earnedCredits === undefined ? g.credits : g.earnedCredits), 0);
-    const gpa = attempted ? Math.round(s.grades.reduce((a, g) => a + g.subjects.reduce((b, v) => b + v.point * v.credits, 0), 0) / attempted * 100) / 100 : 0;
+    // For newer terms, use the recorded (slightly probabilistic) semester GPA in
+    // cumulative standings as well as in the transcript. Older saves without a
+    // variation marker retain their original subject-credit calculation.
+    const totalPoints = s.grades.reduce((sum, g) => sum + (
+      Number.isFinite(g.gpaVariance) && Number.isFinite(g.gpa)
+        ? g.gpa * g.credits
+        : (g.subjects || []).reduce((points, v) => points + v.point * v.credits, 0)
+    ), 0);
+    const gpa = attempted ? Math.round(totalPoints / attempted * 100) / 100 : 0;
     let strength = '나만의 속도로 성장하는 탐색가', ending = '아직 쓰이지 않은 페이지가 많아요.';
     const scores = [ ['research', s.stats.research], ['leadership', s.stats.leadership], ['athletics', s.stats.athletics * 0.83], ['social', (s.stats.social + s.relationships) * 0.48], ['academic', gpa / 4.3 * 100] ].sort((a, b) => b[1] - a[1]);
     if (s.turn > 0) {

@@ -22,7 +22,10 @@
     { id: 'earth', mean: 55, name: '교내 지구과학 경시대회', turn: 16, weights: { intelligence: 0.5, research: 0.3, creativity: 0.2 }, pitch: '지구·천문 자료를 해석하는 경시대회다.' },
     { id: 'informatics', mean: 62, name: '교내 정보과학 경시대회', turn: 18, weights: { intelligence: 0.5, creativity: 0.3, research: 0.2 }, pitch: '알고리즘 문제를 제한 시간 안에 풀어 제출한다.' },
     { id: 'invention2', mean: 57, name: '교내 발명품 대회', turn: 19, open: true, weights: { creativity: 0.5, research: 0.3, intelligence: 0.2 }, pitch: '전학년이 참가하는 발명품 대회다. 작년보다 경쟁작이 많아 보인다.' },
-    { id: 'rne', mean: 70, name: 'R&E 발표 시상', turn: 26, weights: { research: 0.6, intelligence: 0.2, discipline: 0.2 }, pitch: '1년 동안 진행한 R&E 결과를 발표하고 심사를 받는다.' },
+    // Both R&E presentations are mandatory and held in 2nd semester week 6,
+    // one school week before the final exam (turn 13 or 27 respectively).
+    { id: 'rne_basic', mean: 64, name: '기초 R&E 발표대회', turn: 12, required: true, weights: { research: 0.6, intelligence: 0.2, discipline: 0.2 }, pitch: '1학년 기초 R&E 연구 결과를 기말고사 직전에 발표한다. 전원 필수 참가다.' },
+    { id: 'rne_advanced', mean: 70, name: '심화 R&E 발표대회', turn: 26, required: true, weights: { research: 0.6, intelligence: 0.2, discipline: 0.2 }, pitch: '2학년 심화 R&E 연구 결과를 기말고사 직전에 발표한다. 전원 필수 참가다.' },
     { id: 'invention3', mean: 68, name: '교내 발명품 대회', turn: 30, open: true, weights: { creativity: 0.5, research: 0.3, intelligence: 0.2 }, pitch: '전학년이 참가하는 발명품 대회다. 마지막 출품 기회다.' }
   ];
   const CONTEST_PREP = { hard: { bonus: 6, effects: { fatigue: 8, stress: 5 } }, light: { bonus: 2, effects: { fatigue: 3, stress: 2 } } };
@@ -228,6 +231,7 @@
       if (id !== 'fieldresearch') return { handled: false, messages: [] };
       validateAction(s, id); init(s);
       grantCredit(s, { id: 'independent', name: '개별 현장탐사', credits: 1, type: 'independent' });
+      s.examExternalLoad = (s.examExternalLoad || 0) + 0.8;
       shift(s, { research: 3, discipline: 1, fatigue: 5, stress: 1 });
       return { handled: true, messages: ['스스로 정한 현장을 관찰하고 탐사 기록을 완성해 개별 현장탐사 1학점을 이수했다.'], events: [] };
     }
@@ -294,7 +298,7 @@
         if (record.stage !== 'invited') throw new Error('이미 캠프 참여를 결정했어요.');
         record.campChoice = choice.nationalCamp;
         if (choice.nationalCamp === 'skip') { record.stage = 'declined'; return { handled: true, messages: ['국가대표 캠프 대신 학교에서 탐구를 이어가기로 했다.'], events: [] }; }
-        applyChoiceEffects(s, choice); record.campBonus = choice.campBonus || 0; record.stage = 'trained';
+        applyChoiceEffects(s, choice); s.examExternalLoad = (s.examExternalLoad || 0) + 1.5; record.campBonus = choice.campBonus || 0; record.stage = 'trained';
         return { handled: true, messages: ['국가대표 선발 캠프에서 새로운 문제를 풀고 풀이를 정리했다. 이제 최종 선발 평가가 남았다.'], events: [{ id: 'school_national_selection', nationalKey: record.key, title: '국가대표 최종 선발 평가', description: '올림피아드 수상 이후 캠프에서 준비한 내용을 바탕으로 최종 평가에 도전한다. 지능·연구 역량·자기관리·행운과 캠프 준비를 함께 반영한다.', choices: [{ label: '최종 선발 평가에 도전한다', description: '평가 결과에 따라 국가대표가 선발된다.', nationalSelection: 'attempt' }, { label: '이번 선발은 마무리하고 학교로 돌아간다', description: '캠프 경험은 남지만 국가대표 수상 기록은 받지 않는다.', nationalSelection: 'withdraw' }] }] };
       }
       if (choice.nationalSelection) {
@@ -317,7 +321,7 @@
     const CONTEST_FIELD = { math: 'math', physics: 'physics', chemistry: 'chemistry', biology: 'biology', earth: 'earth', informatics: 'ai' };
     const CONTEST_FOCUS = { writing: ['intelligence', 'social', 'balanced'], english: ['english'], invention1: ['research', 'balanced'], invention2: ['research', 'balanced'], invention3: ['research', 'balanced'] };
     function contestAsks(s, c) {
-      if (['clubfair', 'rne', 'invention1'].includes(c.id)) return true;
+      if (c.required || ['clubfair', 'invention1'].includes(c.id)) return true;
       return !!CONTEST_FIELD[c.id] && CONTEST_FIELD[c.id] === CLUB_FIELD[s.academicClub];
     }
     function contestAutoEnter(s, c) {
@@ -327,17 +331,20 @@
     }
     function contestEvent(c) {
       const scope = c.open ? '전학년 지원자' : '학년 지원자';
-      return { id: `school_contest_${c.id}`, contestId: c.id, title: c.name, description: `${c.pitch} ${scope} 중 상위 20%가 금·은·동상을 받는다. 준비할수록 유리하지만 그만큼 지친다.`, choices: [
+      const choices = [
         { label: '제대로 준비해서 나간다', description: '수상 가능성 ↑ · 피로도·스트레스 ↑', contestPrep: 'hard' },
-        { label: '부담 없이 참가만 한다', description: '수상 가능성 보통 · 피로도 조금 ↑', contestPrep: 'light' },
-        { label: '이번 대회는 건너뛴다', description: '이번 주 체력을 아낀다', contestPrep: 'skip' }
-      ] };
+        { label: '부담 없이 참가만 한다', description: '수상 가능성 보통 · 피로도 조금 ↑', contestPrep: 'light' }
+      ];
+      // Required R&E has no non-attendance option; only effort level can vary.
+      if (!c.required) choices.push({ label: '이번 대회는 건너뛴다', description: '이번 주 체력을 아낀다', contestPrep: 'skip' });
+      return { id: `school_contest_${c.id}`, contestId: c.id, title: c.name, description: `${c.pitch} ${scope} 중 상위 20%가 금·은·동상을 받는다. 준비할수록 유리하지만 그만큼 지친다.`, choices };
     }
     function resolveContest(s, event, choice) {
       const c = CONTESTS.find(x => x.id === event.contestId);
       if (!c) throw new Error('대회 정보를 찾을 수 없어요.');
       const q = s.school; if (!Array.isArray(q.contests)) q.contests = [];
       if (q.contests.some(r => r.id === c.id)) throw new Error('이미 참가 여부를 정한 대회예요.');
+      if (c.required && !['hard', 'light'].includes(choice.contestPrep)) throw new Error('R&E 발표대회는 필수 참가예요. 발표 준비 방식을 골라 주세요.');
       if (choice.contestPrep === 'skip') { q.contests.push({ id: c.id, turn: s.turn, entered: false }); return { handled: true, messages: [`${c.name}에는 나가지 않았다.`], events: [] }; }
       const prep = CONTEST_PREP[choice.contestPrep] || CONTEST_PREP.light;
       const applicants = c.open ? 45 + Math.floor(hash01(s.seed, `contest:${c.id}:n`) * 30) : 18 + Math.floor(hash01(s.seed, `contest:${c.id}:n`) * 22);
@@ -353,7 +360,9 @@
       }
       const rank = ahead + 1;
       shift(s, prep.effects);
-      const record = { id: c.id, turn: s.turn, entered: true, prep: choice.contestPrep, applicants, quota, rank, mine: Math.round(mine * 10) / 10 };
+      // Only voluntary contests incur extracurricular preparation cost.
+      if (!c.required) s.examExternalLoad = (s.examExternalLoad || 0) + (choice.contestPrep === 'hard' ? 2.0 : 0.1);
+      const record = { id: c.id, turn: s.turn, entered: true, required: !!c.required, prep: choice.contestPrep, applicants, quota, rank, mine: Math.round(mine * 10) / 10 };
       q.contests.push(record);
       if (rank > quota) return { handled: true, messages: [`${c.name}에 지원자 ${applicants}명이 참가했다. 이번에는 상위 ${quota}명(20%) 안에 들지 못했다. (${rank}위)`], events: [] };
       const gold = Math.max(1, Math.round(quota * 0.2)), silver = Math.max(gold + 1, Math.round(quota * 0.5));
@@ -376,6 +385,7 @@
       }
       for (const trip of tripsFor(s)) if (trip.turn === s.turn && !q.scheduledKeys.includes(`trip:${trip.id}`) && !q.fieldCredits.some(r => r.id === trip.id)) { q.scheduledKeys.push(`trip:${trip.id}`); events.push(tripEvent(trip)); }
       for (const c of CONTESTS) if (c.turn === s.turn && !q.scheduledKeys.includes(`contest:${c.id}`)) {
+        if (c.id === 'rne_advanced' && (q.contests.some(r => r.id === 'rne') || q.scheduledKeys.includes('contest:rne'))) { q.scheduledKeys.push(`contest:${c.id}`); continue; }
         q.scheduledKeys.push(`contest:${c.id}`);
         // v0.14 복잡도 개선: 내 학술동아리 분야 대회·동아리 발표·R&E·첫 발명품 대회만 묻고, 나머지는 시간 배분에 따라 자동 참가/불참.
         if (contestAsks(s, c)) { events.push(contestEvent(c)); continue; }

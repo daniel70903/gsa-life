@@ -34,7 +34,7 @@
     const grades = list(s.grades).filter(g => g && num(g.year) >= 1 && num(g.year) <= 3);
     const terms = grades.map(g => ({ year: num(g.year), semester: num(g.semester, 1), gpa: round(num(g.gpa)), credits: num(g.earnedCredits, num(g.credits)) })).sort((a, b) => a.year - b.year || a.semester - b.semester);
     const attempted = sum(grades, g => num(g.credits, sum(list(g.subjects), c => c.credits)));
-    const points = sum(grades, g => list(g.subjects).length ? sum(g.subjects, c => num(c.point) * num(c.credits)) : num(g.gpa) * num(g.credits));
+    const points = sum(grades, g => finite(g.gpaVariance) && finite(g.gpa) ? num(g.gpa) * num(g.credits) : list(g.subjects).length ? sum(g.subjects, c => num(c.point) * num(c.credits)) : num(g.gpa) * num(g.credits));
     const gpa = attempted ? round(points / attempted) : 0, earnedCredits = sum(terms, g => g.credits);
     const schoolField = list(s.school?.fieldCredits);
     const fieldCredits = sum(schoolField, r => r.credits);
