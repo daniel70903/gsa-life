@@ -72,8 +72,13 @@
     const relationships = [];
     const resultList = Array.isArray(s.admissions) ? s.admissions : list(s.admissions?.results);
     const admissions = resultList.map(r => ({ name: r.name || lookup('universities', r.id, '지원 대학'), majorName: r.majorName || (typeof engine?.getMajor === 'function' ? engine.getMajor(r.majorId || s.applicationMajors?.[r.id] || 'general')?.name : '') || '전공 기록 없음', accepted: !!r.accepted }));
-    if (engine && typeof engine.canEnroll === 'function') admissions.forEach((a, i) => { const raw = resultList[i]; if (a.accepted && engine.canEnroll(s, raw) === false) { a.blocked = true; } });
-    const accepted = admissions.filter(a => a.accepted && !a.blocked);
+    if (engine && typeof engine.canEnroll === 'function') admissions.forEach((a, i) => {
+      const status = engine.canEnroll(s, resultList[i]);
+      a.enrollmentStatus = !a.accepted || status === false ? 'blocked' : status === null ? 'pending' : 'possible';
+      a.blocked = a.enrollmentStatus === 'blocked';
+    });
+    const accepted = admissions.filter(a => a.accepted);
+    const enrollable = admissions.filter(a => a.enrollmentStatus === 'possible');
     const completedTrips = schoolField.filter(r => r.type === 'school');
     const sportsEntries = list(s.tournamentHistory).filter(t => t.participated);
     const olympiadEntries = list(s.olympiadHistory).filter(t => t.participated);
@@ -94,7 +99,7 @@
     else summaryParts.push('첫 학기 성적이 확정되기 전까지의 시간이 기록에 남았어.');
     if (clubs.length) summaryParts.push(`${clubs.map(c => c.name).join(', ')}에서 활동했어.`);
     if (awardsRaw.length) summaryParts.push(`${awardsRaw.length}개의 수상 기록도 남겼어.`);
-    if (endingKind === 'graduated') summaryParts.push(accepted.length ? '졸업 요건을 채웠고, 합격한 대학으로 향할 수 있게 되었어.' : '졸업 요건을 채우고 다음 진로를 준비하는 출발점에 섰어.');
+    if (endingKind === 'graduated') summaryParts.push(enrollable.length ? '졸업 요건을 채웠고, 합격한 대학으로 진학할 수 있게 되었어.' : '졸업 요건을 채우고 다음 진로를 준비하는 출발점에 섰어.');
     else if (endingKind === 'deferred') summaryParts.push('정규 학기는 마쳤고, 남은 졸업 요건을 준비하고 있어.');
     else if (endingKind === 'death') summaryParts.push('학교생활은 여기서 멈췄지만, 함께한 순간과 선택은 이 기록에 남아 있어.');
     const summary = summaryParts.join(' ');
@@ -138,13 +143,13 @@
     if (sportsEntries.length) activityMoments.push({ label: '학교 대표로 참가', text: `교육감배 ${sportsEntries.length}회` });
     if (olympiadEntries.length) activityMoments.push({ label: '문제에 도전한 기록', text: `올림피아드 ${olympiadEntries.length}회` });
     slide('activities', 'BEYOND THE CLASSROOM', '교실 밖에서 남긴 나의 자리.', clubs.length ? `${clubs.map(c => c.name).join(', ')}. 성적표 밖에도 내가 참여한 활동과 함께 맡은 역할이 남아 있어.` : '크고 작은 학교생활의 기록을 돌아보자. 맡은 직책이나 수상이 없어도 이 시간은 내 이야기의 일부야.', [{ label: '동아리·운동부', value: `${clubs.length}곳` }, { label: '맡았던 역할', value: `${roles.length}회` }, { label: '학생회 당선', value: `${councilSuccesses.length}회` }], activityMoments.slice(0, 5), [], sportsEntries.length ? 'sports' : 'idle');
-    const nextMoments = admissions.map(a => ({ label: a.blocked ? '합격 · 졸업 요건 미충족으로 진학 불가' : a.accepted ? '합격' : '이번 전형 불합격', text: `${a.name} · ${a.majorName}` }));
+    const nextMoments = admissions.map(a => ({ label: `합격 여부: ${a.accepted?'합격':'불합격'} · 진학 여부: ${a.enrollmentStatus==='possible'?'가능':a.enrollmentStatus==='pending'?'판정 대기':'불가'}`, text: `${a.name} · ${a.majorName}` }));
     let nextBody;
     if (endingKind === 'death') nextBody = '이 학교생활은 여기서 끝났어. 완주하지 못한 시간을 채워 쓰지 않고, 실제로 남긴 기록만 앨범에 담았어.';
     else if (endingKind === 'deferred') nextBody = '정규 3년을 마쳤지만 졸업에는 아직 채울 요건이 남아 있어. 회고를 닫으면 필요한 준비를 계속할 수 있어. 대학 합격과 최종 졸업은 별도로 기록돼.';
     else if (endingKind === 'graduated') nextBody = accepted.length ? '졸업 요건을 모두 채웠어. 아래는 합격한 대학을 포함한 전형 결과야. 어느 길로 나아갈지 생각하며 다음 장을 열어 보자.' : '졸업 요건을 모두 채웠어. 이번 전형에서 합격 기록은 없지만, 학교생활의 끝에서 다음 진로와 도전을 준비하게 되었어.';
     else nextBody = '학교생활은 아직 진행 중이야. 앞으로의 선택이 이 기록에 더해질 거야.';
-    slide('next-chapter', 'THE NEXT PAGE', statusName, nextBody, [{ label: '최종 상태', value: statusName }, { label: '대학 합격', value: `${accepted.length}곳` }], nextMoments.slice(0, 3));
+    slide('next-chapter', 'THE NEXT PAGE', statusName, nextBody, [{ label: '최종 상태', value: statusName }, { label: '대학 합격', value: `${accepted.length}곳` }, {label:'진학 가능',value:`${enrollable.length}곳`}], nextMoments.slice(0, 3));
     // v0.13 평가: 졸업 OVR + 업적 ★, 그리고 졸업 뒤 커리어 에필로그.
     let evaluation = null;
     try {

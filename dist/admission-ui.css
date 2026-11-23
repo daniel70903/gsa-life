@@ -28,3 +28,6 @@
  .university-group>.university-grid {padding:0 10px 10px;grid-template-columns:1fr}
  .admission-preview {padding:20px}
 }
+
+/* v0.14.4: 대학 합격과 진학 요건을 분리해 표시합니다. */
+.result-outcomes{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}.result-outcomes span{display:block;white-space:nowrap;font-size:11px;padding:7px 10px;border-radius:9px}.result-outcomes .accepted{background:#e5f0df;color:#437541}.result-outcomes .rejected{background:#f3f0e9;color:#85766c}@media(max-width:620px){.result{flex-wrap:wrap}.result-outcomes{align-items:flex-start;flex-direction:row;flex-wrap:wrap}}

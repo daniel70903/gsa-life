@@ -32,7 +32,7 @@
     for (const r of arr(d.roles)) roleMap.set(r.name, (roleMap.get(r.name) || 0) + 1);
     const rank = (name) => (/부회장/.test(name) ? 1 : /회장/.test(name) ? 0 : /기장/.test(name) ? 2 : /부장|임원/.test(name) ? 3 : 4);
     const roles = [...roleMap].sort((a, b) => rank(a[0]) - rank(b[0])).map(([name, count]) => (count > 1 ? `${name} ×${count}` : name));
-    const admissions = arr(d.admissions).map((a) => ({ name: String(a.name || ''), major: String(a.majorName || ''), accepted: !!a.accepted && !a.blocked, blocked: !!a.blocked }));
+    const admissions = arr(d.admissions).map((a) => ({ name: String(a.name || ''), major: String(a.majorName || ''), accepted: !!a.accepted, blocked: !!a.blocked, enrollmentStatus: a.enrollmentStatus || (a.accepted ? (a.blocked ? 'blocked' : 'pending') : 'blocked') }));
     const stats = arr(d.stats).slice().sort((a, b) => num(b.value) - num(a.value));
     const pick = (re) => {
       const m = metric(re);
@@ -346,17 +346,9 @@
       text(ctx, '대학 전형 결과', rx, cy + 8, { size: 24, weight: 700 });
       model.admissions.slice(0, 3).forEach((a, i) => {
         const y = cy + 22 + i * 50;
-        const tag = a.accepted ? '합격' : a.blocked ? '진학 불가' : '불합격', color = a.accepted ? C.gold : C.dim;
-        ctx.font = font(18, 700);
-        const tw = ctx.measureText(tag).width + 22;
-        roundRect(ctx, rx, y + 6, tw, 34, 8);
-        ctx.fillStyle = a.accepted ? '#e9c76e22' : '#ffffff0d';
-        ctx.fill();
-        text(ctx, tag, rx + tw / 2, y + 24, { size: 18, weight: 700, color, align: 'center', baseline: 'middle' });
-        text(ctx, a.name, rx + tw + 14, y + 26, { size: 24, weight: 700, color: a.accepted ? C.white : C.muted, max: half - tw - 14, baseline: 'middle' });
-        ctx.font = font(24, 700);
-        const nw = Math.min(ctx.measureText(a.name).width, half - tw - 14);
-        if (a.major) text(ctx, a.major, rx + tw + 14 + nw + 10, y + 27, { size: 18, color: C.dim, max: Math.max(0, half - tw - nw - 40), baseline: 'middle' });
+        const enrollment = a.enrollmentStatus === 'possible' ? '가능' : a.enrollmentStatus === 'pending' ? '판정 대기' : '불가';
+        text(ctx, a.name, rx, y + 16, { size: 22, weight: 700, color: a.accepted ? C.white : C.muted, max: half, baseline: 'middle' });
+        text(ctx, `합격 여부: ${a.accepted ? '합격' : '불합격'}  ·  진학 여부: ${enrollment}`, rx, y + 41, { size: 17, weight: 700, color: a.accepted ? C.gold : C.dim, max: half, baseline: 'middle' });
       });
     } else {
       text(ctx, '가장 높은 능력치', rx, cy + 8, { size: 24, weight: 700 });

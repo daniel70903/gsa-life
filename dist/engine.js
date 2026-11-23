@@ -64,11 +64,11 @@
     { id: 'seoul', name: '서울대학교', group: 'sky', difficulty: '최상', description: '학업 성취와 깊이 있는 면접을 함께 보는 가장 어려운 도전', pctTarget: 0.79, researchWeight: 0.03, interview: true, cap: 0.92 },
     { id: 'yonsei', name: '연세대학교', group: 'sky', difficulty: '매우 높음', description: '학업 성취와 전공에 대한 설명이 필요한 도전', pctTarget: 0.62, researchWeight: 0.03 },
     { id: 'korea', name: '고려대학교', group: 'sky', difficulty: '매우 높음', description: '꾸준한 학업 성취와 사고력을 함께 보는 도전', pctTarget: 0.62, researchWeight: 0.03 },
-    { id: 'kaist', name: 'KAIST', group: 'science', difficulty: '매우 높음', description: '연구와 문제 해결에 무게를 둔 과학기술원 · 수시 6장과 별도 · 고등학교 과정 이수만으로 진학 가능', pctTarget: 0.69, researchWeight: 0.045, interview: true, exempt: true, completionOk: true, unit: '새내기과정학부(무학과)' },
+    { id: 'kaist', name: 'KAIST', group: 'science', difficulty: '매우 높음', description: '연구와 문제 해결에 무게를 둔 과학기술원 · 수시 6장과 별도 · 과학영재선발 등 별도 자격으로 조기 진학 가능', pctTarget: 0.69, researchWeight: 0.045, interview: true, exempt: true, completionOk: true, unit: '새내기과정학부(무학과)' },
     { id: 'postech', name: 'POSTECH', group: 'science', difficulty: '매우 높음', description: '집중적인 탐구 경험을 보는 이공계 특성화 대학 · 수시 6장에 포함', pctTarget: 0.61, researchWeight: 0.045, interview: true, unit: '무은재학부' },
-    { id: 'gist', name: 'GIST', group: 'science', difficulty: '높음', description: '과학 탐구와 성장 가능성을 보는 과학기술원 · 수시 6장과 별도', pctTarget: 0.46, researchWeight: 0.04, interview: true, exempt: true, unit: '기초교육학부(무학과)' },
-    { id: 'unist', name: 'UNIST', group: 'science', difficulty: '높음', description: '융합 탐구 경험을 보는 과학기술원 · 수시 6장과 별도', pctTarget: 0.43, researchWeight: 0.04, exempt: true, unit: '이공계열(무학과)' },
-    { id: 'dgist', name: 'DGIST', group: 'science', difficulty: '높음', description: '융합 과학과 탐구를 함께 보는 과학기술원 · 수시 6장과 별도', pctTarget: 0.46, researchWeight: 0.04, interview: true, exempt: true, unit: '기초학부(무학과)' },
+    { id: 'gist', name: 'GIST', group: 'science', difficulty: '높음', description: '과학 탐구와 성장 가능성을 보는 과학기술원 · 수시 6장과 별도', pctTarget: 0.46, researchWeight: 0.04, interview: true, exempt: true, completionOk: true, unit: '기초교육학부(무학과)' },
+    { id: 'unist', name: 'UNIST', group: 'science', difficulty: '높음', description: '융합 탐구 경험을 보는 과학기술원 · 수시 6장과 별도', pctTarget: 0.43, researchWeight: 0.04, exempt: true, completionOk: true, unit: '이공계열(무학과)' },
+    { id: 'dgist', name: 'DGIST', group: 'science', difficulty: '높음', description: '융합 과학과 탐구를 함께 보는 과학기술원 · 수시 6장과 별도', pctTarget: 0.46, researchWeight: 0.04, interview: true, exempt: true, completionOk: true, unit: '기초학부(무학과)' },
     { id: 'sungkyunkwan', name: '성균관대학교', group: 'seoul', difficulty: '높음', description: '학업과 전공의 연결을 설명하는 경로', pctTarget: 0.32, researchWeight: 0.03 },
     { id: 'sogang', name: '서강대학교', group: 'seoul', difficulty: '높음', description: '개념의 이해와 논리적인 설명을 보는 경로', pctTarget: 0.35, researchWeight: 0.03 },
     { id: 'hanyang', name: '한양대학교', group: 'seoul', difficulty: '높음', description: '배운 지식을 문제 해결에 연결하는 경로', pctTarget: 0.35, researchWeight: 0.03 },
@@ -166,10 +166,10 @@
   // 학기·과목 유형별 지필 난이도 보정(시뮬레이션으로 맞춘 값). 수행평가는 사건이 없으면 만점이라 지필을 더 어렵게 둡니다.
   const EXAM_CALIBRATION = { 0: { ms: 0, gen: 0 }, 1: { ms: 0, gen: 0 }, 2: { ms: 0, gen: 0 }, 3: { ms: 0, gen: 0 }, 4: { ms: 0, gen: 0 }, 5: { ms: 0, gen: 0 } };
   // 학기·유형별 [시험점수 기준값, 실력 차이 폭]. EXAM_PIVOT은 보정 전 평균적인 학생의 점수입니다.
-  // v0.14.2: 1-1을 기준으로 수학·과학 -1.0, 일반 과목 -0.8씩 매 학기 완만하게 난도를 올립니다.
-  // 학기별 학습 격차의 민감도(두 번째 값), 지능·공부량 보상, 심야·새벽 자습 페널티는 그대로 유지합니다.
+  // v0.14.3: 1-1의 기초 성적을 현실에 가깝게 높이고, 저점에서 점수 변동을 완화합니다.
+  // 1-2 이후 기준값과 실력 차이 폭은 v0.14.2 그대로 유지합니다.
   const EXAM_PIVOT = 84;
-  const EXAM_SHAPE = { 0:{ms:[74,2.65],gen:[77.5,2.0]}, 1:{ms:[73,2.15],gen:[76.7,1.7]}, 2:{ms:[72,2.5],gen:[75.9,1.9]}, 3:{ms:[71,3.0],gen:[75.1,2.3]}, 4:{ms:[70,3.0],gen:[74.3,2.3]}, 5:{ms:[69,3.0],gen:[73.5,2.3]} };
+  const EXAM_SHAPE = { 0:{ms:[77,2.2],gen:[79.5,1.8]}, 1:{ms:[73,2.15],gen:[76.7,1.7]}, 2:{ms:[72,2.5],gen:[75.9,1.9]}, 3:{ms:[71,3.0],gen:[75.1,2.3]}, 4:{ms:[70,3.0],gen:[74.3,2.3]}, 5:{ms:[69,3.0],gen:[73.5,2.3]} };
   const MATH_SCIENCE = ['math', 'physics', 'chemistry', 'biology', 'earth', 'ai'];
   function courseKind(sub) {
     if (sub.kind) return sub.kind;
@@ -745,7 +745,7 @@
     s.universityInterview = null; s.admissionStage = 'awaiting_results';
     return s.turn >= 40 && !s.admissions ? resultsEvent() : null;
   }
-  function resultsEvent() { return { id: 'university_results', title: '대학 전형 결과가 도착했다', description: '원서와 학교생활, 면접에서 나눈 이야기를 바탕으로 결과가 도착했다. 합격한 경우에도 졸업 요건을 충족해야 진학할 수 있다.', choices: [{ label: '전형 결과 확인', description: '다음 출발을 확인한다.', resolveAdmissions: true }] }; }
+  function resultsEvent() { return { id: 'university_results', title: '대학 전형 결과가 도착했다', description: '원서와 학교생활, 면접에서 나눈 이야기를 바탕으로 결과가 도착했다. 졸업이 원칙이나 대학별 조기진학 자격을 인정받으면 고교 수료 후 진학할 수도 있다.', choices: [{ label: '전형 결과 확인', description: '다음 출발을 확인한다.', resolveAdmissions: true }] }; }
   function scheduleEvents(s) {
     syncRoleTerms(s, true);
     const events = [];
@@ -843,7 +843,13 @@
       const raw = 46 - examFatigue + ability(s.stats.intelligence) * 0.17 + intelligenceMastery + ability(s.stats.discipline) * 0.1 + preparation + midtermAdjustment + academicAffinity + researchBoost + bonus - courseDifficulty - healthPenalty - stressPenalty - (s.illnessWeeks > 0 ? 7 : 0) + (s.stats.luck - 50) * 0.04;
       // v0.13 과목표: 반 평균이 실제 시험(어려우면 65점, 쉬우면 70점대 후반, 인문은 조금 높게)처럼 나오도록 평균과 폭을 맞춥니다.
       const shape = s.courseTable === 2 ? (EXAM_SHAPE[termIndex(s)] || EXAM_SHAPE[5])[kindKey] : null;
-      const score = round(clamp(shape ? shape[0] + (raw + calibration - EXAM_PIVOT) * shape[1] + noise * 0.8 : raw + calibration + noise));
+      // v0.14.3: 1-1에서는 중등 기초학습을 인정해 공부량이 적어도
+      // 학점이 3점 초반까지 자주 떨어지지 않도록 작은 점수 완충을 제공합니다.
+      // 실제 과목별 지필 점수에만 적용되어 성적표(과목 등급·GPA)가 일관됩니다.
+      // 1-2부터는 적용하지 않으며, 공부를 많이 한 학생의 A+ 보상도 유지됩니다.
+      const firstTermFoundation = s.courseTable === 2 && termIndex(s) === 0
+        ? Math.min(4, Math.max(0, 28 - knowledge) * 0.2) : 0;
+      const score = round(clamp((shape ? shape[0] + (raw + calibration - EXAM_PIVOT) * shape[1] + noise * 0.8 : raw + calibration + noise) + firstTermFoundation));
       return { ...sub, score };
     });
   }
@@ -1271,7 +1277,7 @@
       { id: 'national', label: '올림피아드 국가대표', earned: has('nationalTeam') },
       { id: 'contestGold', label: '교내 대회 금상', earned: awards.some(a => a.kind === 'contest' && a.tier === '금상') },
       { id: 'subjects', label: '교과우수상 8개 이상', earned: subjectAwards >= 8 },
-      { id: 'snu', label: '서울대 합격', earned: (s.admissions || []).some(a => a.id === 'seoul' && a.accepted && canEnroll(s, a) !== false) },
+      { id: 'snu', label: '서울대 합격', earned: (s.admissions || []).some(a => a.id === 'seoul' && a.accepted) },
       { id: 'ovr95', label: '졸업 OVR 95 이상', earned: s.turn >= 42 && s.alive !== false && getOverall(s) >= 95 }
     ];
     return { stars: list.filter(x => x.earned).length, list };
@@ -1286,7 +1292,8 @@
     const accepted = (s.admissions || []).filter(a => a.accepted && canEnroll(s, a) !== false), uni = accepted.find(a => a.id === 'seoul') || accepted.find(a => ['kaist', 'postech'].includes(a.id)) || accepted[0];
     const stars = getAchievements(s).stars;
     const timeline = [];
-    timeline.push({ age: 19, text: uni ? `${uni.name} ${uni.majorName || ''}에 입학했다.`.replace(' 에', '에') : '재수 끝에 이공계 대학에 입학했다.' });
+    const earnedCredits = getGraduationStatus(s).totalCredits;
+    timeline.push({ age: 19, text: uni ? `${uni.name} ${uni.majorName || ''}에 입학했다.`.replace(' 에', '에') : earnedCredits < 180 ? `이수 학점 ${earnedCredits}/180으로 졸업 요건을 충족하지 못해 진학 가능한 전형과 학점 보완 방법을 다시 찾았다.` : '진학 가능한 대학을 다시 찾으며 다음 도전을 준비했다.' });
     const phd = careerRoll(s, 'phd') < 0.3 + 0.6 * q;
     if (!phd) {
       const job = careerRoll(s, 'job') < 0.5 ? '반도체 회사 연구소' : careerRoll(s, 'job2') < 0.5 ? '스타트업 공동창업' : '국책연구소 연구원';
@@ -1399,7 +1406,7 @@
   function resolveAdmissions(s){
     assertAlive(s);if(s.admissions)return s.admissions;
     ensureAdmissionRolls(s);
-    s.admissions=s.applications.map(id=>{const u=universities.find(x=>x.id===id),status=getAdmissionStatus(s,id),chance=getAdmissionChance(s,id),roll=s.admissionRolls[id];return{id,name:u.name,majorId:s.applicationMajors[id]||'general',majorName:appUnitName(s,id,s.applicationMajors[id]||'general'),hopeMajor:majors.getMajor(s.applicationMajors[id]||'general')?.name||'자유 탐색',accepted:roll<chance,conditional:true,probability:Math.round(chance*100),evaluatedGpa:status.gpa,reason:status.eligible?'원서 제출 당시의 학년 석차와 연구·수상 기록, 면접 답변을 종합한 게임 전형 결과입니다. 최종 진학은 졸업 요건 충족이 필요합니다.':`${status.requirementText} 조건을 충족하지 못했습니다. 실제 대학의 합격 기준이 아닌 게임 규칙입니다.`};});
+    s.admissions=s.applications.map(id=>{const u=universities.find(x=>x.id===id),status=getAdmissionStatus(s,id),chance=getAdmissionChance(s,id),roll=s.admissionRolls[id];return{id,name:u.name,majorId:s.applicationMajors[id]||'general',majorName:appUnitName(s,id,s.applicationMajors[id]||'general'),hopeMajor:majors.getMajor(s.applicationMajors[id]||'general')?.name||'자유 탐색',accepted:roll<chance,conditional:true,probability:Math.round(chance*100),evaluatedGpa:status.gpa,reason:status.eligible?'원서 제출 당시의 학년 석차와 연구·수상 기록, 면접 답변을 종합한 게임 전형 결과입니다. 최종 진학은 졸업 또는 대학별 조기입학 자격 충족에 따라 결정됩니다.':`${status.requirementText} 조건을 충족하지 못했습니다. 실제 대학의 합격 기준이 아닌 게임 규칙입니다.`};});
     s.admissionStage='results';return s.admissions;
   }
   function recordToeic(s){
@@ -1439,7 +1446,7 @@
     if (crisisLimit(s)) triggerEmergency(s); nextEvent(s); updateEnding(s);
     return { ...result, event: s.pendingEvent };
   }
-    // v0.13.4: 연구(현장연구) 6학점·TOEIC 730점을 못 채워 졸업하지 못하면, 고등학교 과정 이수만으로 받는 대학(KAIST)만 진학할 수 있습니다.
+    // 과기원은 과학영재선발 등 별도 자격이 있는 입학생의 고교 수료 기반 진학 경로를 지원합니다.
   // v0.14 복잡도 개선: 「추천 원서」 — 학년 석차에 맞춰 수시 6장(서울대 1장 포함) + 과학기술원 4곳을 고릅니다.
   function recommendApplications(s) {
     const opts = majors.getOptions(s).filter(m => m.unlocked);
@@ -1454,10 +1461,19 @@
     return [...general, 'kaist', 'gist', 'dgist', 'unist'].map(universityId => universityId === 'seoul' && fieldUnit ? { universityId, majorId: fieldUnit.base, unitId: fieldUnit.id } : ({ universityId, majorId: pick }));
   }
   function canEnroll(s, r) {
-    if (!r || !r.accepted) return false;
+    // 합격과 진학은 독립. 180학점은 고교 졸업 조건이지 모든 대학의 일률적인 입학 조건은 아닙니다.
+    if (!r || !r.accepted || s.alive === false) return false;
     const u = universities.find(x => x.id === r.id);
+    const explicitEarlyApproval = r.earlyAdmissionApproved === true || s.earlyAdmissionQualifications?.[r.id] === true;
+    // 2학년 조기진학은 대학별 자격 심사 결과가 명시되어야 하며, 수료만으로는 자동 허용하지 않습니다.
+    if (s.turn < 42) return s.turn >= 28 && explicitEarlyApproval && (u?.completionOk || r.id === 'postech') ? true : null;
+    if (s.ending === 'graduated' && getGraduationStatus(s).creditsPassed) return true;
+    // 본 게임에서는 3년 과정 종료 뒤 과기원 전형에 합격했다면, 해당 대학의 별도 선발자격 검증을
+    // 합격 단계에 포함한 것으로 간주합니다. 실제 입시는 학교·대학별 사전 자격 심사가 필요합니다.
     if (u && u.completionOk) return true;
-    return s.turn < 42 ? null : s.ending === 'graduated';
+    // POSTECH은 상급학교 조기입학/조기졸업 자격 및 학교장 승인이 따로 필요합니다.
+    if (r.id === 'postech' && explicitEarlyApproval) return true;
+    return false;
   }
   const API = { typeFromTalents, TYPE_THRESHOLD, RNE_FIELDS, getRne: s => rneState(s), talentBounds, TALENT_TOTAL, TALENT_TOTAL_MIN, TALENT_MIN, TALENT_MAX, simulateSpan, continueSpan, spanLength, SNU_UNITS, snuUnitFor, recommendApplications, canEnroll, academicField, LEGACY_ACADEMIC, TERM_WEEKS, TOTAL_WEEKS, legacyWeekToNew, getAchievements, getCareer, getOverall, ensurePotential, OVR_SHAPE, OVR_WEIGHTS, getClassRank, courseKind, EXAM_CALIBRATION, EXAM_SHAPE, coreTables, create, migrate, getPhase, getSubjects, actions, advance, chooseEvent, setClubs, chooseElectives, applyUniversities, getProfile, academicClubs, activityClubs, sportsClubs, archetypes, departments, electives, universities, statLabels, getSportsChance, getIllnessRisk, getLeadershipBonus, getCouncilChance, getCaptainChance, councilRoles, getDormStatus, getEmergencySurvivalChance, getTournamentEligibility, getOlympiadChance, getAdmissionChance, getAdmissionStatus, unitName, APPLICATION_LIMIT, PLAN_BLOCKS, normalizePlan, planLabel, setStudyPlannerDay, setStudyPlannerWeek, plannerWeekLevel, plannerWindow, plannerFractions, PLANNER_DAYS, takeToeic, prepareToeic, getGraduationStatus, getGrade: letter, getActionDisabledReason, setGender, getShop, buyItem, shopPeriod: s => campus.shopPeriod(s), shopStock: s => campus.shopStock(s), shopItems: campus.shopItems, campusActions: campus.actions, classmates: campus.classmates, getDormDiscipline: campus.getDormStatus, getFieldStatus: school.getFieldStatus, makeupFieldTrip, cohortSummary: school.cohortSummary, getClassRoleBonus: school.getClassRoleBonus, focuses, getFocus, setFocus, simulateWeek, getCommitmentDisabledReason, enrollSemester, getEnrollmentOptions: curriculum.getEnrollmentOptions, recommendEnrollment: curriculum.recommendEnrollment, validateEnrollment: curriculum.validateEnrollment, needsEnrollment: curriculum.needsEnrollment, getCurriculumStatus: curriculum.getStatus, getCourseEvidence: curriculum.getEvidence, getCourseWorkload: curriculum.workload, getCourseMakeupOptions: curriculum.getMakeupOptions, makeupCourse, getMajorOptions: majors.getOptions, getMajorsForUniversity: majors.majorsForUniversity, getMajor: majors.getMajor, getMajorInterviewQuestion: majors.getInterviewQuestion, validateMajorApplications: majors.validateApplications };
   root.GSAEngine = API;

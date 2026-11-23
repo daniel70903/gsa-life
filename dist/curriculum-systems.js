@@ -82,7 +82,7 @@
     function getEnrollmentOptions(s){
       const term=termAt(s),used=alreadySelected(s,term);
       const courses=CATALOG.filter(c=>c.terms.includes(term)&&!used.has(c.id)).map(c=>({...c,term,source:c.id==='information_project'&&term===5?'편성표 기반 게임 개설':c.source}));
-      return {term,year:Math.floor(term/2)+1,semester:term%2+1,courses,requiredCourses:requiredCourses(term),rules:{specialistMin:6,specialistMax:16,liberalMin:0,liberalMax:4,designCredits:term<5?3:0,designCount:term<5?1:0},notes:['과거 개설 표시는 2022·2024·2025년 공식 교재 목록에서 확인한 과목입니다. 여러 연도 과목을 한 게임에서 함께 선택하도록 재구성했으며, 2026년 실제 개설을 뜻하지 않습니다.','학기별 전문선택 6~16학점·융합교양 0~4학점은 게임 규칙입니다.','자율설계는 2학년 2학기와 3학년 1학기에 3학점씩 배분했습니다. 실제 고정 배분으로 확인된 규칙이 아닙니다.','미적분학Ⅰ 4학점·수학세미나Ⅱ 3학점은 해당 학기 교재 목록 표기를 게임에 사용합니다. 편성표에는 각각 3·4학점으로 표시되어 있습니다.','Ⅰ 과목을 먼저 통과해야 Ⅱ를 듣는다는 선수조건은 설정하지 않았습니다.','3학년 2학기 정보과목 일부는 공식 편성표를 바탕으로 게임에서 개설한 과목입니다. 실제 해당 학기 개설 확정 목록은 아닙니다.'],readOnly:s.turn<21||s.turn>=42||!!s.curriculum?.plans?.[term]||s.curriculum?.legacyOngoingTerm===term};
+      return {term,year:Math.floor(term/2)+1,semester:term%2+1,courses,requiredCourses:requiredCourses(term),rules:{specialistMin:6,specialistMax:null,liberalMin:0,liberalMax:4,designCredits:term<5?3:0,designCount:term<5?1:0},notes:['과거 개설 표시는 2022·2024·2025년 공식 교재 목록에서 확인한 과목입니다. 여러 연도 과목을 한 게임에서 함께 선택하도록 재구성했으며, 2026년 실제 개설을 뜻하지 않습니다.','학기별 전문선택 최소 6학점(최대 제한 없음)·융합교양 0~4학점은 게임 규칙입니다.','자율설계는 2학년 2학기와 3학년 1학기에 3학점씩 배분했습니다. 실제 고정 배분으로 확인된 규칙이 아닙니다.','미적분학Ⅰ 4학점·수학세미나Ⅱ 3학점은 해당 학기 교재 목록 표기를 게임에 사용합니다. 편성표에는 각각 3·4학점으로 표시되어 있습니다.','Ⅰ 과목을 먼저 통과해야 Ⅱ를 듣는다는 선수조건은 설정하지 않았습니다.','3학년 2학기 정보과목 일부는 공식 편성표를 바탕으로 게임에서 개설한 과목입니다. 실제 해당 학기 개설 확정 목록은 아닙니다.'],readOnly:s.turn<21||s.turn>=42||!!s.curriculum?.plans?.[term]||s.curriculum?.legacyOngoingTerm===term};
     }
     function needsEnrollment(s){if(s.alive===false||s.turn<21||s.turn>=42)return false;const t=termAt(s),q=s.curriculum;return !q?.plans?.[t]&&q?.legacyOngoingTerm!==t;}
     function validateEnrollment(s,ids){
@@ -91,14 +91,14 @@
       if(new Set(ids).size!==ids.length)errors.push('같은 과목을 두 번 선택할 수 없어요.');
       const courses=ids.map(id=>options.courses.find(c=>c.id===id));if(courses.some(c=>!c))errors.push('이번 학기에 선택할 수 없는 과목이 포함되어 있어요.');
       const found=courses.filter(Boolean),summary=choiceTotals(found),designCount=found.filter(c=>c.category==='design').length;
-      if(summary.specialist<6||summary.specialist>16)errors.push('전문선택은 한 학기에 6~16학점을 골라 주세요.');
+      if(summary.specialist<6)errors.push('전문선택은 한 학기에 최소 6학점을 골라 주세요.');
       if(summary.liberal>4)errors.push('융합·교양은 한 학기에 최대 4학점까지 골라 주세요.');
       if(term<5&&(designCount!==1||summary.design!==3))errors.push('자율설계 3학점 과목을 정확히 하나 골라 주세요.');
       if(term===5&&summary.design!==0)errors.push('자율설계는 3학년 1학기까지 선택해요.');
       const cumulative=add(basePlanTotals(s,term),summary),future=5-term;
       const blocked=alreadySelected(s,term);for(const id of ids)blocked.add(id);
       function capacity(category,t,limit){let possible=new Set([0]);for(const c of CATALOG.filter(c=>c.category===category&&c.terms.includes(t)&&!blocked.has(c.id))){const next=new Set(possible);for(const n of possible)if(n+c.credits<=limit)next.add(n+c.credits);possible=next;}return Math.max(...possible);}
-      let futureSpecialist=0,futureLiberal=0;for(let t=term+1;t<=5;t++){futureSpecialist+=capacity('specialist',t,16);futureLiberal+=capacity('liberal',t,4);}
+      let futureSpecialist=0,futureLiberal=0;for(let t=term+1;t<=5;t++){futureSpecialist+=capacity('specialist',t,Infinity);futureLiberal+=capacity('liberal',t,4);}
       if(cumulative.specialist+futureSpecialist<28)errors.push('남은 학기를 포함해 전문선택 28학점을 채울 수 있도록 더 선택해 주세요.');
       if(cumulative.liberal+futureLiberal<4)errors.push('졸업 전 융합·교양 4학점을 채울 수 있도록 선택해 주세요.');
       if(cumulative.design+(term===3?3:0)<6)errors.push('자율설계 누적 6학점을 채우는 계획이 필요해요.');
